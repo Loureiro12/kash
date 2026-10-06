@@ -23,6 +23,34 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
 
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      - run: supabase start
+      - name: pgTAP
+        run: supabase test db
+      - name: Contrato de tipos (gen types sem diff)
+        run: |
+          supabase gen types typescript --local > /tmp/database.types.ts
+          npx prettier --write /tmp/database.types.ts packages/supabase-client/src/database.types.ts >/dev/null
+          diff -q /tmp/database.types.ts packages/supabase-client/src/database.types.ts
+      - name: Integração (Vitest contra o Supabase local)
+        run: pnpm --filter @kash/supabase-client test
+      - if: always()
+        run: supabase stop --no-backup
+
   # E2E (Maestro) exige simulador iOS — roda em macOS e só manualmente/por tag para não travar PRs.
   e2e-ios:
     if: github.event_name == 'workflow_dispatch'

@@ -29,6 +29,8 @@ export interface Card {
 }
 
 export type TxKind = 'expense' | 'income';
+/** Onde um lançamento/conta fixa é cobrado. Ids do backend são uuid; o seed usa prefixos "acc"/"card". */
+export type SourceType = 'account' | 'card';
 
 export interface Tx {
   id: ID;
@@ -40,6 +42,8 @@ export interface Tx {
   date: string;
   /** Account.id ou Card.id */
   sourceId: ID;
+  /** tipo da origem (preenchido pelo backend; no seed deriva do prefixo do id) */
+  sourceType?: SourceType;
   /** parcela de um plano de parcelamento */
   planId?: ID;
 }
@@ -57,6 +61,7 @@ export interface Bill {
   category: Category;
   /** onde a cobrança acontece: Card.id (entra na fatura) ou Account.id (debita o saldo) */
   sourceId?: ID;
+  sourceType?: SourceType;
   /** lançamento gerado ao marcar como paga neste mês (removido ao desmarcar) */
   paidTxId?: ID;
 }
@@ -130,3 +135,10 @@ export const CATEGORIES: Category[] = ['Comida', 'Transporte', 'Lazer', 'Mercado
 
 export const isCardId = (id: ID) => id.startsWith('card');
 export const isAccountId = (id: ID) => id.startsWith('acc');
+
+/** Tipo da origem de um lançamento/conta fixa, com fallback pelo prefixo do id (seed). */
+export function sourceTypeOf(item: { sourceId?: ID; sourceType?: SourceType }): SourceType | null {
+  if (item.sourceType) return item.sourceType;
+  if (!item.sourceId) return null;
+  return isCardId(item.sourceId) ? 'card' : isAccountId(item.sourceId) ? 'account' : null;
+}

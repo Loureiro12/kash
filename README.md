@@ -105,6 +105,20 @@ Mudou ícone ou splash? Regere o projeto nativo: `npx expo prebuild --clean` e d
 
 Convenção de `testID`: kebab-case por área: `tab-add`, `chip-cat-Comida`, `bill-bill2`, `sheet-expense-close`, `report-back`.
 
+## Backend (Supabase)
+
+Schema, RLS, views e RPCs em `supabase/migrations`; seed local com a usuária Lara (`lara@email.com` / `123456`) e helpers de teste em `supabase/seed.sql`; testes pgTAP em `supabase/tests`. O pacote `@kash/supabase-client` expõe o cliente tipado, repositórios e mappers para o domínio, com testes de integração (Vitest) contra o banco local.
+
+```bash
+pnpm db:start        # sobe o stack local (Docker)
+pnpm db:reset        # reaplica migrações + seed
+pnpm db:test         # pgTAP
+pnpm test:backend    # pgTAP + integração
+pnpm db:types        # regenera packages/supabase-client/src/database.types.ts (o CI falha se houver drift)
+```
+
+Decisões (ver `docs/plano-integracao-supabase.md`): saldo de conta é uma view (abertura + lançamentos), escritas multi-linha são RPCs (`pay_bill`, `pay_invoice`, `add_installment_purchase`, `soft_delete_transaction`/`undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`), e a virada de mês roda por RPC ao abrir o app e por `pg_cron` diariamente.
+
 ## Auth simulada e virada de mês
 
 - Login, cadastro e "esqueci a senha" têm validação, estado carregando e erros. Sem backend, o store simula: senha `errada123` → credencial inválida; e-mail terminando em `@offline.test` → falha de rede; qualquer outra combinação entra (cadastro exige 6+ caracteres).

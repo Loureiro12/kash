@@ -10,7 +10,13 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "e2e:ios": "pnpm --filter mobile e2e:ios",
-    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml,yml}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yaml,yml}\"",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:types": "pnpm --filter @kash/supabase-client gen:types",
+    "test:backend": "pnpm db:test && pnpm --filter @kash/supabase-client test"
   },
   "devDependencies": {
     "prettier": "^3.9.9",
