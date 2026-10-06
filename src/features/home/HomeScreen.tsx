@@ -19,7 +19,7 @@ import { greetingFor } from '@/domain/dates';
 import { formatBRL } from '@/domain/money';
 import { forecastHeights } from '@/domain/selectors/forecast';
 import { now } from '@/lib/clock';
-import { useForecast, useHomeSummary, useKashStore, useMoney, useRecentTxs, useUpcomingBills } from '@/store';
+import { useForecast, useHomeSummary, useKashStore, useMoney, useOpenInvoices, useRecentTxs, useUpcomingBills } from '@/store';
 import { TxRow } from '../transactions/TxRow';
 
 /** Tela 3 — Início. */
@@ -34,6 +34,7 @@ export function HomeScreen() {
   const setAccountsSegment = useKashStore((s) => s.setAccountsSegment);
   const summary = useHomeSummary();
   const bills = useUpcomingBills();
+  const invoices = useOpenInvoices();
   const forecast = useForecast();
   const recent = useRecentTxs(6);
   const heights = forecastHeights(forecast, 10);
@@ -122,8 +123,21 @@ export function HomeScreen() {
 
       {/* Próximas contas */}
       <SectionHeader title="Próximas contas" actionLabel="ver todas" onAction={goToBills} actionTestID="home-bills-see-all" />
-      {bills.length > 0 ? (
+      {bills.length > 0 || invoices.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginRight: -20 }} contentContainerStyle={{ gap: 10, paddingRight: 20 }}>
+          {invoices.map((inv) => (
+            <Card key={inv.id} variant="accent" radius="card" padding={14} onPress={() => router.navigate('/cards')} style={{ width: 150, gap: 4 }} testID={`home-invoice-${inv.id}`}>
+              <Text variant="micro" color={staticColors.ink} opacity={0.75}>
+                fatura vence {inv.dueLabel}
+              </Text>
+              <Text variant="bodySemibold" color={staticColors.ink} numberOfLines={1}>
+                {inv.cardName}
+              </Text>
+              <Text variant="valueLg" color={staticColors.ink} style={{ marginTop: 4 }}>
+                {formatBRL(inv.total)}
+              </Text>
+            </Card>
+          ))}
           {bills.map((b) => (
             <Card key={b.id} radius="card" padding={14} style={{ width: 140, gap: 4 }} testID={`home-bill-${b.id}`}>
               <Text variant="micro" color="muted">

@@ -77,3 +77,30 @@ export function greetingFor(now: Date): string {
 export function longDate(d: Date): string {
   return `${d.getDate()} de ${MONTH_NAMES[d.getMonth()]} de ${d.getFullYear()}`;
 }
+
+/** "yyyy-mm" de uma data. */
+export function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function monthKeyToDate(key: string): Date {
+  const [y, m] = key.split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, 1);
+}
+
+/** Chaves de mês estritamente depois de `from` até `to` (inclusive), em ordem. */
+export function monthKeysBetween(from: string, to: string): string[] {
+  const out: string[] = [];
+  const d = monthKeyToDate(from);
+  d.setMonth(d.getMonth() + 1);
+  while (monthKey(d) <= to) {
+    out.push(monthKey(d));
+    d.setMonth(d.getMonth() + 1);
+  }
+  return out;
+}
+
+/** Nome do mês de uma chave "yyyy-mm". */
+export function monthKeyName(key: string): string {
+  return MONTH_NAMES[monthKeyToDate(key).getMonth()] as string;
+}

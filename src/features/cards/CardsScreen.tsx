@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import {
+  Button,
   Card,
   CreditCardFace,
   EmptyState,
@@ -28,7 +29,10 @@ export const gradientFor = (card: CardModel) => cardGradients.find((g) => g.id =
 export function CardsScreen() {
   const { colors } = useTheme();
   const money = useMoney();
-  const { list, selected, selectedTxs, selectedPlans, selectedBills } = useCardsOverview();
+  const { list, selected, selectedTxs, selectedPlans, selectedBills, selectedInvoices } = useCardsOverview();
+  const openPayInvoice = useKashStore((s) => s.openPayInvoice);
+  const openInvoice = selectedInvoices.find((i) => !i.paid);
+  const lastPaid = selectedInvoices.find((i) => i.paid);
   const selectCard = useKashStore((s) => s.selectCard);
   const openSheet = useKashStore((s) => s.openSheet);
   const openEdit = useKashStore((s) => s.openEdit);
@@ -112,6 +116,29 @@ export function CardsScreen() {
               </Card>
             </View>
           </Card>
+
+          {openInvoice ? (
+            <Card variant="accent" padding={[16, 18]} style={{ marginTop: 12, gap: 10 }} testID="cards-invoice-open">
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <Text variant="titleBold" color="#0B0C0E">
+                  Fatura de {openInvoice.monthName} fechada
+                </Text>
+                <Text variant="chip" color="#0B0C0E" opacity={0.75}>
+                  vence {openInvoice.dueLabel}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text variant="amountCard" color="#0B0C0E" testID="cards-invoice-total">
+                  {money(openInvoice.total)}
+                </Text>
+                <Button label="Pagar fatura" variant="inverse" size="sm" fullWidth={false} onPress={() => openPayInvoice(openInvoice.id)} testID="cards-invoice-pay" />
+              </View>
+            </Card>
+          ) : lastPaid ? (
+            <Text variant="meta" color="muted" style={{ marginTop: 12, marginLeft: 4 }} testID="cards-invoice-paid">
+              Fatura de {lastPaid.monthName} paga{lastPaid.paidAt ? ` em ${lastPaid.paidAt.slice(8, 10)}/${lastPaid.paidAt.slice(5, 7)}` : ''} · {money(lastPaid.total)}
+            </Text>
+          ) : null}
 
           {selectedPlans.length > 0 ? (
             <>

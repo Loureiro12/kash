@@ -13,11 +13,13 @@ export interface InputProps extends TextInputProps {
   containerStyle?: StyleProp<ViewStyle>;
   /** label menor com padding (sheets) */
   labelSize?: 'md' | 'sm';
+  /** mensagem de erro: borda e texto em `neg` */
+  error?: string | null;
 }
 
 /** Campo de texto padrão: surface, borda line, raio 14. */
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, height = 48, containerStyle, labelSize = 'md', style, onFocus, ...rest },
+  { label, height = 48, containerStyle, labelSize = 'md', style, onFocus, error, testID, ...rest },
   ref,
 ) {
   const { colors } = useTheme();
@@ -44,12 +46,15 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
           onFocus?.(e);
         }}
         {...rest}
+        testID={testID}
+        accessibilityState={{ ...(rest.accessibilityState ?? {}) }}
+        accessibilityHint={error ?? rest.accessibilityHint}
         style={[
           {
             height,
             borderRadius: radii.input,
             borderWidth: 1,
-            borderColor: colors.line,
+            borderColor: error ? colors.neg : colors.line,
             backgroundColor: colors.surface,
             color: colors.text,
             paddingHorizontal: height === 52 ? 16 : 14,
@@ -60,6 +65,11 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
           style,
         ]}
       />
+      {error ? (
+        <Text variant="meta" color="neg" testID={testID ? `${testID}-error` : undefined}>
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 });

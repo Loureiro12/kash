@@ -36,6 +36,70 @@ describe('fluxo de auth', () => {
   });
 });
 
+describe('auth simulada', () => {
+  it('signIn: credencial inválida, offline e sucesso', async () => {
+    jest.useFakeTimers();
+    const s = useKashStore.getState();
+    let p = s.signIn({ email: 'lara@email.com', password: 'errada123' });
+    await act(async () => { jest.runAllTimers(); });
+    expect(await p).toBe(false);
+    expect(useKashStore.getState().authRequest).toEqual({ status: 'error', error: 'E-mail ou senha incorretos.' });
+    p = s.signIn({ email: 'lara@offline.test', password: '123456' });
+    await act(async () => { jest.runAllTimers(); });
+    expect(await p).toBe(false);
+    expect(useKashStore.getState().authRequest.error).toMatch(/Sem conexão/);
+    p = s.signIn({ email: 'lara@email.com', password: '123456' });
+    await act(async () => { jest.runAllTimers(); });
+    expect(await p).toBe(true);
+    expect(useKashStore.getState().auth).toBe('app');
+    jest.useRealTimers();
+  });
+  it('signUp atualiza nome/e-mail e entra; reset de senha confirma', async () => {
+    jest.useFakeTimers();
+    const p = useKashStore.getState().signUp({ name: ' Ana ', email: 'ana@email.com', password: '123456' });
+    await act(async () => { jest.runAllTimers(); });
+    expect(await p).toBe(true);
+    expect(useKashStore.getState().user).toMatchObject({ name: 'Ana', email: 'ana@email.com' });
+    const r = useKashStore.getState().requestPasswordReset('ana@email.com');
+    await act(async () => { jest.runAllTimers(); });
+    expect(await r).toBe(true);
+    expect(useKashStore.getState().authRequest.status).toBe('success');
+    jest.useRealTimers();
+  });
+});
+
+describe('fatura', () => {
+  it('seed tem a fatura do mês passado em aberto e rolloverIfNeeded não altera no mesmo mês', () => {
+    const s = useKashStore.getState();
+    expect(s.invoices[0]).toMatchObject({ cardId: 'card1', month: '2026-09', total: 1240.3, paid: false });
+    act(() => useKashStore.getState().rolloverIfNeeded());
+    expect(useKashStore.getState().invoices).toHaveLength(1);
+  });
+  it('rolloverIfNeeded processa a virada quando o mês mudou', () => {
+    act(() => useKashStore.setState({ lastRolloverMonth: '2026-09', bills: useKashStore.getState().bills.map((b) => ({ ...b, paid: true })) }));
+    act(() => useKashStore.getState().rolloverIfNeeded());
+    const s = useKashStore.getState();
+    expect(s.lastRolloverMonth).toBe('2026-10');
+    expect(s.bills.every((b) => !b.paid)).toBe(true);
+    expect(s.plans.find((p) => p.id === 'plan1')?.current).toBe(6);
+  });
+  it('payInvoice debita a conta, marca paga e não conta como gasto; excluir o pagamento reabre', () => {
+    const spentBefore = useKashStore.getState().txs.filter((t) => t.amount < 0).length;
+    act(() => useKashStore.getState().payInvoice('inv1', 'acc1'));
+    let s = useKashStore.getState();
+    expect(s.accounts[0]?.balance).toBe(1100.2);
+    expect(s.invoices[0]).toMatchObject({ paid: true, paidAt: '2026-10-15' });
+    expect(s.txs[0]).toMatchObject({ title: 'Fatura Cartão principal', category: 'Fatura', amount: -1240.3, sourceId: 'acc1' });
+    expect(s.txs.filter((t) => t.amount < 0)).toHaveLength(spentBefore + 1);
+    act(() => useKashStore.getState().payInvoice('inv1', 'acc1'));
+    expect(useKashStore.getState().accounts[0]?.balance).toBe(1100.2);
+    act(() => useKashStore.getState().deleteTransaction(s.txs[0]!.id));
+    s = useKashStore.getState();
+    expect(s.invoices[0]?.paid).toBe(false);
+    expect(s.accounts[0]?.balance).toBe(2340.5);
+  });
+});
+
 describe('addTransaction', () => {
   it('à vista numa conta debita o saldo', () => {
     act(() => useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 1450, category: 'Comida', sourceId: 'acc1', note: 'Lanche', installments: 1 }));

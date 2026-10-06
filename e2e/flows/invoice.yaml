@@ -1,0 +1,42 @@
+appId: ${APP_ID}
+name: Fatura — fechada na Início e no cartão, pagamento pela conta
+tags: [critical]
+---
+- runFlow: ../subflows/login.yaml
+# fatura do mês passado aparece nas próximas contas
+- assertVisible:
+    id: "home-invoice-inv1"
+- tapOn:
+    id: "home-invoice-inv1"
+- assertVisible:
+    id: "cards-screen"
+- assertVisible:
+    id: "cards-invoice-open"
+- assertVisible: "R$ 1.240,30"
+- tapOn:
+    id: "cards-invoice-pay"
+- assertVisible:
+    id: "sheet-pay-invoice"
+- assertVisible: "Pagar R$ 1.240,30"
+# conta corrente tem 2.340,50: paga sem ficar negativa
+- tapOn:
+    id: "pay-invoice-account-acc1"
+- tapOn:
+    id: "pay-invoice-save"
+- assertVisible: 'Fatura de .* paga: R\$ 1\.240,30'
+- assertNotVisible:
+    id: "cards-invoice-open"
+- assertVisible:
+    id: "cards-invoice-paid"
+# saldo caiu e o pagamento aparece nos lançamentos, sem virar gasto do mês
+- tapOn:
+    id: "tab-home"
+- assertNotVisible:
+    id: "home-invoice-inv1"
+- assertVisible: "R$ 2.985,20"
+# gastos do mês não mudaram (o badge "saiu" fica fora de containers clicáveis)
+- assertVisible: "↓ R$ 473,40 saiu"
+- scrollUntilVisible:
+    element:
+      text: 'Fatura Cartão principal.*'
+    direction: DOWN

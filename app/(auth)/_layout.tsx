@@ -12,6 +12,8 @@ export default function AuthLayout() {
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
       <Stack.Screen name="login" />
+      <Stack.Screen name="signup" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="forgot" options={{ animation: "slide_from_right" }} />
     </Stack>
   );
 }

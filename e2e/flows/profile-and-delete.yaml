@@ -26,10 +26,33 @@ tags: [critical]
 - assertVisible:
     id: "login-screen"
 - waitForAnimationToEnd
+# cadastro: validação e criação (entra com o novo nome)
 - tapOn:
     id: "login-signup"
 - assertVisible:
-    id: "home-screen"
+    id: "signup-screen"
+- tapOn:
+    id: "signup-submit"
+- assertVisible: "Como a gente te chama?"
+- assertVisible: "Precisa aceitar os termos pra continuar."
+# aceita os termos antes de digitar (com o teclado aberto o checkbox e o botão ficam sob ele)
+- tapOn:
+    id: "signup-terms"
+- tapOn:
+    id: "signup-name"
+- inputText: "Ana"
+- pressKey: Enter
+- inputText: "ana@email.com"
+- pressKey: Enter
+- inputText: "Senha123"
+- assertVisible: "Senha forte"
+# "concluído" no teclado envia o formulário
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000
+- waitForAnimationToEnd
 
 # Excluir conta: precisa confirmar o checkbox
 - tapOn:

@@ -8,6 +8,9 @@ import { formatMoney } from '@/domain/money';
 import type { TxFilters } from '@/domain/selectors/transactions';
 import {
   activePlans,
+  cardInvoices,
+  invoiceView,
+  openInvoices,
   billSourceName,
   billsSummary,
   cardBills,
@@ -71,6 +74,12 @@ export function useUpcomingBills() {
   return useMemo(() => upcomingBills(bills), [bills]);
 }
 
+/** Faturas fechadas e não pagas, com nome do cartão e vencimento. */
+export function useOpenInvoices() {
+  const { invoices, cards } = useKashStore(useShallow((s) => ({ invoices: s.invoices, cards: s.cards })));
+  return useMemo(() => openInvoices(invoices).map((i) => invoiceView(i, cards)), [invoices, cards]);
+}
+
 export function useBillsSummary() {
   const bills = useKashStore((s) => s.bills);
   return useMemo(() => billsSummary(bills), [bills]);
@@ -88,8 +97,8 @@ export function useBillsView() {
 }
 
 export function useCardsOverview() {
-  const { cards, txs, plans, bills, accounts, selectedCardId } = useKashStore(
-    useShallow((s) => ({ cards: s.cards, txs: s.txs, plans: s.plans, bills: s.bills, accounts: s.accounts, selectedCardId: s.ui.selectedCardId })),
+  const { cards, txs, plans, bills, invoices, accounts, selectedCardId } = useKashStore(
+    useShallow((s) => ({ cards: s.cards, txs: s.txs, plans: s.plans, bills: s.bills, invoices: s.invoices, accounts: s.accounts, selectedCardId: s.ui.selectedCardId })),
   );
   return useMemo(() => {
     const today = now();
@@ -98,8 +107,9 @@ export function useCardsOverview() {
     const selectedTxs = selected ? txs.filter((t) => t.sourceId === selected.card.id).map((t) => txView(t, accounts, cards, today)) : [];
     const selectedPlans = selected ? activePlans(plans, selected.card.id, today) : [];
     const selectedBills = selected ? cardBills(bills, selected.card.id) : [];
-    return { list, selected, selectedTxs, selectedPlans, selectedBills };
-  }, [cards, txs, plans, bills, accounts, selectedCardId]);
+    const selectedInvoices = selected ? cardInvoices(invoices, selected.card.id).map((i) => invoiceView(i, cards)) : [];
+    return { list, selected, selectedTxs, selectedPlans, selectedBills, selectedInvoices };
+  }, [cards, txs, plans, bills, invoices, accounts, selectedCardId]);
 }
 
 export function useGoalsOverview() {

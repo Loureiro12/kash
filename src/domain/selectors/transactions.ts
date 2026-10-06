@@ -17,14 +17,14 @@ export interface TxView {
 /** Projeção de um lançamento para a linha de lista. */
 export function txView(tx: Tx, accounts: Account[], cards: Card[], now: Date): TxView {
   const isExpense = tx.amount < 0;
-  const color = isExpense && tx.category !== 'Entrada' ? categoryColors[tx.category] : staticColors.brandGreen;
+  const color = tx.category === 'Fatura' ? '#AAB2BF' : isExpense && tx.category !== 'Entrada' ? categoryColors[tx.category] : staticColors.brandGreen;
   const sourceName = cards.find((c) => c.id === tx.sourceId)?.name ?? accounts.find((a) => a.id === tx.sourceId)?.name ?? '';
   return {
     id: tx.id,
     title: tx.title,
     initial: (tx.title[0] ?? '?').toUpperCase(),
     color,
-    meta: `${relativeDayLabel(tx.date, now)} · ${isExpense ? tx.category : 'Entrada'} · ${sourceName}`,
+    meta: `${relativeDayLabel(tx.date, now)} · ${isExpense ? (tx.category === 'Fatura' ? 'Fatura' : tx.category) : 'Entrada'} · ${sourceName}`,
     amount: tx.amount,
     isExpense,
   };

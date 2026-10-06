@@ -8,7 +8,7 @@ export const totalBalance = (accounts: Account[]): number => round2(accounts.red
 export const monthTxs = (txs: Tx[], now: Date): Tx[] => txs.filter((t) => isSameMonth(t.date, now));
 
 export const monthSpent = (txs: Tx[], now: Date): number =>
-  round2(monthTxs(txs, now).filter((t) => t.amount < 0).reduce((a, t) => a + Math.abs(t.amount), 0));
+  round2(monthTxs(txs, now).filter((t) => t.amount < 0 && t.category !== 'Fatura').reduce((a, t) => a + Math.abs(t.amount), 0));
 
 export const monthIncome = (txs: Tx[], now: Date): number =>
   round2(monthTxs(txs, now).filter((t) => t.amount > 0).reduce((a, t) => a + t.amount, 0));

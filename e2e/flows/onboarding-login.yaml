@@ -8,15 +8,31 @@ tags: [smoke]
 - tapOn:
     id: "onboarding-cta"
 - assertVisible: "Bem-vindo de volta"
+# validação: campos vazios
+- tapOn:
+    id: "login-submit"
+- assertVisible: "Informe seu e-mail ou celular."
+- assertVisible: "Informe sua senha."
+# credencial inválida (senha simulada "errada123")
 - tapOn:
     id: "login-email"
 - inputText: "lara@email.com"
+- pressKey: Enter
+- inputText: "errada123"
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "login-error"
+    timeout: 5000
+- assertVisible: "E-mail ou senha incorretos."
+# senha certa
+# a senha é limpa automaticamente após credencial inválida; com o banner de erro o botão fica sob o teclado,
+# então o envio vai pela tecla "ir" do teclado (returnKeyType=go)
 - tapOn:
     id: "login-password"
 - inputText: "123456"
-- hideKeyboard
-- tapOn:
-    id: "login-submit"
+- pressKey: Enter
 - extendedWaitUntil:
     visible:
       id: "home-screen"

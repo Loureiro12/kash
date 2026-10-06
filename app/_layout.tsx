@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import React, { useCallback, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '@/design-system';
@@ -41,6 +42,16 @@ export default function RootLayout() {
 function RootNavigator() {
   const { colors, isDark } = useTheme();
   const auth = useKashStore((s) => s.auth);
+  const rolloverIfNeeded = useKashStore((s) => s.rolloverIfNeeded);
+
+  // Virada de mês: ao abrir e sempre que o app volta pro primeiro plano.
+  useEffect(() => {
+    rolloverIfNeeded();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') rolloverIfNeeded();
+    });
+    return () => sub.remove();
+  }, [rolloverIfNeeded]);
 
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(colors.bg);

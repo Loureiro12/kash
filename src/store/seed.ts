@@ -1,5 +1,5 @@
-import { addDays, toISODate } from '@/domain/dates';
-import type { Account, Bill, Card, Goal, Plan, Settings, Tx, User } from '@/domain/types';
+import { addDays, monthKey, toISODate } from '@/domain/dates';
+import type { Account, Bill, Card, Goal, Invoice, Plan, Settings, Tx, User } from '@/domain/types';
 
 /** Dados de demonstração (fase visual). Datas relativas ao dia atual. */
 export function seedData(today: Date) {
@@ -55,5 +55,9 @@ export function seedData(today: Date) {
     { id: 'goal3', name: 'Reserva de emergência', target: 5000, saved: 2100, color: '#C6F432', monthly: 250, accountId: 'acc2', depositDay: 1 },
   ];
 
-  return { user, settings, accounts, cards, plans, txs, bills, goals };
+  // fatura do mês passado do cartão principal, fechada e ainda não paga
+  const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const invoices: Invoice[] = [{ id: 'inv1', cardId: 'card1', month: monthKey(prev), total: 1240.3, paid: false }];
+
+  return { user, settings, accounts, cards, plans, txs, bills, goals, invoices, lastRolloverMonth: monthKey(today) };
 }

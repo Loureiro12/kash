@@ -16,7 +16,7 @@ export interface CategorySlice {
 export function categoryBreakdown(txs: Tx[], now: Date): CategorySlice[] {
   const byCat = new Map<Category, number>();
   for (const t of monthTxs(txs, now)) {
-    if (t.amount >= 0 || t.category === 'Entrada') continue;
+    if (t.amount >= 0 || t.category === 'Entrada' || t.category === 'Fatura') continue;
     byCat.set(t.category, (byCat.get(t.category) ?? 0) + Math.abs(t.amount));
   }
   const total = [...byCat.values()].reduce((a, b) => a + b, 0);

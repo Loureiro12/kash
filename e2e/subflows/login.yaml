@@ -1,4 +1,4 @@
-# Onboarding → Login → Início
+# Onboarding → Login (com credenciais válidas) → Início
 appId: ${APP_ID}
 ---
 - runFlow: launch-fresh.yaml
@@ -7,7 +7,11 @@ appId: ${APP_ID}
 - assertVisible:
     id: "login-screen"
 - tapOn:
-    id: "login-submit"
+    id: "login-email"
+- inputText: "lara@email.com"
+- pressKey: Enter
+- inputText: "123456"
+- pressKey: Enter
 - extendedWaitUntil:
     visible:
       id: "home-screen"

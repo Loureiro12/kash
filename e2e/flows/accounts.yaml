@@ -87,9 +87,10 @@ name: Contas — bancárias, fixas e nova conta
 - tapOn:
     id: "tab-cards"
 - assertVisible: "20%"
+# a seção fica abaixo do card de fatura fechada; rola até o item em si
 - scrollUntilVisible:
     element:
-      text: "Cobranças recorrentes"
+      text: "Já na fatura deste mês"
     direction: DOWN
-- assertVisible: "Já na fatura deste mês"
+    centerElement: true
 - assertVisible: "Spotify"

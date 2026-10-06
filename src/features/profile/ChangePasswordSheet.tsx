@@ -47,13 +47,14 @@ function ChangePasswordForm({ visible, onClose }: { visible: boolean; onClose: (
         value={next}
         onChangeText={setNext}
         secureTextEntry
-        textContentType="newPassword"
+        textContentType="oneTimeCode"
+        autoComplete="off"
         returnKeyType="next"
         submitBehavior="submit"
         onSubmitEditing={() => confirmRef.current?.focus()}
         testID="cp-new"
       />
-      <Input ref={confirmRef} label="Confirmar nova senha" labelSize="sm" value={confirm} onChangeText={setConfirm} secureTextEntry textContentType="newPassword" returnKeyType="done" testID="cp-confirm" />
+      <Input ref={confirmRef} label="Confirmar nova senha" labelSize="sm" value={confirm} onChangeText={setConfirm} secureTextEntry textContentType="oneTimeCode" autoComplete="off" returnKeyType="done" testID="cp-confirm" />
       {tooShort ? (
         <Text variant="meta" color="neg" testID="cp-error">
           A nova senha precisa ter pelo menos {MIN_LENGTH} caracteres.

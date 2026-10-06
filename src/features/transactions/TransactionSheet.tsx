@@ -38,7 +38,8 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
 
   const [kind, setKind] = useState<TxKind>(editing ? (editing.amount < 0 ? 'expense' : 'income') : 'expense');
   const [digits, setDigits] = useState(editing ? String(Math.round(Math.abs(editing.amount) * 100)) : '');
-  const [category, setCategory] = useState<Category>(editing && editing.category !== 'Entrada' ? editing.category : 'Comida');
+  const isInvoicePayment = editing?.category === 'Fatura';
+  const [category, setCategory] = useState<Category>(editing && editing.category !== 'Entrada' && editing.category !== 'Fatura' ? editing.category : 'Comida');
   const [sourceId, setSourceId] = useState(editing?.sourceId ?? sources[0]?.id ?? '');
   const [note, setNote] = useState(editing?.title ?? '');
   const [installments, setInstallments] = useState(1);
@@ -138,7 +139,7 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
         </Text>
       </View>
 
-      {!isIncome ? (
+      {!isIncome && !isInvoicePayment ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
           {CATEGORIES.map((c) => (
             <Chip key={c} label={c} dotColor={categoryColors[c]} selected={category === c} onPress={() => setCategory(c)} testID={`chip-cat-${c}`} />

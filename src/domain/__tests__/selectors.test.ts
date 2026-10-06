@@ -19,6 +19,11 @@ describe('saldo e mês', () => {
     expect(monthSpent(seed.txs, now)).toBeCloseTo(671.3, 2);
     expect(monthIncome(seed.txs, now)).toBe(1450);
   });
+  it('pagamento de fatura não conta como gasto do mês nem no relatório', () => {
+    const txs = [...seed.txs, { id: 'f', title: 'Fatura', category: 'Fatura' as const, amount: -500, date: '2026-10-10', sourceId: 'acc1' }];
+    expect(monthSpent(txs, now)).toBeCloseTo(671.3, 2);
+    expect(categoryBreakdown(txs, now).some((c) => (c.name as string) === 'Fatura')).toBe(false);
+  });
   it('ignora lançamentos de outro mês', () => {
     const txs = [{ id: 'x', title: 'Antigo', category: 'Comida' as const, amount: -100, date: '2026-09-01', sourceId: 'acc1' }];
     expect(monthSpent(txs, now)).toBe(0);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { useTheme } from '../theme';
 import { radii } from '../tokens/radii';
 import { Pressable } from './Pressable';
@@ -32,6 +32,8 @@ export interface ButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   disabled?: boolean;
+  /** mostra spinner e bloqueia o toque (mantém o rótulo para leitores de tela) */
+  loading?: boolean;
   fullWidth?: boolean;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -52,6 +54,7 @@ export function Button({
   variant = 'primary',
   size = 'lg',
   disabled = false,
+  loading = false,
   fullWidth = true,
   style,
   testID,
@@ -60,9 +63,10 @@ export function Button({
 }: ButtonProps) {
   const { colors } = useTheme();
   const s = sizes[size];
+  const blocked = disabled || loading;
 
   const palette = (() => {
-    if (disabled && (variant === 'primary' || variant === 'danger')) {
+    if (disabled && !loading && (variant === 'primary' || variant === 'danger')) {
       return { bg: colors.surface2, fg: colors.muted, border: 'transparent' };
     }
     switch (variant) {
@@ -89,11 +93,11 @@ export function Button({
     <Pressable
       testID={testID}
       onPress={onPress}
-      disabled={disabled}
-      haptic={disabled ? false : haptic}
+      disabled={blocked}
+      haptic={blocked ? false : haptic}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled }}
+      accessibilityState={{ disabled: blocked, busy: loading }}
       style={[
         styles.base,
         {
@@ -108,9 +112,13 @@ export function Button({
         style,
       ]}
     >
-      <Text variant={s.text} color={palette.fg} numberOfLines={1}>
-        {label}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color={palette.fg} testID={testID ? `${testID}-loading` : undefined} />
+      ) : (
+        <Text variant={s.text} color={palette.fg} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }

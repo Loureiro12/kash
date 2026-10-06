@@ -4,7 +4,8 @@ export type ID = string;
 
 /** Categoria de gasto. "Entrada" é usada apenas em lançamentos positivos. */
 export type Category = CategoryName;
-export type TxCategory = Category | 'Entrada';
+/** 'Fatura' = pagamento de fatura (saída da conta que não conta como gasto no relatório) */
+export type TxCategory = Category | 'Entrada' | 'Fatura';
 
 export interface Account {
   id: ID;
@@ -88,6 +89,19 @@ export interface Plan {
   current: number;
   /** valor de cada parcela */
   perInstallment: number;
+}
+
+/** Fatura fechada de um cartão num mês ("yyyy-mm"). */
+export interface Invoice {
+  id: ID;
+  cardId: ID;
+  /** mês de competência "yyyy-mm" */
+  month: string;
+  total: number;
+  paid: boolean;
+  paidTxId?: ID;
+  /** ISO date do pagamento */
+  paidAt?: string;
 }
 
 export type ThemeMode = 'dark' | 'light';

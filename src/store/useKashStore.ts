@@ -3,15 +3,36 @@ import type { CardGradient } from '@/design-system/tokens/colors';
 import { toISODate } from '@/domain/dates';
 import { round2 } from '@/domain/money';
 import { addToGoal, recordDeposit } from '@/domain/selectors/goals';
-import type { Account, Bill, Card, Category, Goal, Plan, Settings, ThemeMode, Tx, TxKind, User } from '@/domain/types';
+import { rollover } from '@/domain/selectors/rollover';
+import type { Account, Bill, Card, Category, Goal, Invoice, Plan, Settings, ThemeMode, Tx, TxKind, User } from '@/domain/types';
 import { isAccountId } from '@/domain/types';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 import { seedData } from './seed';
 
 export type AuthStatus = 'onboarding' | 'login' | 'app';
+/** estado de uma requisição de auth simulada */
+export type RequestStatus = 'idle' | 'loading' | 'error' | 'success';
+
+export interface Credentials {
+  email: string;
+  password: string;
+}
+export interface SignUpInput extends Credentials {
+  name: string;
+}
+
+/** Auth simulada (sem backend): regras documentadas no README. */
+export const MOCK_AUTH = {
+  delayMs: 600,
+  /** senha que simula credencial inválida */
+  wrongPassword: 'errada123',
+  /** domínio de e-mail que simula falha de rede */
+  offlineDomain: '@offline.test',
+  minPassword: 6,
+} as const;
 export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'deleteAccount';
+export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount';
 
 export interface NewTransaction {
   kind: TxKind;
@@ -92,6 +113,10 @@ export interface NewDeposit {
 
 export interface KashState {
   auth: AuthStatus;
+  authRequest: { status: RequestStatus; error: string | null };
+  invoices: Invoice[];
+  /** último mês ("yyyy-mm") em que a virada foi processada */
+  lastRolloverMonth: string;
   user: User;
   settings: Settings;
   accounts: Account[];
@@ -109,7 +134,7 @@ export interface KashState {
     /** lançamento em edição no sheet de lançamento (null = novo) */
     editingTxId: string | null;
     /** último lançamento excluído, para desfazer */
-    lastDeleted: { txs: Tx[]; plan: Plan | null; accounts: Account[]; bills: Bill[] } | null;
+    lastDeleted: { txs: Tx[]; plan: Plan | null; accounts: Account[]; bills: Bill[]; invoices: Invoice[] } | null;
     /** cartão/conta/conta fixa/meta em edição no sheet correspondente (null = novo) */
     editing: EditingRef | null;
     dataStatus: DataStatus;
@@ -117,11 +142,17 @@ export interface KashState {
     accountsSegment: AccountsSegment;
     /** meta alvo do sheet de depósito */
     depositGoalId: string | null;
+    /** fatura alvo do sheet de pagamento */
+    payInvoiceId: string | null;
   };
 
   // auth
   start: () => void;
   login: () => void;
+  signIn: (input: Credentials) => Promise<boolean>;
+  signUp: (input: SignUpInput) => Promise<boolean>;
+  requestPasswordReset: (email: string) => Promise<boolean>;
+  resetAuthRequest: () => void;
   logout: () => void;
   deleteAccount: () => void;
 
@@ -138,6 +169,7 @@ export interface KashState {
   openSheet: (sheet: SheetName) => void;
   openDeposit: (goalId: string) => void;
   openTransaction: (txId: string) => void;
+  openPayInvoice: (invoiceId: string) => void;
   openEdit: (ref: EditingRef) => void;
   setDataStatus: (status: DataStatus) => void;
   closeSheet: () => void;
@@ -166,6 +198,9 @@ export interface KashState {
   updateGoal: (id: string, input: NewGoal) => void;
   removeGoal: (id: string) => void;
   recordDeposit: (input: NewDeposit) => void;
+  /** processa a virada de mês se o mês atual ainda não foi processado */
+  rolloverIfNeeded: () => void;
+  payInvoice: (invoiceId: string, accountId: string) => void;
 
   /** reseta para o seed (usado em testes) */
   reset: () => void;
@@ -175,12 +210,14 @@ const buildInitial = () => {
   const seed = seedData(now());
   return {
     auth: 'onboarding' as AuthStatus,
+    authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null },
+    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null },
   };
 };
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
+const mockDelay = () => new Promise<void>((resolve) => setTimeout(resolve, MOCK_AUTH.delayMs));
 export const TOAST_DURATION_MS = 2200;
 /** toasts com ação (Desfazer) ficam mais tempo */
 export const TOAST_ACTION_DURATION_MS = 4500;
@@ -190,6 +227,45 @@ export const useKashStore = create<KashState>((set, get) => ({
 
   start: () => set({ auth: 'login' }),
   login: () => set({ auth: 'app' }),
+  resetAuthRequest: () => set({ authRequest: { status: 'idle', error: null } }),
+  signIn: async ({ email, password }) => {
+    set({ authRequest: { status: 'loading', error: null } });
+    await mockDelay();
+    if (email.trim().toLowerCase().endsWith(MOCK_AUTH.offlineDomain)) {
+      set({ authRequest: { status: 'error', error: 'Sem conexão. Confere sua internet e tenta de novo.' } });
+      return false;
+    }
+    if (password === MOCK_AUTH.wrongPassword) {
+      set({ authRequest: { status: 'error', error: 'E-mail ou senha incorretos.' } });
+      return false;
+    }
+    set({ auth: 'app', authRequest: { status: 'success', error: null } });
+    return true;
+  },
+  signUp: async ({ name, email, password }) => {
+    set({ authRequest: { status: 'loading', error: null } });
+    await mockDelay();
+    if (email.trim().toLowerCase().endsWith(MOCK_AUTH.offlineDomain)) {
+      set({ authRequest: { status: 'error', error: 'Sem conexão. Confere sua internet e tenta de novo.' } });
+      return false;
+    }
+    if (password.length < MOCK_AUTH.minPassword) {
+      set({ authRequest: { status: 'error', error: `A senha precisa ter pelo menos ${MOCK_AUTH.minPassword} caracteres.` } });
+      return false;
+    }
+    set((s) => ({ auth: 'app', user: { ...s.user, name: name.trim(), email: email.trim() }, authRequest: { status: 'success', error: null } }));
+    return true;
+  },
+  requestPasswordReset: async (email) => {
+    set({ authRequest: { status: 'loading', error: null } });
+    await mockDelay();
+    if (email.trim().toLowerCase().endsWith(MOCK_AUTH.offlineDomain)) {
+      set({ authRequest: { status: 'error', error: 'Sem conexão. Confere sua internet e tenta de novo.' } });
+      return false;
+    }
+    set({ authRequest: { status: 'success', error: null } });
+    return true;
+  },
   logout: () => set({ auth: 'login', ui: { ...get().ui, sheet: null } }),
   deleteAccount: () => {
     set({ ...buildInitial(), auth: 'onboarding' });
@@ -221,6 +297,7 @@ export const useKashStore = create<KashState>((set, get) => ({
   },
   setDataStatus: (status) => set((s) => ({ ui: { ...s.ui, dataStatus: status } })),
   openTransaction: (txId) => set((s) => ({ ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: txId } })),
+  openPayInvoice: (invoiceId) => set((s) => ({ ui: { ...s.ui, sheet: 'payInvoice', sheetNonce: s.ui.sheetNonce + 1, payInvoiceId: invoiceId } })),
   openDeposit: (goalId) => set((s) => ({ ui: { ...s.ui, sheet: 'deposit', sheetNonce: s.ui.sheetNonce + 1, depositGoalId: goalId } })),
   closeSheet: () => set((s) => ({ ui: { ...s.ui, sheet: null } })),
   showToast: (message, action) => {
@@ -275,7 +352,7 @@ export const useKashStore = create<KashState>((set, get) => ({
       const next: Tx = {
         ...tx,
         title: patch.title?.trim() || tx.title,
-        category: tx.amount < 0 ? (patch.category ?? tx.category) : 'Entrada',
+        category: tx.category === 'Fatura' ? 'Fatura' : tx.amount < 0 ? (patch.category ?? tx.category) : 'Entrada',
         amount,
         date: patch.date ?? tx.date,
         sourceId: patch.sourceId ?? tx.sourceId,
@@ -305,6 +382,7 @@ export const useKashStore = create<KashState>((set, get) => ({
         return delta === 0 ? a : { ...a, balance: round2(a.balance - delta) };
       });
       const bills = s.bills.map((b) => (b.paidTxId && removedIds.has(b.paidTxId) ? { ...b, paid: false, paidTxId: undefined } : b));
+      const invoices = s.invoices.map((i) => (i.paidTxId && removedIds.has(i.paidTxId) ? { ...i, paid: false, paidTxId: undefined, paidAt: undefined } : i));
       let plans = s.plans;
       if (plan) {
         if (scope === 'plan') plans = s.plans.filter((p) => p.id !== plan.id);
@@ -317,8 +395,9 @@ export const useKashStore = create<KashState>((set, get) => ({
         txs: s.txs.filter((t) => !removedIds.has(t.id)),
         accounts,
         bills,
+        invoices,
         plans,
-        ui: { ...s.ui, sheet: null, editingTxId: null, lastDeleted: { txs: removing, plan, accounts: s.accounts, bills: s.bills } },
+        ui: { ...s.ui, sheet: null, editingTxId: null, lastDeleted: { txs: removing, plan, accounts: s.accounts, bills: s.bills, invoices: s.invoices } },
       };
     }),
 
@@ -328,7 +407,7 @@ export const useKashStore = create<KashState>((set, get) => ({
       if (!last) return s;
       const restored = [...last.txs, ...s.txs].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
       const plans = last.plan ? [...s.plans.filter((p) => p.id !== last.plan!.id), last.plan] : s.plans;
-      return { txs: restored, accounts: last.accounts, bills: last.bills, plans, ui: { ...s.ui, lastDeleted: null, toast: null, toastAction: null } };
+      return { txs: restored, accounts: last.accounts, bills: last.bills, invoices: last.invoices, plans, ui: { ...s.ui, lastDeleted: null, toast: null, toastAction: null } };
     }),
 
   addCard: ({ name, last4, limit, closingDay, dueDay, gradientId }) => {
@@ -351,6 +430,7 @@ export const useKashStore = create<KashState>((set, get) => ({
         cards,
         txs: s.txs.filter((t) => t.sourceId !== id),
         plans: s.plans.filter((p) => p.cardId !== id),
+        invoices: s.invoices.filter((i) => i.cardId !== id),
         bills: s.bills.map((b) => (b.sourceId === id ? { ...b, sourceId: undefined } : b)),
         ui: { ...s.ui, sheet: null, editing: null, selectedCardId: s.ui.selectedCardId === id ? (cards[0]?.id ?? null) : s.ui.selectedCardId },
       };
@@ -450,6 +530,30 @@ export const useKashStore = create<KashState>((set, get) => ({
 
   /** Remove a meta; o dinheiro guardado continua na conta. */
   removeGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id), ui: { ...s.ui, sheet: null, editing: null } })),
+
+  rolloverIfNeeded: () => {
+    const s = get();
+    const result = rollover({ lastRolloverMonth: s.lastRolloverMonth, cards: s.cards, txs: s.txs, bills: s.bills, plans: s.plans, invoices: s.invoices }, now(), createId);
+    if (result.months.length === 0) return;
+    set({ lastRolloverMonth: result.lastRolloverMonth, txs: result.txs, bills: result.bills, plans: result.plans, invoices: result.invoices });
+  },
+
+  /** Paga a fatura debitando a conta; o lançamento tem categoria "Fatura" e não conta como gasto do mês. */
+  payInvoice: (invoiceId, accountId) =>
+    set((s) => {
+      const invoice = s.invoices.find((i) => i.id === invoiceId);
+      if (!invoice || invoice.paid) return s;
+      const card = s.cards.find((c) => c.id === invoice.cardId);
+      const today = toISODate(now());
+      const txId = createId('tx');
+      const tx: Tx = { id: txId, title: `Fatura ${card?.name ?? 'cartão'}`, category: 'Fatura', amount: -invoice.total, date: today, sourceId: accountId };
+      return {
+        txs: [tx, ...s.txs],
+        accounts: s.accounts.map((a) => (a.id === accountId ? { ...a, balance: round2(a.balance - invoice.total) } : a)),
+        invoices: s.invoices.map((i) => (i.id === invoiceId ? { ...i, paid: true, paidTxId: txId, paidAt: today } : i)),
+        ui: { ...s.ui, sheet: null, payInvoiceId: null },
+      };
+    }),
 
   recordDeposit: ({ goalId, amountCents, accountId }) => {
     const amount = amountCents / 100;
