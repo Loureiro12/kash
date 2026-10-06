@@ -18,7 +18,7 @@ describe('fluxo de auth (API mockada)', () => {
   it('start → login; signIn com sucesso entra; logout volta pro login', async () => {
     act(() => useKashStore.getState().start());
     expect(useKashStore.getState().auth).toBe('login');
-    mocked.signIn.mockResolvedValueOnce({} as never);
+    mocked.signIn.mockResolvedValueOnce({ user: { id: 'u-1' } } as never);
     await act(async () => {
       await useKashStore.getState().signIn({ email: 'lara@email.com', password: '123456' });
     });
@@ -36,7 +36,7 @@ describe('fluxo de auth (API mockada)', () => {
     expect(useKashStore.getState().authRequest).toEqual({ status: 'error', error: 'E-mail ou senha incorretos.' });
   });
   it('signUp com sessão entra com o nome; sem sessão pede confirmação de e-mail', async () => {
-    mocked.signUp.mockResolvedValueOnce({} as never);
+    mocked.signUp.mockResolvedValueOnce({ user: { id: 'u-2' } } as never);
     await act(async () => {
       await useKashStore.getState().signUp({ name: ' Ana ', email: 'ana@email.com', password: '123456' });
     });
@@ -82,6 +82,30 @@ describe('fluxo de auth (API mockada)', () => {
   it('bootstrapAuth sem sessão vai pro onboarding (ou login se já visto)', async () => {
     await act(async () => useKashStore.getState().bootstrapAuth());
     expect(['onboarding', 'login']).toContain(useKashStore.getState().auth);
+  });
+});
+
+describe('hidratação do servidor', () => {
+  it('substitui as entidades, mantém preferências locais e ajusta o cartão selecionado', () => {
+    const snap = {
+      user: { name: 'Lara', email: 'lara@email.com', phone: '' },
+      settings: { theme: 'light' as const, hideValues: false, billReminder: true, monthlyBudget: 2500, biometrics: true, currency: 'BRL' as const },
+      lastRolloverMonth: '2026-10',
+      accounts: [{ id: 'u-acc', name: 'Conta', kind: 'Conta corrente', balance: 10, color: '#fff' }],
+      cards: [{ id: 'u-card', name: 'Cartão', last4: '0000', limit: 100, closingDay: 1, dueDay: 10, gradientId: 'blue' as const }],
+      cardUsage: { 'u-card': 5 },
+      txs: [],
+      plans: [],
+      bills: [],
+      goals: [],
+      invoices: [],
+    };
+    act(() => useKashStore.getState().hydrateFromServer(snap));
+    const s = useKashStore.getState();
+    expect(s.accounts).toEqual(snap.accounts);
+    expect(s.settings.monthlyBudget).toBe(2500);
+    expect(s.ui.selectedCardId).toBe('u-card');
+    expect(s.txs).toEqual([]);
   });
 });
 

@@ -31,7 +31,7 @@ describe('DataGate', () => {
         <Text testID="content">ok</Text>
       </DataGate>,
     );
+    expect(screen.getByTestId('error-state-retry')).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('error-state-retry'));
-    expect(useKashStore.getState().ui.dataStatus).toBe('ready');
   });
 });

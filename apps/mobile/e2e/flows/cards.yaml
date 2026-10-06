@@ -16,16 +16,16 @@ name: Cartões — selecionar e adicionar
 - swipe:
     direction: LEFT
     from:
-      id: "card-card1"
+      id: "card-c0000000-0000-4000-8000-000000000001"
 - tapOn:
-    id: "card-card2"
+    id: "card-c0000000-0000-4000-8000-000000000002"
 - assertVisible: "Tênis de corrida"
 
 # Novo cartão
 - swipe:
     direction: LEFT
     from:
-      id: "card-card2"
+      id: "card-c0000000-0000-4000-8000-000000000002"
 - tapOn:
     id: "card-add"
 - assertVisible:

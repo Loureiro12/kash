@@ -24,6 +24,15 @@ describe('saldo e mês', () => {
     expect(monthSpent(txs, now)).toBeCloseTo(671.3, 2);
     expect(categoryBreakdown(txs, now).some((c) => (c.name as string) === 'Fatura')).toBe(false);
   });
+  it('fatura atual ignora meses anteriores', () => {
+    const card = seed.cards[0]!;
+    const txs = [...seed.txs, { id: 'old', title: 'Antigo', category: 'Lazer' as const, amount: -100, date: '2026-09-20', sourceId: 'card1' }];
+    expect(cardUsage(card, txs, now).used).toBeCloseTo(405.1, 2);
+  });
+  it('seed não cruza a virada do mês', () => {
+    const early = seedData(new Date(2026, 9, 2, 10));
+    expect(early.txs.every((t) => t.date.startsWith('2026-10'))).toBe(true);
+  });
   it('ignora lançamentos de outro mês', () => {
     const txs = [{ id: 'x', title: 'Antigo', category: 'Comida' as const, amount: -100, date: '2026-09-01', sourceId: 'acc1' }];
     expect(monthSpent(txs, now)).toBe(0);
@@ -46,7 +55,7 @@ describe('orçamento', () => {
 describe('cartões', () => {
   it('fatura = Σ |txs| do cartão', () => {
     const card = seed.cards[0]!;
-    const u = cardUsage(card, seed.txs);
+    const u = cardUsage(card, seed.txs, now);
     expect(u.used).toBeCloseTo(405.1, 2);
     expect(u.available).toBeCloseTo(2094.9, 2);
     expect(u.pct).toBe(16);

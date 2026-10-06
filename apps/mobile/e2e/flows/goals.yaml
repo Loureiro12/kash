@@ -10,7 +10,7 @@ name: Metas — guardar R$ 50
 - assertVisible: "Viagem pra praia"
 - assertVisible: "Faltam ~6 meses nesse ritmo"
 - tapOn:
-    id: "goal-goal1-add"
+    id: "goal-9f000000-0000-4000-8000-000000000001-add"
 - assertVisible: "R$ 50,00 guardados em “Viagem pra praia”"
 - assertVisible: "R$ 1.290,00 de R$ 3.000,00"
 - assertVisible: '.*R\$ 4\.010,00.*'
@@ -27,7 +27,7 @@ name: Metas — guardar R$ 50
     id: "sheet-add-goal"
 # conta e cor antes de digitar: com o teclado aberto esses controles ficam abaixo da dobra
 - tapOn:
-    id: "add-goal-account-acc2"
+    id: "add-goal-account-a0000000-0000-4000-8000-000000000002"
 - tapOn:
     id: "add-goal-color-2"
 - tapOn:
@@ -56,25 +56,25 @@ name: Metas — guardar R$ 50
 # Depósito pendente (Reserva de emergência tem dia 1): registrar depósito
 - scrollUntilVisible:
     element:
-      id: "goal-goal3-deposit"
+      id: "goal-9f000000-0000-4000-8000-000000000003-deposit"
     direction: UP
     centerElement: true
 - assertVisible: "Depositar"
 - tapOn:
-    id: "goal-goal3-deposit"
+    id: "goal-9f000000-0000-4000-8000-000000000003-deposit"
 - assertVisible:
     id: "sheet-deposit"
 - assertVisible: "R$ 250,00"
 - tapOn:
-    id: "deposit-account-acc1"
+    id: "deposit-account-a0000000-0000-4000-8000-000000000001"
 - tapOn:
     id: "deposit-save"
 - assertVisible: "R$ 250,00 depositado em “Reserva de emergência”"
 - assertVisible: "R$ 2.350,00 de R$ 5.000,00"
 - assertNotVisible:
-    id: "goal-goal3-deposit"
+    id: "goal-9f000000-0000-4000-8000-000000000003-deposit"
 - assertVisible:
-    id: "goal-goal3-add"
+    id: "goal-9f000000-0000-4000-8000-000000000003-add"
 - scrollUntilVisible:
     element:
       text: "Dica da semana"

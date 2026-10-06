@@ -51,3 +51,9 @@ jest.mock('@kash/supabase-client', () => {
     }),
   };
 });
+
+jest.mock('@/data/queryClient', () => ({
+  queryClient: { clear: jest.fn(), refetchQueries: jest.fn() },
+  queryPersister: {},
+  QUERY_CACHE_BUSTER: 'test',
+}));

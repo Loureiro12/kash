@@ -14,7 +14,7 @@ tags: [critical]
 - assertNotVisible:
     id: "chip-cat-Comida"
 - assertNotVisible:
-    id: "chip-src-card1"
+    id: "chip-src-c0000000-0000-4000-8000-000000000001"
 - tapOn:
     id: "key-3"
 - tapOn:
@@ -38,11 +38,11 @@ tags: [critical]
 # 2) Editar um lançamento a partir da Início: Almoço no RU 14,50 → 145,00
 - scrollUntilVisible:
     element:
-      id: "tx-tx1"
+      id: "tx-f0000000-0000-4000-8000-000000000001"
     direction: DOWN
     centerElement: true
 - tapOn:
-    id: "tx-tx1"
+    id: "tx-f0000000-0000-4000-8000-000000000001"
 - assertVisible: "Editar lançamento"
 - assertVisible: "R$ 14,50"
 - tapOn:
@@ -55,18 +55,18 @@ tags: [critical]
 
 # 3) Excluir e desfazer
 - tapOn:
-    id: "tx-tx1"
+    id: "tx-f0000000-0000-4000-8000-000000000001"
 - tapOn:
     id: "expense-delete"
 - assertVisible: "Excluir lançamento?"
 - tapOn: "Excluir"
 - assertVisible: "Lançamento excluído"
 - assertNotVisible:
-    id: "tx-tx1"
+    id: "tx-f0000000-0000-4000-8000-000000000001"
 - tapOn:
     id: "toast-action"
 - assertVisible:
-    id: "tx-tx1"
+    id: "tx-f0000000-0000-4000-8000-000000000001"
 
 # 4) Lista completa com filtros
 - scrollUntilVisible:
@@ -83,14 +83,14 @@ tags: [critical]
     id: "tx-filter-income"
 - assertVisible: 'Freela, mais R\$ 300,00.*'
 - assertNotVisible:
-    id: "tx-tx1"
+    id: "tx-f0000000-0000-4000-8000-000000000001"
 - tapOn:
     id: "tx-kind-all"
 - tapOn:
     id: "tx-cat-Lazer"
 - assertVisible: 'Cinema com amigos.*'
 - assertNotVisible:
-    id: "tx-tx1"
+    id: "tx-f0000000-0000-4000-8000-000000000001"
 # dois meses atrás nunca há lançamentos no seed (datas são relativas a hoje, até 8 dias)
 - tapOn:
     id: "tx-month-prev"

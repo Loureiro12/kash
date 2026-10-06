@@ -122,6 +122,12 @@ O app lê `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY` de `apps/
 
 Decisões (ver `docs/plano-integracao-supabase.md`): saldo de conta é uma view (abertura + lançamentos), escritas multi-linha são RPCs (`pay_bill`, `pay_invoice`, `add_installment_purchase`, `soft_delete_transaction`/`undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`), e a virada de mês roda por RPC ao abrir o app e por `pg_cron` diariamente.
 
+## Dados do servidor (TanStack Query)
+
+`apps/mobile/src/data/`: uma query carrega o snapshot do usuário (`loadSnapshot` do `@kash/supabase-client`, leituras em paralelo) e hidrata o Zustand, que continua sendo a cache normalizada consumida pelas telas; a cache da query é persistida no AsyncStorage, então o app abre com os últimos dados mesmo sem rede e refaz a leitura ao voltar ao primeiro plano. `DataGate` lê `ui.dataStatus` (esqueleto enquanto não há dados, erro com "tentar de novo" que refaz a query). `EXPO_PUBLIC_DATA_SOURCE=seed` mantém os dados de demonstração em memória (útil sem backend).
+
+Até a Fase 4, as escritas (lançar gasto, pagar conta etc.) continuam só em memória; o próximo refetch descarta o que não foi persistido.
+
 ## Auth simulada e virada de mês
 
 - Login, cadastro e "esqueci a senha" usam o Supabase Auth via `@kash/supabase-client`; a sessão fica criptografada no aparelho (chave AES no SecureStore, payload no AsyncStorage) e o app abre direto na Início quando há sessão. Excluir conta chama a Edge Function `delete-account`. No local, a usuária do seed é `lara@email.com` / `123456`.
@@ -130,5 +136,5 @@ Decisões (ver `docs/plano-integracao-supabase.md`): saldo de conta é uma view 
 ## Próxima fase (integrações)
 
 Pontos de encaixe já previstos:
-- `src/store/useKashStore.ts` — trocar `seedData` por carga remota e adicionar persistência (ex.: `zustand/middleware persist` + MMKV).
+- Fase 4: mutations (repositórios + RPCs) com optimistic update e invalidação da query `snapshot`.
 - Moeda: só Real (R$) nesta fase; outras aparecem como "em breve". Alterar senha valida localmente (a troca real vem com auth).

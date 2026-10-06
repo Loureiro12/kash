@@ -3,7 +3,12 @@ import type { Account, Bill, Card, Goal, Invoice, Plan, Settings, Tx, User } fro
 
 /** Dados de demonstração (fase visual). Datas relativas ao dia atual. */
 export function seedData(today: Date) {
-  const d = (daysAgo: number) => toISODate(addDays(today, -daysAgo));
+  // nunca cai no mês anterior: perto da virada, os lançamentos se acumulam no dia 1º
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const d = (daysAgo: number) => {
+    const date = addDays(today, -daysAgo);
+    return toISODate(date < firstOfMonth ? firstOfMonth : date);
+  };
 
   const user: User = { name: 'Lara Mendes', email: 'lara.mendes@email.com', phone: '(11) 98765-4321' };
 

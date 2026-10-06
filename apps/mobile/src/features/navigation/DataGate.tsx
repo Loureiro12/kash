@@ -1,4 +1,5 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ErrorState, ScreenSkeleton } from '@/design-system';
 import { useKashStore } from '@/store';
 
@@ -8,8 +9,8 @@ import { useKashStore } from '@/store';
  */
 export function DataGate({ children, skeleton, onRetry }: { children: React.ReactNode; skeleton?: React.ReactNode; onRetry?: () => void }) {
   const status = useKashStore((s) => s.ui.dataStatus);
-  const setDataStatus = useKashStore((s) => s.setDataStatus);
+  const queryClient = useQueryClient();
   if (status === 'loading') return <>{skeleton ?? <ScreenSkeleton />}</>;
-  if (status === 'error') return <ErrorState onRetry={onRetry ?? (() => setDataStatus('ready'))} />;
+  if (status === 'error') return <ErrorState onRetry={onRetry ?? (() => void queryClient.refetchQueries({ queryKey: ['snapshot'] }))} />;
   return <>{children}</>;
 }

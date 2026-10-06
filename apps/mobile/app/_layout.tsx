@@ -7,6 +7,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { QUERY_CACHE_BUSTER, queryClient, queryPersister } from '@/data/queryClient';
 import { ThemeProvider, useTheme } from '@/design-system';
 import { ToastHost } from '@/features/navigation/SheetsHost';
 import { AnimatedSplash } from '@/features/splash/AnimatedSplash';
@@ -31,10 +33,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, buster: QUERY_CACHE_BUSTER }}>
         <ThemeProvider mode={theme}>
           <RootNavigator />
           {!splashDone || !authReady ? <AnimatedSplash onFinish={finishSplash} holdUntil={authReady} /> : null}
         </ThemeProvider>
+        </PersistQueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

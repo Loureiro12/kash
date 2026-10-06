@@ -70,7 +70,7 @@ export function useCardsOverview() {
   );
   return useMemo(() => {
     const today = now();
-    const list = cards.map((card) => ({ card, usage: cardUsage(card, txs), dates: cardDates(card, today) }));
+    const list = cards.map((card) => ({ card, usage: cardUsage(card, txs, today), dates: cardDates(card, today) }));
     const selected = list.find((c) => c.card.id === selectedCardId) ?? list[0] ?? null;
     const selectedTxs = selected ? txs.filter((t) => t.sourceId === selected.card.id).map((t) => txView(t, accounts, cards, today)) : [];
     const selectedPlans = selected ? activePlans(plans, selected.card.id, today) : [];

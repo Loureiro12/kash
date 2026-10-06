@@ -41,11 +41,11 @@ name: Contas — bancárias, fixas e nova conta
 - assertVisible: "R$ 274,60"
 - assertVisible: "1/5"
 - tapOn:
-    id: "bill-bill2"
+    id: "bill-b1000000-0000-4000-8000-000000000002"
 - assertVisible: "2/5"
 - assertVisible: "R$ 174,70"
 - tapOn:
-    id: "bill-bill2"
+    id: "bill-b1000000-0000-4000-8000-000000000002"
 - assertVisible: "1/5"
 
 # Nova conta fixa cobrada no cartão
@@ -54,7 +54,7 @@ name: Contas — bancárias, fixas e nova conta
 - assertVisible:
     id: "sheet-add-bill"
 - tapOn:
-    id: "add-bill-src-card1"
+    id: "add-bill-src-c0000000-0000-4000-8000-000000000001"
 # categoria padrão já é Assinaturas (o chip fica fora da área visível na linha rolável)
 - tapOn:
     id: "add-bill-name"
@@ -71,19 +71,19 @@ name: Contas — bancárias, fixas e nova conta
 
 # Conta paga some das próximas contas na Início
 - tapOn:
-    id: "bill-bill3"
+    id: "bill-b1000000-0000-4000-8000-000000000003"
 - tapOn:
     id: "tab-home"
 - assertNotVisible:
-    id: "home-bill-bill3"
+    id: "home-bill-b1000000-0000-4000-8000-000000000003"
 - assertVisible:
-    id: "home-bill-bill2"
+    id: "home-bill-b1000000-0000-4000-8000-000000000002"
 
 # Internet (cobrada no Cartão principal) paga → entra na fatura: limite usado 16% → 20%
 - tapOn:
     id: "tab-accounts"
 - tapOn:
-    id: "bill-bill2"
+    id: "bill-b1000000-0000-4000-8000-000000000002"
 - tapOn:
     id: "tab-cards"
 - assertVisible: "20%"

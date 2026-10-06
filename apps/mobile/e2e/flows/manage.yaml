@@ -7,7 +7,7 @@ name: Gerenciar — editar e excluir conta, cartão, conta fixa e meta; estados 
 - tapOn:
     id: "tab-accounts"
 - tapOn:
-    id: "account-acc3"
+    id: "account-a0000000-0000-4000-8000-000000000003"
 - assertVisible: "Editar conta"
 - tapOn:
     id: "add-account-name"
@@ -19,14 +19,14 @@ name: Gerenciar — editar e excluir conta, cartão, conta fixa e meta; estados 
 - assertVisible: "Conta atualizada"
 - assertVisible: 'Dinheiro, Carteira.*'
 - tapOn:
-    id: "account-acc3"
+    id: "account-a0000000-0000-4000-8000-000000000003"
 - tapOn:
     id: "add-account-delete"
 - assertVisible: "Excluir conta?"
 - tapOn: "Excluir"
 - assertVisible: "Conta “Dinheiro” excluída"
 - assertNotVisible:
-    id: "account-acc3"
+    id: "account-a0000000-0000-4000-8000-000000000003"
 # total sem a carteira (85,00)
 - assertVisible: "R$ 4.140,50"
 
@@ -34,7 +34,7 @@ name: Gerenciar — editar e excluir conta, cartão, conta fixa e meta; estados 
 - tapOn:
     id: "seg-bills"
 - longPressOn:
-    id: "bill-bill4"
+    id: "bill-b1000000-0000-4000-8000-000000000004"
 - assertVisible: "Editar conta fixa"
 - tapOn:
     id: "add-bill-name"
@@ -46,7 +46,7 @@ name: Gerenciar — editar e excluir conta, cartão, conta fixa e meta; estados 
 - assertVisible: "Conta fixa atualizada"
 - assertVisible: 'Crossfit, vence dia 15.*'
 - longPressOn:
-    id: "bill-bill4"
+    id: "bill-b1000000-0000-4000-8000-000000000004"
 - tapOn:
     id: "add-bill-delete"
 - tapOn: "Excluir"
@@ -92,7 +92,7 @@ name: Gerenciar — editar e excluir conta, cartão, conta fixa e meta; estados 
 - tapOn:
     id: "tab-goals"
 - longPressOn:
-    id: "goal-goal2"
+    id: "goal-9f000000-0000-4000-8000-000000000002"
 - assertVisible: "Editar meta"
 - tapOn:
     id: "add-goal-name"
@@ -104,10 +104,10 @@ name: Gerenciar — editar e excluir conta, cartão, conta fixa e meta; estados 
 - assertVisible: "Meta atualizada"
 - assertVisible: "Fone bluetooth"
 - longPressOn:
-    id: "goal-goal2"
+    id: "goal-9f000000-0000-4000-8000-000000000002"
 - tapOn:
     id: "add-goal-delete"
 - tapOn: "Excluir"
 - assertVisible: "Meta “Fone bluetooth” excluída"
 - assertNotVisible:
-    id: "goal-goal2"
+    id: "goal-9f000000-0000-4000-8000-000000000002"

@@ -19,7 +19,7 @@ describe('LoginScreen', () => {
   });
   it('credencial inválida mostra erro, limpa a senha e a segunda tentativa entra', async () => {
     const mocked = api as jest.Mocked<typeof api>;
-    mocked.signIn.mockRejectedValueOnce(new api.KashApiError('invalid_credentials', 'E-mail ou senha incorretos.')).mockResolvedValueOnce({} as never);
+    mocked.signIn.mockRejectedValueOnce(new api.KashApiError('invalid_credentials', 'E-mail ou senha incorretos.')).mockResolvedValueOnce({ user: { id: 'u-1' } } as never);
     await renderWithTheme(<LoginScreen />);
     await fireEvent.changeText(screen.getByTestId('login-email'), 'lara@email.com');
     await fireEvent.changeText(screen.getByTestId('login-password'), 'errada123');

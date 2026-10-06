@@ -27,13 +27,13 @@ tags: [smoke, critical]
 - swipe:
     direction: LEFT
     from:
-      id: "chip-src-card1"
+      id: "chip-src-c0000000-0000-4000-8000-000000000001"
 - swipe:
     direction: LEFT
     from:
-      id: "chip-src-card2"
+      id: "chip-src-c0000000-0000-4000-8000-000000000002"
 - tapOn:
-    id: "chip-src-acc1"
+    id: "chip-src-a0000000-0000-4000-8000-000000000001"
 - assertNotVisible:
     id: "expense-installments"
 - tapOn:
@@ -61,7 +61,7 @@ tags: [smoke, critical]
     id: "key-00"
 - assertVisible: "R$ 600,00"
 - tapOn:
-    id: "chip-src-card1"
+    id: "chip-src-c0000000-0000-4000-8000-000000000001"
 - assertVisible: "À vista"
 - tapOn:
     id: "expense-inst-inc"

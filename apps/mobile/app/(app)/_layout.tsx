@@ -4,6 +4,8 @@ import { View } from 'react-native';
 import { useTheme } from '@/design-system';
 import { FloatingTabBar } from '@/features/navigation/FloatingTabBar';
 import { SheetsHost } from '@/features/navigation/SheetsHost';
+import { useServerSync } from '@/data/useServerSync';
+import { useKashStore } from '@/store';
 
 /**
  * Área logada: Stack (abas + páginas internas) com a tab bar flutuante
@@ -11,6 +13,8 @@ import { SheetsHost } from '@/features/navigation/SheetsHost';
  */
 export default function AppLayout() {
   const { colors } = useTheme();
+  const userId = useKashStore((s) => s.userId);
+  useServerSync(userId);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>

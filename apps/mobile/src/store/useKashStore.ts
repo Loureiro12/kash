@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { deleteOwnAccount, getProfile, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError } from '@kash/supabase-client';
+import { deleteOwnAccount, getProfile, type KashSnapshot, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError } from '@kash/supabase-client';
 import { onboardingFlag } from '@/services/onboarding';
 import { supabase } from '@/services/supabase';
+import { queryClient } from '@/data/queryClient';
 import type { CardGradient } from '@/design-system/tokens/colors';
-import { addToGoal, isAccountId, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
+import { addToGoal, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 
@@ -101,6 +102,8 @@ export interface NewDeposit {
 
 export interface KashState {
   auth: AuthStatus;
+  /** id do usuário logado (chave das queries) */
+  userId: string | null;
   authRequest: { status: RequestStatus; error: string | null };
   invoices: Invoice[];
   /** último mês ("yyyy-mm") em que a virada foi processada */
@@ -146,6 +149,8 @@ export interface KashState {
   deleteAccount: () => Promise<boolean>;
   /** carrega nome/e-mail/configurações do perfil remoto */
   loadProfile: () => Promise<void>;
+  /** substitui os dados em memória pelo snapshot do servidor */
+  hydrateFromServer: (snapshot: KashSnapshot) => void;
 
   // settings
   setTheme: (theme: ThemeMode) => void;
@@ -201,6 +206,7 @@ const buildInitial = () => {
   const seed = seedData(now());
   return {
     auth: 'booting' as AuthStatus,
+    userId: null as string | null,
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
     ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null },
@@ -219,7 +225,7 @@ export const useKashStore = create<KashState>((set, get) => ({
     try {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        set({ auth: 'app' });
+        set({ auth: 'app', userId: data.session.user.id });
         void get().loadProfile();
       } else {
         set({ auth: (await onboardingFlag.get()) ? 'login' : 'onboarding' });
@@ -240,8 +246,8 @@ export const useKashStore = create<KashState>((set, get) => ({
   signIn: async (input) => {
     set({ authRequest: { status: 'loading', error: null } });
     try {
-      await apiSignIn(supabase, input);
-      set({ auth: 'app', authRequest: { status: 'success', error: null } });
+      const session = await apiSignIn(supabase, input);
+      set({ auth: 'app', userId: session.user.id, authRequest: { status: 'success', error: null } });
       void get().loadProfile();
       return true;
     } catch (err) {
@@ -257,7 +263,7 @@ export const useKashStore = create<KashState>((set, get) => ({
         set({ authRequest: { status: 'error', error: 'Confira seu e-mail pra confirmar a conta e depois entre.' } });
         return false;
       }
-      set((s) => ({ auth: 'app', user: { ...s.user, name: input.name.trim(), email: input.email.trim() }, authRequest: { status: 'success', error: null } }));
+      set((s) => ({ auth: 'app', userId: session.user.id, user: { ...s.user, name: input.name.trim(), email: input.email.trim() }, authRequest: { status: 'success', error: null } }));
       void get().loadProfile();
       return true;
     } catch (err) {
@@ -282,6 +288,7 @@ export const useKashStore = create<KashState>((set, get) => ({
     } catch {
       // sem rede: a sessão local já foi descartada pelo supabase-js
     }
+    queryClient.clear();
     set({ ...buildInitial(), auth: 'login' });
   },
   deleteAccount: async () => {
@@ -292,10 +299,26 @@ export const useKashStore = create<KashState>((set, get) => ({
       return false;
     }
     await onboardingFlag.set(false);
+    queryClient.clear();
     set({ ...buildInitial(), auth: 'onboarding' });
     get().showToast('Conta excluída');
     return true;
   },
+  hydrateFromServer: (snap) =>
+    set((s) => ({
+      user: snap.user,
+      settings: { ...s.settings, ...snap.settings },
+      lastRolloverMonth: snap.lastRolloverMonth,
+      accounts: snap.accounts,
+      cards: snap.cards,
+      txs: snap.txs,
+      plans: snap.plans,
+      bills: snap.bills,
+      goals: snap.goals,
+      invoices: snap.invoices,
+      ui: { ...s.ui, selectedCardId: s.ui.selectedCardId && snap.cards.some((c) => c.id === s.ui.selectedCardId) ? s.ui.selectedCardId : (snap.cards[0]?.id ?? null) },
+    })),
+
   loadProfile: async () => {
     try {
       const profile = await getProfile(supabase);
@@ -349,7 +372,7 @@ export const useKashStore = create<KashState>((set, get) => ({
   addTransaction: ({ kind, amountCents, category, sourceId, note, installments, date }) => {
     const amount = amountCents / 100;
     if (amount <= 0) return;
-    const isAccount = isAccountId(sourceId);
+    const isAccount = get().accounts.some((a) => a.id === sourceId);
     const when = date ?? toISODate(now());
     if (kind === 'income') {
       // entradas só em contas
@@ -501,7 +524,7 @@ export const useKashStore = create<KashState>((set, get) => ({
       if (!bill.paid) {
         const txId = createId('tx');
         const tx: Tx = { id: txId, title: bill.name, category: bill.category, amount: -bill.amount, date: toISODate(now()), sourceId: bill.sourceId ?? 'manual' };
-        const debit = bill.sourceId && isAccountId(bill.sourceId) ? bill.sourceId : null;
+        const debit = bill.sourceId && s.accounts.some((a) => a.id === bill.sourceId) ? bill.sourceId : null;
         return {
           bills: s.bills.map((b) => (b.id === id ? { ...b, paid: true, paidTxId: txId } : b)),
           txs: [tx, ...s.txs],
@@ -509,7 +532,7 @@ export const useKashStore = create<KashState>((set, get) => ({
         };
       }
       const paidTx = bill.paidTxId ? s.txs.find((t) => t.id === bill.paidTxId) : undefined;
-      const refund = paidTx && isAccountId(paidTx.sourceId) ? paidTx.sourceId : null;
+      const refund = paidTx && s.accounts.some((a) => a.id === paidTx.sourceId) ? paidTx.sourceId : null;
       return {
         bills: s.bills.map((b) => (b.id === id ? { ...b, paid: false, paidTxId: undefined } : b)),
         txs: paidTx ? s.txs.filter((t) => t.id !== paidTx.id) : s.txs,

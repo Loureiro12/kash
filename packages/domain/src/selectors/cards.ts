@@ -1,5 +1,5 @@
 import type { Card, Plan, Tx } from '../types';
-import { monthName, nextOccurrenceLabel } from '../dates';
+import { isSameMonth, monthName, nextOccurrenceLabel } from '../dates';
 import { round2 } from '../money';
 
 export interface CardUsage {
@@ -9,9 +9,9 @@ export interface CardUsage {
   pct: number;
 }
 
-/** Fatura do cartão = Σ |txs| com sourceId = card. */
-export function cardUsage(card: Card, txs: Tx[]): CardUsage {
-  const used = round2(txs.filter((t) => t.sourceId === card.id && t.amount < 0).reduce((a, t) => a + Math.abs(t.amount), 0));
+/** Fatura atual do cartão = Σ |txs| do cartão no mês corrente (meses anteriores já viraram fatura fechada). */
+export function cardUsage(card: Card, txs: Tx[], now: Date = new Date()): CardUsage {
+  const used = round2(txs.filter((t) => t.sourceId === card.id && t.amount < 0 && isSameMonth(t.date, now)).reduce((a, t) => a + Math.abs(t.amount), 0));
   return { used, available: round2(card.limit - used), pct: card.limit > 0 ? Math.round((used / card.limit) * 100) : 0 };
 }
 

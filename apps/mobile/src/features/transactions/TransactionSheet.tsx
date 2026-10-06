@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Keyboard, ScrollView, View } from 'react-native';
 import { BottomSheet, Button, Chip, DateStepper, Input, Keypad, Pressable, SegmentedControl, Text, categoryColors, useTheme, type KeypadKey } from '@/design-system';
-import { addDays, applyKeypadKey, CATEGORIES, digitsToAmount, formatBRL, installmentPreview, isAccountId, isCardId, parseISODate, relativeDayLabel, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
+import { addDays, applyKeypadKey, CATEGORIES, digitsToAmount, formatBRL, installmentPreview, parseISODate, relativeDayLabel, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useKashStore, useSourceOptions } from '@/store';
 
@@ -44,11 +44,11 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
 
   const isIncome = kind === 'income';
   const amount = digitsToAmount(digits);
-  const srcIsCard = isCardId(sourceId);
+  const srcIsCard = sources.find((s) => s.id === sourceId)?.isCard ?? false;
   const effectiveSource = isIncome && srcIsCard ? (accountSources[0]?.id ?? '') : sourceId;
   const n = !editing && !isIncome && srcIsCard ? installments : 1;
   const preview = useMemo(() => installmentPreview(amount, n, today), [amount, n, today]);
-  const canSave = amount > 0 && effectiveSource.length > 0 && (!isIncome || isAccountId(effectiveSource));
+  const canSave = amount > 0 && effectiveSource.length > 0 && (!isIncome || accountSources.some((s) => s.id === effectiveSource));
   const isToday = date === todayISO;
 
   const onKey = (key: KeypadKey) => {
@@ -109,7 +109,7 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
             value={kind}
             onChange={(k) => {
               setKind(k);
-              if (k === 'income' && isCardId(sourceId)) setSourceId(accountSources[0]?.id ?? '');
+              if (k === 'income' && srcIsCard) setSourceId(accountSources[0]?.id ?? '');
             }}
             options={[
               { value: 'expense', label: 'Gasto', testID: 'tx-kind-expense' },
