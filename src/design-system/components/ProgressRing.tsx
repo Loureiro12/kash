@@ -32,6 +32,8 @@ export function ProgressRing({ pct, color, size = 68, strokeWidth = 7, testID }:
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDasharray: `${(circumference * progress.value) / 100} ${circumference}`,
+    // com round cap, um traço de comprimento zero ainda desenha um ponto — esconde em 0%
+    strokeOpacity: progress.value > 0 ? 1 : 0,
   }));
 
   return (

@@ -80,4 +80,4 @@ Convenção de `testID`: kebab-case por área: `tab-add`, `chip-cat-Comida`, `bi
 Pontos de encaixe já previstos:
 - `src/store/useKashStore.ts` — trocar `seedData` por carga remota e adicionar persistência (ex.: `zustand/middleware persist` + MMKV).
 - `LoginScreen` — ligar `login()` a auth real.
-- "Nova conta fixa", "Nova meta", "Editar perfil" hoje mostram toast "Em breve".
+- "Nova conta fixa" e "Editar perfil" hoje mostram toast "Em breve".

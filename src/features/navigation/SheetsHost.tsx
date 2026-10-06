@@ -3,6 +3,7 @@ import { Toast } from '@/design-system';
 import { useKashStore } from '@/store';
 import { AddAccountSheet } from '../accounts/AddAccountSheet';
 import { AddCardSheet } from '../cards/AddCardSheet';
+import { AddGoalSheet } from '../goals/AddGoalSheet';
 import { DeleteAccountSheet } from '../profile/DeleteAccountSheet';
 import { ExpenseSheet } from '../transactions/ExpenseSheet';
 
@@ -13,6 +14,7 @@ export function SheetsHost() {
       <ExpenseSheet />
       <AddCardSheet />
       <AddAccountSheet />
+      <AddGoalSheet />
       <DeleteAccountSheet />
     </>
   );

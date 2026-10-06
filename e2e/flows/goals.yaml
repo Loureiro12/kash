@@ -14,6 +14,38 @@ name: Metas — guardar R$ 50
 - assertVisible: "R$ 50,00 guardados em “Viagem pra praia”"
 - assertVisible: "R$ 1.290,00 de R$ 3.000,00"
 - assertVisible: '.*R\$ 4\.010,00.*'
+
+# Nova meta
+- scrollUntilVisible:
+    element:
+      id: "goals-add"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "goals-add"
+- assertVisible:
+    id: "sheet-add-goal"
+- tapOn:
+    id: "add-goal-color-2"
+- tapOn:
+    id: "add-goal-name"
+- inputText: "Notebook"
+- pressKey: Enter
+- inputText: "4000"
+- tapOn:
+    id: "add-goal-saved"
+- inputText: "1000"
+- tapOn:
+    id: "add-goal-monthly"
+- inputText: "500"
+- assertVisible: "Faltam ~6 meses nesse ritmo"
+- tapOn:
+    id: "add-goal-save"
+- assertVisible: "Meta “Notebook” criada"
+- assertVisible: "Notebook"
+- assertVisible: "R$ 1.000,00 de R$ 4.000,00"
+# total guardado: 4.010 + 1.000
+- assertVisible: '.*R\$ 5\.010,00.*'
 - scrollUntilVisible:
     element:
       text: "Dica da semana"

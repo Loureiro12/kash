@@ -12,6 +12,7 @@ export function GoalsScreen() {
   const { goals, totalSaved, tip } = useGoalsOverview();
   const contribute = useKashStore((s) => s.contributeToGoal);
   const showToast = useKashStore((s) => s.showToast);
+  const openSheet = useKashStore((s) => s.openSheet);
 
   const onAdd = (id: string, name: string) => {
     contribute(id, CONTRIBUTION);
@@ -49,7 +50,7 @@ export function GoalsScreen() {
             <Button label="+ R$ 50" variant="soft" size="sm" fullWidth={false} disabled={progress.done} onPress={() => onAdd(goal.id, goal.name)} testID={`goal-${goal.id}-add`} />
           </Card>
         ))}
-        <DashedButton label="+ Nova meta" height={56} onPress={() => showToast('Em breve: criar nova meta')} testID="goals-add" />
+        <DashedButton label="+ Nova meta" height={56} onPress={() => openSheet('addGoal')} testID="goals-add" />
       </View>
 
       {tip ? (

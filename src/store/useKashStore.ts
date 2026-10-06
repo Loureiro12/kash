@@ -11,7 +11,7 @@ import { seedData } from './seed';
 
 export type AuthStatus = 'onboarding' | 'login' | 'app';
 export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'deleteAccount';
+export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deleteAccount';
 
 export interface NewExpense {
   amountCents: number;
@@ -35,6 +35,14 @@ export interface NewAccount {
   kind: string;
   bank: string;
   balance: number;
+  color: string;
+}
+
+export interface NewGoal {
+  name: string;
+  target: number;
+  saved: number;
+  monthly: number;
   color: string;
 }
 
@@ -83,6 +91,7 @@ export interface KashState {
   addAccount: (input: NewAccount) => void;
   toggleBillPaid: (id: string) => void;
   contributeToGoal: (id: string, amount: number) => void;
+  addGoal: (input: NewGoal) => void;
 
   /** reseta para o seed (usado em testes) */
   reset: () => void;
@@ -161,6 +170,12 @@ export const useKashStore = create<KashState>((set, get) => ({
   toggleBillPaid: (id) => set((s) => ({ bills: s.bills.map((b) => (b.id === id ? { ...b, paid: !b.paid } : b)) })),
 
   contributeToGoal: (id, amount) => set((s) => ({ goals: s.goals.map((g) => (g.id === id ? addToGoal(g, amount) : g)) })),
+
+  addGoal: ({ name, target, saved, monthly, color }) => {
+    if (!name.trim() || target <= 0) return;
+    const goal: Goal = { id: createId('goal'), name: name.trim(), target: round2(target), saved: round2(Math.min(Math.max(0, saved), target)), monthly: round2(Math.max(0, monthly)), color };
+    set((s) => ({ goals: [...s.goals, goal], ui: { ...s.ui, sheet: null } }));
+  },
 
   reset: () => set(buildInitial()),
 }));

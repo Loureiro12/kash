@@ -91,6 +91,20 @@ describe('contas fixas, metas, ui', () => {
     act(() => useKashStore.getState().toggleBillPaid('bill2'));
     expect(useKashStore.getState().bills.find((b) => b.id === 'bill2')?.paid).toBe(false);
   });
+  it('addGoal cria meta com valores saneados e fecha o sheet', () => {
+    act(() => useKashStore.getState().addGoal({ name: '  Notebook ', target: 4000, saved: 5000, monthly: 400, color: '#6BC5FF' }));
+    const s = useKashStore.getState();
+    expect(s.goals.at(-1)).toMatchObject({ name: 'Notebook', target: 4000, saved: 4000, monthly: 400, color: '#6BC5FF' });
+    expect(s.ui.sheet).toBeNull();
+  });
+  it('addGoal ignora nome vazio ou alvo zero', () => {
+    const before = useKashStore.getState().goals.length;
+    act(() => {
+      useKashStore.getState().addGoal({ name: '', target: 100, saved: 0, monthly: 0, color: '#fff' });
+      useKashStore.getState().addGoal({ name: 'X', target: 0, saved: 0, monthly: 0, color: '#fff' });
+    });
+    expect(useKashStore.getState().goals).toHaveLength(before);
+  });
   it('contributeToGoal respeita o alvo', () => {
     act(() => useKashStore.getState().contributeToGoal('goal2', 500));
     expect(useKashStore.getState().goals[1]?.saved).toBe(900);
