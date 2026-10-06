@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { View, type TextInput } from 'react-native';
 import { ScrollView } from 'react-native';
 import { BottomSheet, Button, Chip, Input, Pressable, Text, accountColors, useTheme } from '@/design-system';
-import { formatBRL, parseMoneyInput } from '@/domain/money';
+import { parseMoneyInput } from '@/domain/money';
 import { goalProgress } from '@/domain/selectors/goals';
 import { useKashStore } from '@/store';
 

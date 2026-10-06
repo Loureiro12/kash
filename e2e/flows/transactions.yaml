@@ -1,0 +1,110 @@
+appId: ${APP_ID}
+name: Lançamentos — entrada, data, editar, excluir/desfazer e lista
+tags: [critical]
+---
+- runFlow: ../subflows/login.yaml
+
+# 1) Entrada de R$ 300 na conta corrente, datada de ontem
+- tapOn:
+    id: "tab-add"
+- assertVisible:
+    id: "sheet-expense"
+- tapOn:
+    id: "tx-kind-income"
+- assertNotVisible:
+    id: "chip-cat-Comida"
+- assertNotVisible:
+    id: "chip-src-card1"
+- tapOn:
+    id: "key-3"
+- tapOn:
+    id: "key-00"
+- tapOn:
+    id: "key-00"
+- assertVisible: "+ R$ 300,00"
+- tapOn:
+    id: "expense-note"
+- inputText: "Freela"
+- pressKey: Enter
+- tapOn:
+    id: "expense-date-prev"
+- assertVisible: "Ontem"
+- tapOn:
+    id: "expense-save"
+- assertVisible: "R$ 300,00 de entrada registrados"
+# saldo 4.225,50 + 300
+- assertVisible: "R$ 4.525,50"
+
+# 2) Editar um lançamento a partir da Início: Almoço no RU 14,50 → 145,00
+- scrollUntilVisible:
+    element:
+      id: "tx-tx1"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "tx-tx1"
+- assertVisible: "Editar lançamento"
+- assertVisible: "R$ 14,50"
+- tapOn:
+    id: "key-0"
+- assertVisible: "R$ 145,00"
+- tapOn:
+    id: "expense-save"
+- assertVisible: "Lançamento atualizado"
+- assertVisible: 'Almoço no RU, menos R\$ 145,00.*'
+
+# 3) Excluir e desfazer
+- tapOn:
+    id: "tx-tx1"
+- tapOn:
+    id: "expense-delete"
+- assertVisible: "Excluir lançamento?"
+- tapOn: "Excluir"
+- assertVisible: "Lançamento excluído"
+- assertNotVisible:
+    id: "tx-tx1"
+- tapOn:
+    id: "toast-action"
+- assertVisible:
+    id: "tx-tx1"
+
+# 4) Lista completa com filtros
+- scrollUntilVisible:
+    element:
+      id: "home-txs-see-all"
+    direction: UP
+- tapOn:
+    id: "home-txs-see-all"
+- assertVisible:
+    id: "transactions-screen"
+- assertVisible: '(?i)hoje'
+- assertVisible: '(?i)ontem'
+- tapOn:
+    id: "tx-filter-income"
+- assertVisible: 'Freela, mais R\$ 300,00.*'
+- assertNotVisible:
+    id: "tx-tx1"
+- tapOn:
+    id: "tx-kind-all"
+- tapOn:
+    id: "tx-cat-Lazer"
+- assertVisible: 'Cinema com amigos.*'
+- assertNotVisible:
+    id: "tx-tx1"
+# dois meses atrás nunca há lançamentos no seed (datas são relativas a hoje, até 8 dias)
+- tapOn:
+    id: "tx-month-prev"
+- tapOn:
+    id: "tx-month-prev"
+- assertVisible:
+    id: "tx-empty"
+- tapOn:
+    id: "tx-month-next"
+- tapOn:
+    id: "tx-month-next"
+- assertNotVisible:
+    id: "tx-empty"
+- tapOn:
+    id: "transactions-back"
+- assertVisible:
+    id: "home-screen"

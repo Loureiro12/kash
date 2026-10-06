@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { formatMoney } from '@/domain/money';
+import type { TxFilters } from '@/domain/selectors/transactions';
 import {
   activePlans,
   billSourceName,
@@ -14,6 +15,10 @@ import {
   cardDates,
   cardUsage,
   categoryBreakdown,
+  filterTxs,
+  groupTxsByDay,
+  txTotals,
+  monthTitle,
   depositLabel,
   depositStatus,
   forecast,
@@ -124,6 +129,16 @@ export function useReport() {
     const today = now();
     return { spent: monthSpent(txs, today), history: monthlyHistory(txs, today), delta: monthDelta(txs, today), categories: categoryBreakdown(txs, today) };
   }, [txs]);
+}
+
+/** Lista completa de lançamentos de um mês, filtrada e agrupada por dia. */
+export function useTransactionsList(filters: TxFilters) {
+  const { txs, accounts, cards } = useKashStore(useShallow((s) => ({ txs: s.txs, accounts: s.accounts, cards: s.cards })));
+  return useMemo(() => {
+    const today = now();
+    const list = filterTxs(txs, filters, today);
+    return { groups: groupTxsByDay(list, accounts, cards, today), totals: txTotals(list), title: monthTitle(filters.monthOffset, today) };
+  }, [txs, accounts, cards, filters]);
 }
 
 export function useSourceOptions() {

@@ -36,34 +36,108 @@ describe('fluxo de auth', () => {
   });
 });
 
-describe('addExpense', () => {
+describe('addTransaction', () => {
   it('à vista numa conta debita o saldo', () => {
-    act(() => useKashStore.getState().addExpense({ amountCents: 1450, category: 'Comida', sourceId: 'acc1', note: 'Lanche', installments: 1 }));
+    act(() => useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 1450, category: 'Comida', sourceId: 'acc1', note: 'Lanche', installments: 1 }));
     const s = useKashStore.getState();
     expect(s.txs[0]).toMatchObject({ title: 'Lanche', amount: -14.5, sourceId: 'acc1', date: '2026-10-15' });
     expect(s.accounts[0]?.balance).toBe(2326);
     expect(s.ui.sheet).toBeNull();
   });
   it('sem descrição usa a categoria como título', () => {
-    act(() => useKashStore.getState().addExpense({ amountCents: 500, category: 'Lazer', sourceId: 'acc1', note: '  ', installments: 1 }));
+    act(() => useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 500, category: 'Lazer', sourceId: 'acc1', note: '  ', installments: 1 }));
     expect(useKashStore.getState().txs[0]?.title).toBe('Lazer');
   });
   it('parcelado no cartão cria plano e primeira parcela', () => {
-    act(() => useKashStore.getState().addExpense({ amountCents: 120000, category: 'Outros', sourceId: 'card1', note: 'Notebook', installments: 6 }));
+    act(() => useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 120000, category: 'Outros', sourceId: 'card1', note: 'Notebook', installments: 6 }));
     const s = useKashStore.getState();
-    expect(s.txs[0]).toMatchObject({ title: 'Notebook (1/6)', amount: -200, sourceId: 'card1' });
+    expect(s.txs[0]).toMatchObject({ title: 'Notebook (1/6)', amount: -200, sourceId: 'card1', planId: s.plans.at(-1)?.id });
     expect(s.plans.at(-1)).toMatchObject({ title: 'Notebook', installments: 6, current: 1, perInstallment: 200 });
     expect(s.accounts[0]?.balance).toBe(2340.5);
   });
   it('conta nunca parcela', () => {
-    act(() => useKashStore.getState().addExpense({ amountCents: 10000, category: 'Outros', sourceId: 'acc2', note: '', installments: 4 }));
+    act(() => useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 10000, category: 'Outros', sourceId: 'acc2', note: '', installments: 4 }));
     expect(useKashStore.getState().txs[0]?.title).toBe('Outros');
     expect(useKashStore.getState().plans).toHaveLength(2);
   });
   it('ignora valor zero', () => {
     const before = useKashStore.getState().txs.length;
-    act(() => useKashStore.getState().addExpense({ amountCents: 0, category: 'Outros', sourceId: 'acc1', note: '', installments: 1 }));
+    act(() => useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 0, category: 'Outros', sourceId: 'acc1', note: '', installments: 1 }));
     expect(useKashStore.getState().txs).toHaveLength(before);
+  });
+  it('entrada credita a conta, usa data informada e nunca vai pra cartão', () => {
+    act(() => useKashStore.getState().addTransaction({ kind: 'income', amountCents: 50000, category: 'Outros', sourceId: 'acc1', note: 'Freela', installments: 3, date: '2026-10-03' }));
+    let s = useKashStore.getState();
+    expect(s.txs[0]).toMatchObject({ title: 'Freela', category: 'Entrada', amount: 500, date: '2026-10-03', sourceId: 'acc1' });
+    expect(s.accounts[0]?.balance).toBe(2840.5);
+    const before = s.txs.length;
+    act(() => useKashStore.getState().addTransaction({ kind: 'income', amountCents: 1000, category: 'Outros', sourceId: 'card1', note: '', installments: 1 }));
+    s = useKashStore.getState();
+    expect(s.txs).toHaveLength(before);
+  });
+});
+
+describe('editar e excluir lançamento', () => {
+  it('updateTransaction ajusta saldos ao mudar valor e conta', () => {
+    // tx1: Almoço no RU, -14.5 em acc1
+    act(() => useKashStore.getState().updateTransaction('tx1', { amountCents: 2000, sourceId: 'acc3', title: 'Almoço', category: 'Mercado', date: '2026-10-10' }));
+    const s = useKashStore.getState();
+    expect(s.txs.find((t) => t.id === 'tx1')).toMatchObject({ title: 'Almoço', category: 'Mercado', amount: -20, sourceId: 'acc3', date: '2026-10-10' });
+    expect(s.accounts[0]?.balance).toBe(2355); // devolveu 14,50
+    expect(s.accounts[2]?.balance).toBe(65); // debitou 20
+    expect(s.ui.sheet).toBeNull();
+  });
+  it('entrada editada mantém categoria Entrada e sinal positivo', () => {
+    act(() => useKashStore.getState().updateTransaction('tx4', { amountCents: 70000, category: 'Lazer' }));
+    const s = useKashStore.getState();
+    expect(s.txs.find((t) => t.id === 'tx4')).toMatchObject({ category: 'Entrada', amount: 700 });
+    expect(s.accounts[0]?.balance).toBe(2440.5);
+  });
+  it('deleteTransaction devolve saldo, guarda para desfazer e undo restaura', () => {
+    act(() => useKashStore.getState().deleteTransaction('tx1'));
+    let s = useKashStore.getState();
+    expect(s.txs.find((t) => t.id === 'tx1')).toBeUndefined();
+    expect(s.accounts[0]?.balance).toBe(2355);
+    expect(s.ui.lastDeleted?.txs.map((t) => t.id)).toEqual(['tx1']);
+    act(() => useKashStore.getState().undoDelete());
+    s = useKashStore.getState();
+    expect(s.txs.find((t) => t.id === 'tx1')).toBeDefined();
+    expect(s.accounts[0]?.balance).toBe(2340.5);
+    expect(s.ui.lastDeleted).toBeNull();
+  });
+  it('excluir parcela única decrementa o plano; excluir plano remove tudo', () => {
+    act(() => useKashStore.getState().deleteTransaction('tx11', 'single'));
+    let s = useKashStore.getState();
+    expect(s.plans.find((p) => p.id === 'plan1')?.current).toBe(4);
+    act(() => useKashStore.getState().undoDelete());
+    expect(useKashStore.getState().plans.find((p) => p.id === 'plan1')?.current).toBe(5);
+    act(() => useKashStore.getState().deleteTransaction('tx11', 'plan'));
+    s = useKashStore.getState();
+    expect(s.plans.find((p) => p.id === 'plan1')).toBeUndefined();
+    expect(s.txs.find((t) => t.planId === 'plan1')).toBeUndefined();
+  });
+  it('excluir o lançamento de uma conta fixa paga desmarca a conta', () => {
+    act(() => useKashStore.getState().toggleBillPaid('bill4'));
+    const txId = useKashStore.getState().bills.find((b) => b.id === 'bill4')!.paidTxId!;
+    act(() => useKashStore.getState().deleteTransaction(txId));
+    const s = useKashStore.getState();
+    expect(s.bills.find((b) => b.id === 'bill4')).toMatchObject({ paid: false });
+    expect(s.accounts[0]?.balance).toBe(2340.5);
+  });
+  it('toast com ação dura mais e some', () => {
+    jest.useFakeTimers();
+    const onPress = jest.fn();
+    act(() => useKashStore.getState().showToast('Excluído', { label: 'Desfazer', onPress }));
+    expect(useKashStore.getState().ui.toastAction?.label).toBe('Desfazer');
+    act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(useKashStore.getState().ui.toast).toBe('Excluído');
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    expect(useKashStore.getState().ui.toast).toBeNull();
+    jest.useRealTimers();
   });
 });
 

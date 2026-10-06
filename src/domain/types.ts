@@ -27,6 +27,8 @@ export interface Card {
   gradientId: CardGradient['id'];
 }
 
+export type TxKind = 'expense' | 'income';
+
 export interface Tx {
   id: ID;
   title: string;
@@ -37,7 +39,11 @@ export interface Tx {
   date: string;
   /** Account.id ou Card.id */
   sourceId: ID;
+  /** parcela de um plano de parcelamento */
+  planId?: ID;
 }
+
+export const txKind = (tx: Pick<Tx, 'amount'>): TxKind => (tx.amount < 0 ? 'expense' : 'income');
 
 /** Conta fixa mensal (recorrente). */
 export interface Bill {

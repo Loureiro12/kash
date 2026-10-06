@@ -16,6 +16,7 @@ export default function AppLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="report" />
+        <Stack.Screen name="transactions" />
         <Stack.Screen name="forecast" />
         <Stack.Screen name="profile/index" />
         <Stack.Screen name="profile/personal" />

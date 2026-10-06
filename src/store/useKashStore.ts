@@ -3,7 +3,7 @@ import type { CardGradient } from '@/design-system/tokens/colors';
 import { toISODate } from '@/domain/dates';
 import { round2 } from '@/domain/money';
 import { addToGoal, recordDeposit } from '@/domain/selectors/goals';
-import type { Account, Bill, Card, Category, Goal, Plan, Settings, ThemeMode, Tx, User } from '@/domain/types';
+import type { Account, Bill, Card, Category, Goal, Plan, Settings, ThemeMode, Tx, TxKind, User } from '@/domain/types';
 import { isAccountId } from '@/domain/types';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
@@ -13,12 +13,31 @@ export type AuthStatus = 'onboarding' | 'login' | 'app';
 export type AccountsSegment = 'bank' | 'bills';
 export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'deleteAccount';
 
-export interface NewExpense {
+export interface NewTransaction {
+  kind: TxKind;
   amountCents: number;
   category: Category;
   sourceId: string;
   note: string;
   installments: number;
+  /** ISO date; default hoje */
+  date?: string;
+}
+
+export interface TxPatch {
+  title?: string;
+  category?: Category;
+  /** valor absoluto em centavos */
+  amountCents?: number;
+  sourceId?: string;
+  date?: string;
+}
+
+export type DeleteScope = 'single' | 'plan';
+
+export interface ToastAction {
+  label: string;
+  onPress: () => void;
 }
 
 export interface NewCard {
@@ -77,6 +96,11 @@ export interface KashState {
     /** incrementa a cada abertura — usado como `key` para remontar formulários com estado limpo */
     sheetNonce: number;
     toast: string | null;
+    toastAction: ToastAction | null;
+    /** lançamento em edição no sheet de lançamento (null = novo) */
+    editingTxId: string | null;
+    /** último lançamento excluído, para desfazer */
+    lastDeleted: { txs: Tx[]; plan: Plan | null; accounts: Account[]; bills: Bill[] } | null;
     selectedCardId: string | null;
     accountsSegment: AccountsSegment;
     /** meta alvo do sheet de depósito */
@@ -101,14 +125,18 @@ export interface KashState {
   // ui
   openSheet: (sheet: SheetName) => void;
   openDeposit: (goalId: string) => void;
+  openTransaction: (txId: string) => void;
   closeSheet: () => void;
-  showToast: (message: string) => void;
+  showToast: (message: string, action?: ToastAction) => void;
   hideToast: () => void;
   selectCard: (id: string) => void;
   setAccountsSegment: (segment: AccountsSegment) => void;
 
   // domain
-  addExpense: (input: NewExpense) => void;
+  addTransaction: (input: NewTransaction) => void;
+  updateTransaction: (id: string, patch: TxPatch) => void;
+  deleteTransaction: (id: string, scope?: DeleteScope) => void;
+  undoDelete: () => void;
   addCard: (input: NewCard) => void;
   addAccount: (input: NewAccount) => void;
   toggleBillPaid: (id: string) => void;
@@ -126,12 +154,14 @@ const buildInitial = () => {
   return {
     auth: 'onboarding' as AuthStatus,
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null },
+    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null },
   };
 };
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 export const TOAST_DURATION_MS = 2200;
+/** toasts com ação (Desfazer) ficam mais tempo */
+export const TOAST_ACTION_DURATION_MS = 4500;
 
 export const useKashStore = create<KashState>((set, get) => ({
   ...buildInitial(),
@@ -162,37 +192,117 @@ export const useKashStore = create<KashState>((set, get) => ({
       },
     })),
 
-  openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1 } })),
+  openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editingTxId: sheet === 'expense' ? null : s.ui.editingTxId } })),
+  openTransaction: (txId) => set((s) => ({ ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: txId } })),
   openDeposit: (goalId) => set((s) => ({ ui: { ...s.ui, sheet: 'deposit', sheetNonce: s.ui.sheetNonce + 1, depositGoalId: goalId } })),
   closeSheet: () => set((s) => ({ ui: { ...s.ui, sheet: null } })),
-  showToast: (message) => {
+  showToast: (message, action) => {
     if (toastTimer) clearTimeout(toastTimer);
-    set((s) => ({ ui: { ...s.ui, toast: message } }));
-    toastTimer = setTimeout(() => get().hideToast(), TOAST_DURATION_MS);
+    set((s) => ({ ui: { ...s.ui, toast: message, toastAction: action ?? null } }));
+    toastTimer = setTimeout(() => get().hideToast(), action ? TOAST_ACTION_DURATION_MS : TOAST_DURATION_MS);
   },
   hideToast: () => {
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = null;
-    set((s) => ({ ui: { ...s.ui, toast: null } }));
+    set((s) => ({ ui: { ...s.ui, toast: null, toastAction: null } }));
   },
   selectCard: (id) => set((s) => ({ ui: { ...s.ui, selectedCardId: id } })),
   setAccountsSegment: (segment) => set((s) => ({ ui: { ...s.ui, accountsSegment: segment } })),
 
-  addExpense: ({ amountCents, category, sourceId, note, installments }) => {
+  addTransaction: ({ kind, amountCents, category, sourceId, note, installments, date }) => {
     const amount = amountCents / 100;
     if (amount <= 0) return;
     const isAccount = isAccountId(sourceId);
+    const when = date ?? toISODate(now());
+    if (kind === 'income') {
+      // entradas só em contas
+      if (!isAccount) return;
+      const title = note.trim() || 'Entrada';
+      set((s) => ({
+        txs: [{ id: createId('tx'), title, category: 'Entrada', amount, date: when, sourceId }, ...s.txs],
+        accounts: s.accounts.map((a) => (a.id === sourceId ? { ...a, balance: round2(a.balance + amount) } : a)),
+        ui: { ...s.ui, sheet: null },
+      }));
+      return;
+    }
     const n = isAccount ? 1 : Math.max(1, installments);
     const per = round2(amount / n);
     const title = note.trim() || category;
-    const today = toISODate(now());
+    const planId = n > 1 ? createId('plan') : undefined;
     set((s) => ({
-      txs: [{ id: createId('tx'), title: n > 1 ? `${title} (1/${n})` : title, category, amount: -per, date: today, sourceId }, ...s.txs],
-      plans: n > 1 ? [...s.plans, { id: createId('plan'), title, category, cardId: sourceId, installments: n, current: 1, perInstallment: per }] : s.plans,
+      txs: [{ id: createId('tx'), title: n > 1 ? `${title} (1/${n})` : title, category, amount: -per, date: when, sourceId, planId }, ...s.txs],
+      plans: planId ? [...s.plans, { id: planId, title, category, cardId: sourceId, installments: n, current: 1, perInstallment: per }] : s.plans,
       accounts: isAccount ? s.accounts.map((a) => (a.id === sourceId ? { ...a, balance: round2(a.balance - amount) } : a)) : s.accounts,
       ui: { ...s.ui, sheet: null },
     }));
   },
+
+  /** Edita um lançamento ajustando saldos de conta (reverte o antigo, aplica o novo). */
+  updateTransaction: (id, patch) =>
+    set((s) => {
+      const tx = s.txs.find((t) => t.id === id);
+      if (!tx) return s;
+      const sign = tx.amount < 0 ? -1 : 1;
+      const amount = patch.amountCents !== undefined ? round2((patch.amountCents / 100) * sign) : tx.amount;
+      if (amount === 0) return s;
+      const next: Tx = {
+        ...tx,
+        title: patch.title?.trim() || tx.title,
+        category: tx.amount < 0 ? (patch.category ?? tx.category) : 'Entrada',
+        amount,
+        date: patch.date ?? tx.date,
+        sourceId: patch.sourceId ?? tx.sourceId,
+      };
+      const accounts = s.accounts.map((a) => {
+        let balance = a.balance;
+        if (a.id === tx.sourceId) balance -= tx.amount;
+        if (a.id === next.sourceId) balance += next.amount;
+        return balance === a.balance ? a : { ...a, balance: round2(balance) };
+      });
+      return { txs: s.txs.map((t) => (t.id === id ? next : t)), accounts, ui: { ...s.ui, sheet: null } };
+    }),
+
+  /**
+   * Exclui um lançamento (ou todas as parcelas do plano) devolvendo saldos,
+   * destravando conta fixa paga e guardando o estado para desfazer.
+   */
+  deleteTransaction: (id, scope = 'single') =>
+    set((s) => {
+      const tx = s.txs.find((t) => t.id === id);
+      if (!tx) return s;
+      const plan = tx.planId ? (s.plans.find((p) => p.id === tx.planId) ?? null) : null;
+      const removing = plan && scope === 'plan' ? s.txs.filter((t) => t.planId === plan.id) : [tx];
+      const removedIds = new Set(removing.map((t) => t.id));
+      const accounts = s.accounts.map((a) => {
+        const delta = removing.filter((t) => t.sourceId === a.id).reduce((sum, t) => sum + t.amount, 0);
+        return delta === 0 ? a : { ...a, balance: round2(a.balance - delta) };
+      });
+      const bills = s.bills.map((b) => (b.paidTxId && removedIds.has(b.paidTxId) ? { ...b, paid: false, paidTxId: undefined } : b));
+      let plans = s.plans;
+      if (plan) {
+        if (scope === 'plan') plans = s.plans.filter((p) => p.id !== plan.id);
+        else {
+          const current = plan.current - 1;
+          plans = current <= 0 ? s.plans.filter((p) => p.id !== plan.id) : s.plans.map((p) => (p.id === plan.id ? { ...p, current } : p));
+        }
+      }
+      return {
+        txs: s.txs.filter((t) => !removedIds.has(t.id)),
+        accounts,
+        bills,
+        plans,
+        ui: { ...s.ui, sheet: null, editingTxId: null, lastDeleted: { txs: removing, plan, accounts: s.accounts, bills: s.bills } },
+      };
+    }),
+
+  undoDelete: () =>
+    set((s) => {
+      const last = s.ui.lastDeleted;
+      if (!last) return s;
+      const restored = [...last.txs, ...s.txs].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+      const plans = last.plan ? [...s.plans.filter((p) => p.id !== last.plan!.id), last.plan] : s.plans;
+      return { txs: restored, accounts: last.accounts, bills: last.bills, plans, ui: { ...s.ui, lastDeleted: null, toast: null, toastAction: null } };
+    }),
 
   addCard: ({ name, last4, limit, closingDay, dueDay, gradientId }) => {
     const id = createId('card');

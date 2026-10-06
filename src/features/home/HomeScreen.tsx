@@ -161,7 +161,7 @@ export function HomeScreen() {
       </Card>
 
       {/* Últimos lançamentos */}
-      <SectionHeader title="Últimos lançamentos" />
+      <SectionHeader title="Últimos lançamentos" actionLabel="ver todos" onAction={() => router.push('/transactions')} actionTestID="home-txs-see-all" />
       <View style={{ marginTop: 6 }} testID="home-recent">
         {recent.map((t) => (
           <TxRow key={t.id} tx={t} testID={`tx-${t.id}`} />

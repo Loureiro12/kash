@@ -25,6 +25,8 @@ export interface BottomSheetProps {
   visible: boolean;
   onClose: () => void;
   title?: string;
+  /** substitui o título por um controle (ex.: segmentado compacto) */
+  headerContent?: React.ReactNode;
   children: React.ReactNode;
   testID?: string;
   /** gap entre filhos (default 14) */
@@ -39,7 +41,7 @@ export interface BottomSheetProps {
  * Bottom sheet com overlay rgba(0,0,0,.5), raio 30 no topo, handle 40×4,
  * entrada translateY(40→0)+opacity em 300ms cubic-bezier(.2,.8,.2,1).
  */
-export function BottomSheet({ visible, onClose, title, children, testID, gap = 14, scrollable = true, footer }: BottomSheetProps) {
+export function BottomSheet({ visible, onClose, title, headerContent, children, testID, gap = 14, scrollable = true, footer }: BottomSheetProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -98,9 +100,9 @@ export function BottomSheet({ visible, onClose, title, children, testID, gap = 1
 
   const body = (
     <View style={{ gap }}>
-      {title ? (
+      {title || headerContent ? (
         <View style={styles.header}>
-          <Text variant="titleLg">{title}</Text>
+          {headerContent ?? <Text variant="titleLg">{title}</Text>}
           <IconButton icon="close" size={32} subtle onPress={onClose} accessibilityLabel="Fechar" testID={testID ? `${testID}-close` : undefined} />
         </View>
       ) : null}
@@ -110,7 +112,8 @@ export function BottomSheet({ visible, onClose, title, children, testID, gap = 1
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
-      <View style={[styles.root, { paddingTop: insets.top }]}>
+      {/* durante o fechamento o sheet não deve capturar toques (a tela de trás já é interativa) */}
+      <View style={[styles.root, { paddingTop: insets.top }]} pointerEvents={visible ? 'auto' : 'none'}>
         <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }, overlayStyle]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fechar" testID={testID ? `${testID}-overlay` : undefined} pressedOpacity={1} />
         </Animated.View>
@@ -167,5 +170,5 @@ const styles = StyleSheet.create({
   // flexShrink: com o teclado aberto o sheet encolhe para o espaço restante e o conteúdo rola
   sheet: { paddingTop: 14, paddingHorizontal: 20, flexShrink: 1 },
   handle: { width: 40, height: 4, borderRadius: 99, alignSelf: 'center', marginBottom: 14 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
 });

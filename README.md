@@ -30,7 +30,7 @@ app/                    Rotas (Expo Router). Arquivos finos: só montam a tela d
   (auth)/               onboarding, login
   (app)/_layout.tsx     Stack logado + FloatingTabBar + SheetsHost
   (app)/(tabs)/         index (Início), cards, accounts, goals
-  (app)/report|forecast|terms|privacy          páginas internas (push)
+  (app)/report|forecast|transactions|terms|privacy   páginas internas (push)
   (app)/profile/                                 index, personal, security, budget, currency, help
 
 src/design-system/      Design system — nada aqui conhece o domínio
@@ -55,6 +55,7 @@ Decisões:
 - **Tab bar flutuante fora dos navegadores** (`(app)/_layout`): continua visível em páginas internas sem aba ativa, como no protótipo, e as páginas internas usam push/swipe-back nativo.
 - **Sheets globais** montados uma vez (`SheetsHost`) e controlados pelo store (`ui.sheet`). Cada formulário é remontado por `key = ui.sheetNonce`, então abre sempre limpo sem efeitos de reset.
 - **CTA fixo no rodapé dos sheets** (`BottomSheet footer`): o botão principal fica sempre visível, mesmo com o teclado aberto ou o conteúdo rolando; o sheet encolhe para o espaço restante abaixo da status bar.
+- **Lançamentos completos**: o sheet registra gasto ou entrada, com data (sem datas futuras); tocar numa linha abre para editar ou excluir (com desfazer no toast, e escolha entre uma parcela ou o plano inteiro). A tela "Lançamentos" lista por mês com filtros de tipo e categoria.
 - **Contas fixas cobradas em cartão ou conta** (`bill.sourceId`): marcar como paga gera o lançamento (entra na fatura do cartão ou debita a conta); desmarcar remove. O cartão lista suas cobranças recorrentes.
 - **Metas com depósito mensal**: cada meta pode ter conta onde o dinheiro fica guardado e dia do depósito. Quando o dia chega sem registro no mês, o card entra em "pendente" e o botão vira "Depositar" (sheet com valor sugerido = aporte mensal). O depósito é um registro na meta, não movimenta o saldo da conta.
 - **Regras de cálculo no domínio**, nunca nas telas; hooks em `src/store/hooks.ts` fazem a ponte. Trocar o seed por API depois não toca em componentes.

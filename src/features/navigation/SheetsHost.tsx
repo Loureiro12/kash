@@ -8,13 +8,13 @@ import { AddGoalSheet } from '../goals/AddGoalSheet';
 import { DepositSheet } from '../goals/DepositSheet';
 import { ChangePasswordSheet } from '../profile/ChangePasswordSheet';
 import { DeleteAccountSheet } from '../profile/DeleteAccountSheet';
-import { ExpenseSheet } from '../transactions/ExpenseSheet';
+import { TransactionSheet } from '../transactions/TransactionSheet';
 
 /** Monta todos os sheets globais e o toast uma única vez, acima da navegação. */
 export function SheetsHost() {
   return (
     <>
-      <ExpenseSheet />
+      <TransactionSheet />
       <AddCardSheet />
       <AddAccountSheet />
       <AddBillSheet />
@@ -28,5 +28,6 @@ export function SheetsHost() {
 
 export function ToastHost() {
   const message = useKashStore((s) => s.ui.toast);
-  return <Toast message={message} />;
+  const action = useKashStore((s) => s.ui.toastAction);
+  return <Toast message={message} actionLabel={action?.label} onAction={action?.onPress} />;
 }

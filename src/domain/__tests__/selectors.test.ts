@@ -6,7 +6,7 @@ import { addToGoal, depositLabel, depositStatus, goalProgress, recordDeposit, to
 import { categoryBreakdown, monthDelta, monthlyHistory, topCategoryTip } from '../selectors/report';
 import { forecast, forecastHeights } from '../selectors/forecast';
 import { monthIncome, monthSpent, totalBalance } from '../selectors/balance';
-import { sourceOptions, txView } from '../selectors/transactions';
+import { filterTxs, groupTxsByDay, monthTitle, sourceOptions, txTotals, txView, txsOfMonth } from '../selectors/transactions';
 
 const now = new Date(2026, 9, 15, 10); // 15 out 2026 — todos os lançamentos do seed caem no mês
 const seed = seedData(now);
@@ -153,6 +153,18 @@ describe('lançamentos', () => {
     expect(v).toMatchObject({ initial: 'A', meta: 'Hoje · Comida · Conta corrente', isExpense: true, color: '#FFB86B' });
     const income = txView(seed.txs.find((t) => t.id === 'tx4')!, seed.accounts, seed.cards, now);
     expect(income).toMatchObject({ isExpense: false, meta: 'Ontem · Entrada · Conta corrente' });
+  });
+  it('lista por mês, filtros, agrupamento e totais', () => {
+    expect(monthTitle(0, now)).toBe('outubro 2026');
+    expect(monthTitle(-1, now)).toBe('setembro 2026');
+    expect(txsOfMonth(seed.txs, 0, now)).toHaveLength(12);
+    expect(txsOfMonth(seed.txs, -1, now)).toHaveLength(0);
+    expect(filterTxs(seed.txs, { monthOffset: 0, kind: 'income', category: null }, now).map((t) => t.title)).toEqual(['Mesada', 'Freela de design']);
+    expect(filterTxs(seed.txs, { monthOffset: 0, kind: 'expense', category: 'Lazer' }, now)).toHaveLength(3);
+    const groups = groupTxsByDay(txsOfMonth(seed.txs, 0, now), seed.accounts, seed.cards, now);
+    expect(groups[0]).toMatchObject({ label: 'Hoje' });
+    expect(groups[0]?.items).toHaveLength(3);
+    expect(txTotals(seed.txs)).toEqual({ count: 12, spent: 671.3, income: 1450 });
   });
   it('origens: cartões antes das contas', () => {
     const opts = sourceOptions(seed.cards, seed.accounts);

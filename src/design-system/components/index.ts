@@ -7,6 +7,7 @@ export * from './CheckCircle';
 export * from './Chip';
 export * from './CreditCardFace';
 export * from './DashedButton';
+export * from './DateStepper';
 export * from './IconButton';
 export * from './Input';
 export * from './Keypad';

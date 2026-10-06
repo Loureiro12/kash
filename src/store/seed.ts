@@ -27,8 +27,8 @@ export function seedData(today: Date) {
 
   const txs: Tx[] = [
     { id: 'tx1', title: 'Almoço no RU', category: 'Comida', amount: -14.5, date: d(0), sourceId: 'acc1' },
-    { id: 'tx11', title: 'Celular novo (5/12)', category: 'Outros', amount: -199.9, date: d(0), sourceId: 'card1' },
-    { id: 'tx12', title: 'Tênis de corrida (3/6)', category: 'Lazer', amount: -89.9, date: d(1), sourceId: 'card2' },
+    { id: 'tx11', title: 'Celular novo (5/12)', category: 'Outros', amount: -199.9, date: d(0), sourceId: 'card1', planId: 'plan1' },
+    { id: 'tx12', title: 'Tênis de corrida (3/6)', category: 'Lazer', amount: -89.9, date: d(1), sourceId: 'card2', planId: 'plan2' },
     { id: 'tx2', title: 'Uber pra facul', category: 'Transporte', amount: -18.9, date: d(0), sourceId: 'card1' },
     { id: 'tx3', title: 'Streaming de música', category: 'Assinaturas', amount: -21.9, date: d(1), sourceId: 'card2' },
     { id: 'tx4', title: 'Mesada', category: 'Entrada', amount: 600, date: d(1), sourceId: 'acc1' },
