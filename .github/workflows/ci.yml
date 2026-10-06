@@ -21,7 +21,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm test -- --ci
+      - run: pnpm test
 
   # E2E (Maestro) exige simulador iOS — roda em macOS e só manualmente/por tag para não travar PRs.
   e2e-ios:
@@ -38,6 +38,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: curl -Ls "https://get.maestro.mobile.dev" | bash
-      - run: npx expo run:ios --device "iPhone 16 Pro" --no-bundler
-      - run: (npx expo start --dev-client &) && sleep 20
+      - run: pnpm --filter mobile exec expo run:ios --device "iPhone 16 Pro" --no-bundler
+      - run: (pnpm --filter mobile exec expo start --dev-client &) && sleep 20
       - run: PATH="$HOME/.maestro/bin:$PATH" pnpm e2e:ios

@@ -4,25 +4,38 @@ App mobile de finanças pessoais para 15–30 anos com lançamento manual. Esta 
 
 Stack: **React Native + Expo SDK 57 · TypeScript · Expo Router · Zustand · Reanimated 4 · Jest/RNTL · Maestro**.
 
-## Rodando
+## Monorepo
+
+```
+apps/mobile/          app Expo (design system, telas, store, e2e Maestro)
+packages/domain/      @kash/domain — regras puras (tipos, dinheiro, datas, seletores, virada de mês) + seed de dev
+packages/config/      tsconfig base compartilhado
+supabase/             (Fase 1) migrações, seed, funções e testes do backend
+docs/                 plano de integração
+```
+
+pnpm workspaces + Turborepo. Comandos na raiz:
 
 ```bash
 pnpm install
 pnpm ios          # build nativo (dev client) + simulador iOS
-pnpm android      # idem Android
-pnpm start        # Metro (depois do primeiro build)
+pnpm dev          # Metro do app (depois do primeiro build)
 
-pnpm typecheck    # tsc --noEmit
-pnpm lint         # expo lint
-pnpm test         # unitários (Jest + Testing Library)
-pnpm e2e:ios      # ponta a ponta (Maestro) — ver e2e/README.md
+pnpm typecheck    # todos os pacotes (turbo)
+pnpm lint
+pnpm test         # Jest no app + Vitest no domínio
+pnpm e2e:ios      # ponta a ponta (Maestro) — ver apps/mobile/e2e/README.md
 ```
+
+Dentro de `apps/mobile` os scripts `start`, `ios`, `test`, `lint`, `typecheck` continuam funcionando.
 
 > O app usa módulos nativos (Reanimated, SVG, gradientes), então precisa de **dev build** (`pnpm ios`), não do Expo Go.
 
 ## Arquitetura
 
-Camadas com dependência em uma direção só: `app → features → store → domain → design-system`.
+Camadas com dependência em uma direção só: `app → features → store → design-system → @kash/domain`. O design system importa do domínio apenas as cores de categoria.
+
+Caminhos abaixo são relativos a `apps/mobile`, exceto `packages/domain`.
 
 ```
 app/                    Rotas (Expo Router). Arquivos finos: só montam a tela da feature.
@@ -40,10 +53,12 @@ src/design-system/      Design system — nada aqui conhece o domínio
                         ProgressRing, BottomSheet, Toast, Keypad, SegmentedControl, ListRow…
   icons/                wrapper do Lucide (stroke 2.2)
 
-src/domain/             Regras de negócio puras (sem React)
-  types.ts              Account, Card, Tx, Bill, Goal, Plan, Settings
+packages/domain/src/    @kash/domain — regras de negócio puras (sem React), testadas com Vitest
+  types.ts              Account, Card, Tx, Bill, Goal, Plan, Invoice, Settings
+  categories.ts         cores de categoria e ids de gradiente (compartilhados com o backend)
   money.ts dates.ts     formatação BRL determinística, datas relativas, nomes de mês
-  selectors/            orçamento, fatura/parcelas, contas fixas, metas, relatório, previsão
+  selectors/            orçamento, fatura/parcelas, contas fixas, metas, relatório, previsão, rollover
+  fixtures/seed.ts      dados de demonstração
 
 src/store/              Zustand: estado + ações; seed mock; hooks derivados (useHomeSummary…)
 src/features/           Uma pasta por área: telas e sheets que compõem DS + store

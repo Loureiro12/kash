@@ -1,0 +1,23 @@
+# Onboarding → Login (com credenciais válidas) → Início
+appId: ${APP_ID}
+---
+- runFlow: launch-fresh.yaml
+- tapOn:
+    id: "onboarding-cta"
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "login-email"
+- inputText: "lara@email.com"
+- pressKey: Enter
+- inputText: "123456"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "tab-add"
+    timeout: 5000
+- waitForAnimationToEnd
