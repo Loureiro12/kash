@@ -1,0 +1,68 @@
+appId: ${APP_ID}
+name: Início — ocultar valores, atalhos e navegação
+tags: [smoke]
+---
+- runFlow: ../subflows/login.yaml
+- assertVisible:
+    id: "home-budget-card"
+- assertVisible: "Próximas contas"
+
+# Ocultar / mostrar valores
+- assertVisible: "R$ 4.225,50"
+- tapOn:
+    id: "home-toggle-hide"
+- assertVisible: "R$ ••••"
+- assertNotVisible: "R$ 4.225,50"
+- tapOn:
+    id: "home-toggle-hide"
+- assertVisible: "R$ 4.225,50"
+
+# Card "Gastos do mês" abre o relatório
+- tapOn:
+    id: "home-budget-card"
+- assertVisible:
+    id: "report-screen"
+- assertVisible: "Por categoria"
+- tapOn:
+    id: "report-back"
+- assertVisible:
+    id: "home-screen"
+
+# Card de previsão abre a previsão
+- scrollUntilVisible:
+    element:
+      id: "home-forecast-card"
+    direction: DOWN
+- tapOn:
+    id: "home-forecast-card"
+- assertVisible:
+    id: "forecast-screen"
+- tapOn:
+    id: "forecast-back"
+
+# Atalho "Contas fixas" abre a aba Contas no segmento Fixas
+- scrollUntilVisible:
+    element:
+      id: "action-bills"
+    direction: UP
+- tapOn:
+    id: "action-bills"
+- assertVisible:
+    id: "accounts-bills"
+- assertVisible: "Toque pra marcar como paga"
+
+# Tab bar volta pro Início
+- tapOn:
+    id: "tab-home"
+- assertVisible:
+    id: "home-screen"
+
+# Avatar abre o Perfil
+- tapOn:
+    id: "home-avatar"
+- assertVisible:
+    id: "profile-screen"
+- tapOn:
+    id: "profile-back"
+- assertVisible:
+    id: "home-screen"

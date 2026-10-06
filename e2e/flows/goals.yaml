@@ -1,0 +1,20 @@
+appId: ${APP_ID}
+name: Metas — guardar R$ 50
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "tab-goals"
+- assertVisible:
+    id: "goals-screen"
+- assertVisible: '.*R\$ 3\.960,00.*'
+- assertVisible: "Viagem pra praia"
+- assertVisible: "Faltam ~6 meses nesse ritmo"
+- tapOn:
+    id: "goal-goal1-add"
+- assertVisible: "R$ 50,00 guardados em “Viagem pra praia”"
+- assertVisible: "R$ 1.290,00 de R$ 3.000,00"
+- assertVisible: '.*R\$ 4\.010,00.*'
+- scrollUntilVisible:
+    element:
+      text: "Dica da semana"
+    direction: DOWN

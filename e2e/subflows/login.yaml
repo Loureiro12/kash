@@ -1,0 +1,14 @@
+# Onboarding → Login → Início
+appId: ${APP_ID}
+---
+- runFlow: launch-fresh.yaml
+- tapOn:
+    id: "onboarding-cta"
+- assertVisible:
+    id: "login-screen"
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000

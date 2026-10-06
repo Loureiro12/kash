@@ -1,0 +1,48 @@
+appId: ${APP_ID}
+name: Cartões — selecionar e adicionar
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "tab-cards"
+- assertVisible:
+    id: "cards-screen"
+- assertVisible: "Toque num cartão pra ver a fatura."
+- assertVisible: "Limite usado"
+
+# Cartão principal selecionado por padrão
+- assertVisible: "Celular novo"
+
+# Seleciona o segundo cartão
+- swipe:
+    direction: LEFT
+    from:
+      id: "card-card1"
+- tapOn:
+    id: "card-card2"
+- assertVisible: "Tênis de corrida"
+
+# Novo cartão
+- swipe:
+    direction: LEFT
+    from:
+      id: "card-card2"
+- tapOn:
+    id: "card-add"
+- assertVisible:
+    id: "sheet-add-card"
+- assertVisible: "Nome do cartão"
+- tapOn:
+    id: "add-card-color-blue"
+- tapOn:
+    id: "add-card-name"
+- inputText: "Cartão da facul"
+# "seguinte" leva ao campo dos 4 dígitos; ao completar 4 dígitos o foco vai pro limite
+- pressKey: Enter
+- inputText: "9999"
+- inputText: "1500"
+# CTA fixo no rodapé fica visível mesmo com o teclado aberto
+- tapOn:
+    id: "add-card-save"
+- assertVisible: "Cartão “Cartão da facul” adicionado"
+# novo cartão fica selecionado e sem gastos
+- assertVisible: "Nenhum gasto nesse cartão ainda."

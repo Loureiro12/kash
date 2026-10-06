@@ -1,0 +1,62 @@
+appId: ${APP_ID}
+name: Perfil — tema, sair e excluir conta
+tags: [critical]
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "home-avatar"
+- assertVisible:
+    id: "profile-screen"
+- assertVisible: "Lara Mendes"
+- assertVisible: "lara.mendes@email.com"
+
+# Tema claro ↔ escuro
+- tapOn:
+    id: "profile-theme-switch"
+- tapOn:
+    id: "profile-theme-switch"
+
+# Sair → Login → entrar de novo
+- scrollUntilVisible:
+    element:
+      id: "profile-logout"
+    direction: DOWN
+- tapOn:
+    id: "profile-logout"
+- assertVisible:
+    id: "login-screen"
+- waitForAnimationToEnd
+- tapOn:
+    id: "login-signup"
+- assertVisible:
+    id: "home-screen"
+
+# Excluir conta: precisa confirmar o checkbox
+- tapOn:
+    id: "home-avatar"
+- scrollUntilVisible:
+    element:
+      id: "profile-delete"
+    direction: DOWN
+- tapOn:
+    id: "profile-delete"
+- assertVisible:
+    id: "sheet-delete-account"
+- assertVisible: "Excluir sua conta?"
+- tapOn:
+    id: "delete-cancel"
+- assertNotVisible:
+    id: "sheet-delete-account"
+- tapOn:
+    id: "profile-delete"
+- tapOn:
+    id: "delete-confirm"
+- assertVisible:
+    id: "sheet-delete-account"
+- tapOn:
+    id: "delete-confirm-checkbox"
+- tapOn:
+    id: "delete-confirm"
+- assertVisible:
+    id: "onboarding-screen"
+- assertVisible: "Conta excluída"

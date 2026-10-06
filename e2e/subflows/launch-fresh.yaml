@@ -1,0 +1,9 @@
+# Abre o app do zero (estado limpo) — o store não é persistido nesta fase.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-screen"
+    timeout: 20000

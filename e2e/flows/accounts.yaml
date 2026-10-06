@@ -1,0 +1,59 @@
+appId: ${APP_ID}
+name: Contas — bancárias, fixas e nova conta
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "tab-accounts"
+- assertVisible:
+    id: "accounts-screen"
+- assertVisible: "Em todas as contas"
+- assertVisible: "R$ 4.225,50"
+
+# Nova conta
+- tapOn:
+    id: "accounts-add"
+- assertVisible:
+    id: "sheet-add-account"
+- assertVisible:
+    id: "add-account-save"
+- tapOn:
+    id: "add-account-kind-Poupança"
+- tapOn:
+    id: "add-account-color-1"
+- tapOn:
+    id: "add-account-name"
+- inputText: "Conta do estágio"
+- pressKey: Enter
+- inputText: "Banco X"
+- pressKey: Enter
+- inputText: "300"
+- tapOn:
+    id: "add-account-save"
+- assertVisible: "Conta “Conta do estágio” adicionada"
+- assertVisible: "Poupança · Banco X"
+- assertVisible: "R$ 4.525,50"
+
+# Contas fixas: marcar como paga
+- tapOn:
+    id: "seg-bills"
+- assertVisible:
+    id: "accounts-bills"
+- assertVisible: "R$ 274,60"
+- assertVisible: "1/5"
+- tapOn:
+    id: "bill-bill2"
+- assertVisible: "2/5"
+- assertVisible: "R$ 174,70"
+- tapOn:
+    id: "bill-bill2"
+- assertVisible: "1/5"
+
+# Conta paga some das próximas contas na Início
+- tapOn:
+    id: "bill-bill3"
+- tapOn:
+    id: "tab-home"
+- assertNotVisible:
+    id: "home-bill-bill3"
+- assertVisible:
+    id: "home-bill-bill2"

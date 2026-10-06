@@ -1,0 +1,61 @@
+appId: ${APP_ID}
+name: Relatório, Previsão, Termos e Privacidade
+---
+- runFlow: ../subflows/login.yaml
+
+# Relatório
+- tapOn:
+    id: "home-budget-card"
+- assertVisible:
+    id: "report-screen"
+- assertVisible: "Relatório"
+- assertVisible: "Por categoria"
+- assertVisible:
+    id: "report-cat-Lazer"
+- tapOn:
+    id: "report-back"
+
+# Previsão: trocar mês selecionado
+- scrollUntilVisible:
+    element:
+      id: "home-forecast-card"
+    direction: DOWN
+- tapOn:
+    id: "home-forecast-card"
+- assertVisible:
+    id: "forecast-screen"
+- assertVisible: "Contas fixas"
+- assertVisible: "Parcelas"
+- assertVisible: "Celular novo (6/12)"
+- tapOn:
+    id: "forecast-month-4"
+- assertVisible: "Celular novo (9/12)"
+- assertNotVisible: "Tênis de corrida"
+- tapOn:
+    id: "forecast-back"
+
+# Termos e privacidade via Perfil
+- scrollUntilVisible:
+    element:
+      id: "home-avatar"
+    direction: UP
+- tapOn:
+    id: "home-avatar"
+- scrollUntilVisible:
+    element:
+      id: "profile-terms"
+    direction: DOWN
+- tapOn:
+    id: "profile-terms"
+- assertVisible: "Termos de uso"
+- assertVisible: "1. O que é o Kash"
+- tapOn:
+    id: "legal-terms-back"
+- tapOn:
+    id: "profile-privacy"
+- assertVisible: "Privacidade"
+- assertVisible: "Quais dados coletamos"
+- tapOn:
+    id: "legal-privacy-back"
+- assertVisible:
+    id: "profile-screen"

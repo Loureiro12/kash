@@ -1,0 +1,24 @@
+appId: ${APP_ID}
+name: Onboarding e login
+tags: [smoke]
+---
+- runFlow: ../subflows/launch-fresh.yaml
+- assertVisible: '(?s)Sua grana,.*'
+- assertVisible: "Lance gastos de cartão e débito"
+- tapOn:
+    id: "onboarding-cta"
+- assertVisible: "Bem-vindo de volta"
+- tapOn:
+    id: "login-email"
+- inputText: "lara@email.com"
+- tapOn:
+    id: "login-password"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000
+- assertVisible: "Saldo total"

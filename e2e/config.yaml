@@ -1,0 +1,6 @@
+# Maestro workspace config — https://docs.maestro.dev
+# Rode a partir da pasta e2e: `maestro test flows --env APP_ID=com.kash.app`
+flows:
+  - flows/*.yaml
+executionOrder:
+  continueOnFailure: true

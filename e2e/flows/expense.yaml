@@ -1,0 +1,98 @@
+appId: ${APP_ID}
+name: Lançar gasto — à vista e parcelado
+tags: [smoke, critical]
+---
+- runFlow: ../subflows/login.yaml
+
+# 1) Gasto à vista em conta, pelo botão + da tab bar
+- tapOn:
+    id: "tab-add"
+- assertVisible:
+    id: "sheet-expense"
+- assertVisible: "Lançar gasto"
+- assertVisible: "R$ 0,00"
+- tapOn:
+    id: "key-1"
+- tapOn:
+    id: "key-4"
+- tapOn:
+    id: "key-5"
+- tapOn:
+    id: "key-0"
+- assertVisible: "R$ 14,50"
+- tapOn:
+    id: "chip-cat-Comida"
+# origens: contas ficam depois dos cartões na linha rolável
+- swipe:
+    direction: LEFT
+    from:
+      id: "chip-src-card1"
+- swipe:
+    direction: LEFT
+    from:
+      id: "chip-src-card2"
+- tapOn:
+    id: "chip-src-acc1"
+- assertNotVisible:
+    id: "expense-installments"
+- tapOn:
+    id: "expense-note"
+- inputText: "Lanche na cantina"
+- pressKey: Enter
+- hideKeyboard
+- tapOn:
+    id: "expense-save"
+- assertVisible: "R$ 14,50 lançado em Comida"
+- assertVisible: "Lanche na cantina"
+# saldo da conta corrente caiu de 2.340,50 → 2.326,00 (total 4.211,00)
+- assertVisible: "R$ 4.211,00"
+
+# 2) Gasto parcelado no cartão, pelo atalho da Início
+- tapOn:
+    id: "action-add-expense"
+- assertVisible:
+    id: "sheet-expense"
+- tapOn:
+    id: "key-6"
+- tapOn:
+    id: "key-00"
+- tapOn:
+    id: "key-00"
+- assertVisible: "R$ 600,00"
+- tapOn:
+    id: "chip-src-card1"
+- assertVisible: "À vista"
+- tapOn:
+    id: "expense-inst-inc"
+- tapOn:
+    id: "expense-inst-inc"
+- assertVisible: "3x de R$ 200,00"
+- tapOn:
+    id: "chip-cat-Lazer"
+- tapOn:
+    id: "expense-note"
+- inputText: "Fone"
+- pressKey: Enter
+- hideKeyboard
+- tapOn:
+    id: "expense-save"
+- assertVisible: "3x de R$ 200,00 no cartão"
+- assertVisible: "Fone (1/3)"
+
+# O plano aparece em Cartões › Parcelas em aberto
+- tapOn:
+    id: "tab-cards"
+- scrollUntilVisible:
+    element:
+      text: "Parcelas em aberto"
+    direction: DOWN
+- assertVisible: "Fone"
+- assertVisible: "R$ 200,00/mês"
+
+# 3) Fechar o sheet sem salvar
+- tapOn:
+    id: "tab-add"
+- tapOn:
+    id: "sheet-expense-close"
+- assertNotVisible:
+    id: "sheet-expense"
