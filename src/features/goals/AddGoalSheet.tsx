@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { View, type TextInput } from 'react-native';
-import { BottomSheet, Button, Input, Pressable, Text, accountColors, useTheme } from '@/design-system';
+import { ScrollView } from 'react-native';
+import { BottomSheet, Button, Chip, Input, Pressable, Text, accountColors, useTheme } from '@/design-system';
 import { formatBRL, parseMoneyInput } from '@/domain/money';
 import { goalProgress } from '@/domain/selectors/goals';
 import { useKashStore } from '@/store';
@@ -17,13 +18,18 @@ function AddGoalForm({ visible, onClose }: { visible: boolean; onClose: () => vo
   const { colors } = useTheme();
   const addGoal = useKashStore((s) => s.addGoal);
   const showToast = useKashStore((s) => s.showToast);
+  const accounts = useKashStore((s) => s.accounts);
 
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [saved, setSaved] = useState('');
   const [monthly, setMonthly] = useState('');
   const [colorIdx, setColorIdx] = useState(1);
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
+  const [depositDay, setDepositDay] = useState('');
   const targetRef = useRef<TextInput>(null);
+  const dayN = parseInt(depositDay, 10);
+  const depositDayN = Number.isFinite(dayN) && dayN >= 1 && dayN <= 31 ? dayN : null;
 
   const targetN = parseMoneyInput(target);
   const savedN = parseMoneyInput(saved);
@@ -42,7 +48,7 @@ function AddGoalForm({ visible, onClose }: { visible: boolean; onClose: () => vo
 
   const onSave = () => {
     if (!canSave) return;
-    addGoal({ name, target: targetN, saved: savedN, monthly: monthlyN, color });
+    addGoal({ name, target: targetN, saved: savedN, monthly: monthlyN, color, accountId: accountId || undefined, depositDay: depositDayN });
     showToast(`Meta “${name.trim()}” criada`);
   };
 
@@ -73,6 +79,23 @@ function AddGoalForm({ visible, onClose }: { visible: boolean; onClose: () => vo
           {preview}
         </Text>
       ) : null}
+      <Input
+        label="Dia do depósito (opcional)"
+        labelSize="sm"
+        placeholder="ex.: 10"
+        value={depositDay}
+        onChangeText={(v) => setDepositDay(v.replace(/\D/g, '').slice(0, 2))}
+        keyboardType="number-pad"
+        testID="add-goal-day"
+      />
+      <Text variant="metaMedium" color="muted">
+        Onde o dinheiro fica guardado
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
+        {accounts.map((a) => (
+          <Chip key={a.id} label={a.name} tone="soft" shape="rounded" height={34} selected={accountId === a.id} onPress={() => setAccountId(a.id)} testID={`add-goal-account-${a.id}`} />
+        ))}
+      </ScrollView>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Text variant="metaMedium" color="muted" style={{ marginRight: 4 }}>
           Cor

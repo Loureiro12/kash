@@ -54,8 +54,14 @@ export interface Goal {
   target: number;
   saved: number;
   color: string;
-  /** aporte mensal estimado (para o ETA) */
+  /** aporte mensal estimado (para o ETA) e valor sugerido do depósito */
   monthly: number;
+  /** conta onde o dinheiro da meta fica guardado */
+  accountId?: ID;
+  /** dia do mês do depósito (1..31) */
+  depositDay?: number;
+  /** ISO date do último depósito registrado */
+  lastDepositDate?: string;
 }
 
 /** Plano de parcelamento no cartão. */

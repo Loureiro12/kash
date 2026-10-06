@@ -12,6 +12,8 @@ import {
   cardDates,
   cardUsage,
   categoryBreakdown,
+  depositLabel,
+  depositStatus,
   forecast,
   goalProgress,
   monthDelta,
@@ -87,15 +89,24 @@ export function useCardsOverview() {
 }
 
 export function useGoalsOverview() {
-  const { goals, txs } = useKashStore(useShallow((s) => ({ goals: s.goals, txs: s.txs })));
-  return useMemo(
-    () => ({
-      goals: goals.map((goal) => ({ goal, progress: goalProgress(goal) })),
+  const { goals, txs, accounts } = useKashStore(useShallow((s) => ({ goals: s.goals, txs: s.txs, accounts: s.accounts })));
+  return useMemo(() => {
+    const today = now();
+    return {
+      goals: goals.map((goal) => {
+        const deposit = depositStatus(goal, today);
+        return {
+          goal,
+          progress: goalProgress(goal),
+          deposit,
+          depositLabel: depositLabel(deposit, today),
+          accountName: accounts.find((a) => a.id === goal.accountId)?.name ?? null,
+        };
+      }),
       totalSaved: totalSaved(goals),
-      tip: topCategoryTip(txs, now()),
-    }),
-    [goals, txs],
-  );
+      tip: topCategoryTip(txs, today),
+    };
+  }, [goals, txs, accounts]);
 }
 
 export function useReport() {

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { CardGradient } from '@/design-system/tokens/colors';
 import { toISODate } from '@/domain/dates';
 import { round2 } from '@/domain/money';
-import { addToGoal } from '@/domain/selectors/goals';
+import { addToGoal, recordDeposit } from '@/domain/selectors/goals';
 import type { Account, Bill, Card, Category, Goal, Plan, Settings, ThemeMode, Tx, User } from '@/domain/types';
 import { isAccountId } from '@/domain/types';
 import { createId } from '@/lib/ids';
@@ -11,7 +11,7 @@ import { seedData } from './seed';
 
 export type AuthStatus = 'onboarding' | 'login' | 'app';
 export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deleteAccount';
+export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'deleteAccount';
 
 export interface NewExpense {
   amountCents: number;
@@ -44,6 +44,14 @@ export interface NewGoal {
   saved: number;
   monthly: number;
   color: string;
+  accountId?: string;
+  depositDay?: number | null;
+}
+
+export interface NewDeposit {
+  goalId: string;
+  amountCents: number;
+  accountId?: string;
 }
 
 export interface KashState {
@@ -63,6 +71,8 @@ export interface KashState {
     toast: string | null;
     selectedCardId: string | null;
     accountsSegment: AccountsSegment;
+    /** meta alvo do sheet de depósito */
+    depositGoalId: string | null;
   };
 
   // auth
@@ -79,6 +89,7 @@ export interface KashState {
 
   // ui
   openSheet: (sheet: SheetName) => void;
+  openDeposit: (goalId: string) => void;
   closeSheet: () => void;
   showToast: (message: string) => void;
   hideToast: () => void;
@@ -92,6 +103,7 @@ export interface KashState {
   toggleBillPaid: (id: string) => void;
   contributeToGoal: (id: string, amount: number) => void;
   addGoal: (input: NewGoal) => void;
+  recordDeposit: (input: NewDeposit) => void;
 
   /** reseta para o seed (usado em testes) */
   reset: () => void;
@@ -102,7 +114,7 @@ const buildInitial = () => {
   return {
     auth: 'onboarding' as AuthStatus,
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment },
+    ui: { sheet: null, sheetNonce: 0, toast: null, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null },
   };
 };
 
@@ -126,6 +138,7 @@ export const useKashStore = create<KashState>((set, get) => ({
   toggleBillReminder: () => set((s) => ({ settings: { ...s.settings, billReminder: !s.settings.billReminder } })),
 
   openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1 } })),
+  openDeposit: (goalId) => set((s) => ({ ui: { ...s.ui, sheet: 'deposit', sheetNonce: s.ui.sheetNonce + 1, depositGoalId: goalId } })),
   closeSheet: () => set((s) => ({ ui: { ...s.ui, sheet: null } })),
   showToast: (message) => {
     if (toastTimer) clearTimeout(toastTimer);
@@ -171,10 +184,29 @@ export const useKashStore = create<KashState>((set, get) => ({
 
   contributeToGoal: (id, amount) => set((s) => ({ goals: s.goals.map((g) => (g.id === id ? addToGoal(g, amount) : g)) })),
 
-  addGoal: ({ name, target, saved, monthly, color }) => {
+  addGoal: ({ name, target, saved, monthly, color, accountId, depositDay }) => {
     if (!name.trim() || target <= 0) return;
-    const goal: Goal = { id: createId('goal'), name: name.trim(), target: round2(target), saved: round2(Math.min(Math.max(0, saved), target)), monthly: round2(Math.max(0, monthly)), color };
+    const goal: Goal = {
+      id: createId('goal'),
+      name: name.trim(),
+      target: round2(target),
+      saved: round2(Math.min(Math.max(0, saved), target)),
+      monthly: round2(Math.max(0, monthly)),
+      color,
+      accountId,
+      depositDay: depositDay ?? undefined,
+    };
     set((s) => ({ goals: [...s.goals, goal], ui: { ...s.ui, sheet: null } }));
+  },
+
+  recordDeposit: ({ goalId, amountCents, accountId }) => {
+    const amount = amountCents / 100;
+    if (amount <= 0) return;
+    const today = toISODate(now());
+    set((s) => ({
+      goals: s.goals.map((g) => (g.id === goalId ? recordDeposit(g, amount, today, accountId) : g)),
+      ui: { ...s.ui, sheet: null },
+    }));
   },
 
   reset: () => set(buildInitial()),

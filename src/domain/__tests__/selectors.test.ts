@@ -2,7 +2,7 @@ import { seedData } from '@/store/seed';
 import { budgetStatus } from '../selectors/budget';
 import { activePlans, cardDates, cardUsage, installmentPreview } from '../selectors/cards';
 import { billsSummary, upcomingBills } from '../selectors/bills';
-import { addToGoal, goalProgress, totalSaved } from '../selectors/goals';
+import { addToGoal, depositLabel, depositStatus, goalProgress, recordDeposit, totalSaved } from '../selectors/goals';
 import { categoryBreakdown, monthDelta, monthlyHistory, topCategoryTip } from '../selectors/report';
 import { forecast, forecastHeights } from '../selectors/forecast';
 import { monthIncome, monthSpent, totalBalance } from '../selectors/balance';
@@ -85,6 +85,21 @@ describe('metas', () => {
   });
   it('total guardado', () => {
     expect(totalSaved(seed.goals)).toBe(3960);
+  });
+  it('status do depósito mensal', () => {
+    const base = { id: 'g', name: 'x', target: 100, saved: 10, color: '#fff', monthly: 10 };
+    expect(depositStatus(base, now)).toEqual({ kind: 'none' });
+    expect(depositStatus({ ...base, depositDay: 20 }, now)).toEqual({ kind: 'upcoming', day: 20 });
+    expect(depositStatus({ ...base, depositDay: 10 }, now)).toEqual({ kind: 'due', day: 10 });
+    expect(depositStatus({ ...base, depositDay: 10, lastDepositDate: '2026-10-12' }, now)).toEqual({ kind: 'done', day: 10, date: '2026-10-12' });
+    expect(depositStatus({ ...base, depositDay: 10, lastDepositDate: '2026-09-12' }, now).kind).toBe('due');
+    expect(depositLabel({ kind: 'due', day: 10 }, now)).toBe('Depósito de outubro pendente');
+    expect(depositLabel({ kind: 'done', day: 10, date: '2026-10-12' }, now)).toBe('Depósito de outubro feito');
+    expect(depositLabel({ kind: 'upcoming', day: 20 }, now)).toBe('Próximo depósito dia 20');
+  });
+  it('recordDeposit soma, marca a data e troca a conta', () => {
+    const g = recordDeposit({ id: 'g', name: 'x', target: 100, saved: 80, color: '#fff', monthly: 10, accountId: 'acc1' }, 50, '2026-10-15', 'acc2');
+    expect(g).toMatchObject({ saved: 100, lastDepositDate: '2026-10-15', accountId: 'acc2' });
   });
 });
 

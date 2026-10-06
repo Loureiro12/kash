@@ -4,6 +4,7 @@ import { useKashStore } from '@/store';
 import { AddAccountSheet } from '../accounts/AddAccountSheet';
 import { AddCardSheet } from '../cards/AddCardSheet';
 import { AddGoalSheet } from '../goals/AddGoalSheet';
+import { DepositSheet } from '../goals/DepositSheet';
 import { DeleteAccountSheet } from '../profile/DeleteAccountSheet';
 import { ExpenseSheet } from '../transactions/ExpenseSheet';
 
@@ -15,6 +16,7 @@ export function SheetsHost() {
       <AddCardSheet />
       <AddAccountSheet />
       <AddGoalSheet />
+      <DepositSheet />
       <DeleteAccountSheet />
     </>
   );

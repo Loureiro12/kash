@@ -105,6 +105,15 @@ describe('contas fixas, metas, ui', () => {
     });
     expect(useKashStore.getState().goals).toHaveLength(before);
   });
+  it('recordDeposit atualiza meta, conta e fecha o sheet', () => {
+    act(() => {
+      useKashStore.getState().openDeposit('goal3');
+      useKashStore.getState().recordDeposit({ goalId: 'goal3', amountCents: 25000, accountId: 'acc1' });
+    });
+    const s = useKashStore.getState();
+    expect(s.goals[2]).toMatchObject({ saved: 2350, lastDepositDate: '2026-10-15', accountId: 'acc1' });
+    expect(s.ui.sheet).toBeNull();
+  });
   it('contributeToGoal respeita o alvo', () => {
     act(() => useKashStore.getState().contributeToGoal('goal2', 500));
     expect(useKashStore.getState().goals[1]?.saved).toBe(900);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Button, Card, DashedButton, ProgressRing, Screen, Text, staticColors } from '@/design-system';
+import { Button, Card, DashedButton, Icon, Pressable, ProgressRing, Screen, Text, staticColors, useTheme } from '@/design-system';
 import { formatBRL } from '@/domain/money';
 import { useGoalsOverview, useKashStore, useMoney } from '@/store';
 
@@ -8,11 +8,13 @@ const CONTRIBUTION = 50;
 
 /** Tela 6 — Metas. */
 export function GoalsScreen() {
+  const { colors } = useTheme();
   const money = useMoney();
   const { goals, totalSaved, tip } = useGoalsOverview();
   const contribute = useKashStore((s) => s.contributeToGoal);
   const showToast = useKashStore((s) => s.showToast);
   const openSheet = useKashStore((s) => s.openSheet);
+  const openDeposit = useKashStore((s) => s.openDeposit);
 
   const onAdd = (id: string, name: string) => {
     contribute(id, CONTRIBUTION);
@@ -35,21 +37,47 @@ export function GoalsScreen() {
   return (
     <Screen testID="goals-screen" header={header}>
       <View style={{ gap: 12, marginTop: 6 }}>
-        {goals.map(({ goal, progress }) => (
-          <Card key={goal.id} padding={18} style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }} testID={`goal-${goal.id}`}>
-            <ProgressRing pct={progress.pct} color={goal.color} testID={`goal-${goal.id}-ring`} />
-            <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-              <Text variant="valueLg">{goal.name}</Text>
-              <Text variant="meta" color="muted" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} testID={`goal-${goal.id}-saved`}>
-                {money(goal.saved)} de {formatBRL(goal.target)}
-              </Text>
-              <Text variant="meta" color="muted" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
-                {progress.eta}
-              </Text>
-            </View>
-            <Button label="+ R$ 50" variant="soft" size="sm" fullWidth={false} disabled={progress.done} onPress={() => onAdd(goal.id, goal.name)} testID={`goal-${goal.id}-add`} />
-          </Card>
-        ))}
+        {goals.map(({ goal, progress, deposit, depositLabel, accountName }) => {
+          const due = deposit.kind === 'due' && !progress.done;
+          return (
+            <Card key={goal.id} padding={18} style={{ gap: 12 }} testID={`goal-${goal.id}`}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <ProgressRing pct={progress.pct} color={goal.color} testID={`goal-${goal.id}-ring`} />
+                <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                  <Text variant="valueLg">{goal.name}</Text>
+                  <Text variant="meta" color="muted" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} testID={`goal-${goal.id}-saved`}>
+                    {money(goal.saved)} de {formatBRL(goal.target)}
+                  </Text>
+                  <Text variant="meta" color="muted" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+                    {progress.eta}
+                  </Text>
+                </View>
+                {due ? (
+                  <Button label="Depositar" variant="primary" size="sm" fullWidth={false} onPress={() => openDeposit(goal.id)} testID={`goal-${goal.id}-deposit`} />
+                ) : (
+                  <Button label="+ R$ 50" variant="soft" size="sm" fullWidth={false} disabled={progress.done} onPress={() => onAdd(goal.id, goal.name)} testID={`goal-${goal.id}-add`} />
+                )}
+              </View>
+              {deposit.kind !== 'none' || accountName ? (
+                /* linha de depósito (largura total): toque registra um depósito a qualquer momento */
+                <Pressable
+                  onPress={() => openDeposit(goal.id)}
+                  disabled={progress.done}
+                  testID={`goal-${goal.id}-deposit-line`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${accountName ? `${accountName}. ` : ''}${depositLabel}. Registrar depósito`}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.line }}
+                >
+                  <Text variant="chip" color={due ? 'accentText' : 'muted'} numberOfLines={1} style={{ flex: 1 }} testID={`goal-${goal.id}-deposit-status`}>
+                    {accountName ? `${accountName} · ` : ''}
+                    {depositLabel}
+                  </Text>
+                  {!progress.done ? <Icon name="chevron-right" size={14} color={due ? colors.accentText : colors.muted} strokeWidth={2} /> : null}
+                </Pressable>
+              ) : null}
+            </Card>
+          );
+        })}
         <DashedButton label="+ Nova meta" height={56} onPress={() => openSheet('addGoal')} testID="goals-add" />
       </View>
 

@@ -49,9 +49,10 @@ export function seedData(today: Date) {
   ];
 
   const goals: Goal[] = [
-    { id: 'goal1', name: 'Viagem pra praia', target: 3000, saved: 1240, color: '#6BC5FF', monthly: 300 },
-    { id: 'goal2', name: 'Fone novo', target: 900, saved: 620, color: '#D98BFF', monthly: 150 },
-    { id: 'goal3', name: 'Reserva de emergência', target: 5000, saved: 2100, color: '#C6F432', monthly: 250 },
+    { id: 'goal1', name: 'Viagem pra praia', target: 3000, saved: 1240, color: '#6BC5FF', monthly: 300, accountId: 'acc2', depositDay: 10 },
+    { id: 'goal2', name: 'Fone novo', target: 900, saved: 620, color: '#D98BFF', monthly: 150, accountId: 'acc1', depositDay: 20 },
+    // dia 1: sempre "pendente" ao abrir o app até registrar o depósito do mês
+    { id: 'goal3', name: 'Reserva de emergência', target: 5000, saved: 2100, color: '#C6F432', monthly: 250, accountId: 'acc2', depositDay: 1 },
   ];
 
   return { user, settings, accounts, cards, plans, txs, bills, goals };
