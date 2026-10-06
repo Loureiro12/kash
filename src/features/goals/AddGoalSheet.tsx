@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, type TextInput } from 'react-native';
+import { Alert, View, type TextInput } from 'react-native';
 import { ScrollView } from 'react-native';
 import { BottomSheet, Button, Chip, Input, Pressable, Text, accountColors, useTheme } from '@/design-system';
 import { parseMoneyInput } from '@/domain/money';
@@ -10,23 +10,29 @@ import { useKashStore } from '@/store';
 export function AddGoalSheet() {
   const visible = useKashStore((s) => s.ui.sheet === 'addGoal');
   const nonce = useKashStore((s) => s.ui.sheetNonce);
+  const editingId = useKashStore((s) => (s.ui.editing?.kind === 'goal' ? s.ui.editing.id : null));
   const closeSheet = useKashStore((s) => s.closeSheet);
-  return <AddGoalForm key={nonce} visible={visible} onClose={closeSheet} />;
+  return <AddGoalForm key={`${nonce}-${editingId ?? 'new'}`} visible={visible} editingId={editingId} onClose={closeSheet} />;
 }
 
-function AddGoalForm({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+const money = (n: number) => String(n).replace('.', ',');
+
+function AddGoalForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
   const { colors } = useTheme();
+  const editing = useKashStore((s) => (editingId ? (s.goals.find((g) => g.id === editingId) ?? null) : null));
   const addGoal = useKashStore((s) => s.addGoal);
+  const updateGoal = useKashStore((s) => s.updateGoal);
+  const removeGoal = useKashStore((s) => s.removeGoal);
   const showToast = useKashStore((s) => s.showToast);
   const accounts = useKashStore((s) => s.accounts);
 
-  const [name, setName] = useState('');
-  const [target, setTarget] = useState('');
-  const [saved, setSaved] = useState('');
-  const [monthly, setMonthly] = useState('');
-  const [colorIdx, setColorIdx] = useState(1);
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '');
-  const [depositDay, setDepositDay] = useState('');
+  const [name, setName] = useState(editing?.name ?? '');
+  const [target, setTarget] = useState(editing ? money(editing.target) : '');
+  const [saved, setSaved] = useState(editing ? money(editing.saved) : '');
+  const [monthly, setMonthly] = useState(editing ? money(editing.monthly) : '');
+  const [colorIdx, setColorIdx] = useState(editing ? Math.max(0, accountColors.findIndex((c) => c === editing.color)) : 1);
+  const [accountId, setAccountId] = useState(editing?.accountId ?? accounts[0]?.id ?? '');
+  const [depositDay, setDepositDay] = useState(editing?.depositDay ? String(editing.depositDay) : '');
   const targetRef = useRef<TextInput>(null);
   const dayN = parseInt(depositDay, 10);
   const depositDayN = Number.isFinite(dayN) && dayN >= 1 && dayN <= 31 ? dayN : null;
@@ -48,17 +54,36 @@ function AddGoalForm({ visible, onClose }: { visible: boolean; onClose: () => vo
 
   const onSave = () => {
     if (!canSave) return;
-    addGoal({ name, target: targetN, saved: savedN, monthly: monthlyN, color, accountId: accountId || undefined, depositDay: depositDayN });
+    const input = { name, target: targetN, saved: savedN, monthly: monthlyN, color, accountId: accountId || undefined, depositDay: depositDayN };
+    if (editing) {
+      updateGoal(editing.id, input);
+      showToast('Meta atualizada');
+      return;
+    }
+    addGoal(input);
     showToast(`Meta “${name.trim()}” criada`);
+  };
+
+  const onDelete = () => {
+    if (!editing) return;
+    Alert.alert('Excluir meta?', 'O dinheiro guardado continua na sua conta; só a meta some.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: () => { removeGoal(editing.id); showToast(`Meta “${editing.name}” excluída`); } },
+    ]);
   };
 
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Nova meta"
+      title={editing ? 'Editar meta' : 'Nova meta'}
       testID="sheet-add-goal"
-      footer={<Button label="Criar meta" onPress={onSave} disabled={!canSave} testID="add-goal-save" haptic="medium" />}
+      footer={
+        <>
+          <Button label={editing ? 'Salvar alterações' : 'Criar meta'} onPress={onSave} disabled={!canSave} testID="add-goal-save" haptic="medium" />
+          {editing ? <Button label="Excluir meta" variant="dangerSoft" size="md" onPress={onDelete} testID="add-goal-delete" /> : null}
+        </>
+      }
     >
       <Input
         placeholder="Nome da meta (ex.: Viagem pra praia)"

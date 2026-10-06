@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ScrollView, View, type TextInput } from 'react-native';
+import { Alert, ScrollView, View, type TextInput } from 'react-native';
 import { BottomSheet, Button, Chip, Input, Text, categoryColors } from '@/design-system';
 import { parseMoneyInput } from '@/domain/money';
 import { CATEGORIES, type Category } from '@/domain/types';
@@ -9,20 +9,24 @@ import { useKashStore, useSourceOptions } from '@/store';
 export function AddBillSheet() {
   const visible = useKashStore((s) => s.ui.sheet === 'addBill');
   const nonce = useKashStore((s) => s.ui.sheetNonce);
+  const editingId = useKashStore((s) => (s.ui.editing?.kind === 'bill' ? s.ui.editing.id : null));
   const closeSheet = useKashStore((s) => s.closeSheet);
-  return <AddBillForm key={nonce} visible={visible} onClose={closeSheet} />;
+  return <AddBillForm key={`${nonce}-${editingId ?? 'new'}`} visible={visible} editingId={editingId} onClose={closeSheet} />;
 }
 
-function AddBillForm({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+function AddBillForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
+  const editing = useKashStore((s) => (editingId ? (s.bills.find((b) => b.id === editingId) ?? null) : null));
   const addBill = useKashStore((s) => s.addBill);
+  const updateBill = useKashStore((s) => s.updateBill);
+  const removeBill = useKashStore((s) => s.removeBill);
   const showToast = useKashStore((s) => s.showToast);
   const sources = useSourceOptions();
 
-  const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
-  const [day, setDay] = useState('');
-  const [category, setCategory] = useState<Category>('Assinaturas');
-  const [sourceId, setSourceId] = useState(sources[0]?.id ?? '');
+  const [name, setName] = useState(editing?.name ?? '');
+  const [amount, setAmount] = useState(editing ? String(editing.amount).replace('.', ',') : '');
+  const [day, setDay] = useState(editing ? String(editing.dueDay) : '');
+  const [category, setCategory] = useState<Category>(editing?.category ?? 'Assinaturas');
+  const [sourceId, setSourceId] = useState(editing?.sourceId ?? sources[0]?.id ?? '');
   const amountRef = useRef<TextInput>(null);
   const dayRef = useRef<TextInput>(null);
 
@@ -33,17 +37,36 @@ function AddBillForm({ visible, onClose }: { visible: boolean; onClose: () => vo
 
   const onSave = () => {
     if (!canSave) return;
-    addBill({ name, amount: amountN, dueDay: dayN, category, sourceId: sourceId || undefined });
+    const input = { name, amount: amountN, dueDay: dayN, category, sourceId: sourceId || undefined };
+    if (editing) {
+      updateBill(editing.id, input);
+      showToast('Conta fixa atualizada');
+      return;
+    }
+    addBill(input);
     showToast(`Conta fixa “${name.trim()}” adicionada`);
+  };
+
+  const onDelete = () => {
+    if (!editing) return;
+    Alert.alert('Excluir conta fixa?', 'Ela some das próximas contas e da previsão. Pagamentos já registrados continuam nos lançamentos.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: () => { removeBill(editing.id); showToast(`Conta fixa “${editing.name}” excluída`); } },
+    ]);
   };
 
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Nova conta fixa"
+      title={editing ? 'Editar conta fixa' : 'Nova conta fixa'}
       testID="sheet-add-bill"
-      footer={<Button label="Adicionar conta fixa" onPress={onSave} disabled={!canSave} testID="add-bill-save" haptic="medium" />}
+      footer={
+        <>
+          <Button label={editing ? 'Salvar alterações' : 'Adicionar conta fixa'} onPress={onSave} disabled={!canSave} testID="add-bill-save" haptic="medium" />
+          {editing ? <Button label="Excluir conta fixa" variant="dangerSoft" size="md" onPress={onDelete} testID="add-bill-delete" /> : null}
+        </>
+      }
     >
       <Text variant="metaMedium" color="muted">
         Cobrada em

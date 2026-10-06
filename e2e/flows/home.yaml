@@ -49,7 +49,7 @@ tags: [smoke]
     id: "action-bills"
 - assertVisible:
     id: "accounts-bills"
-- assertVisible: "Toque pra marcar como paga"
+- assertVisible: 'Toque pra marcar como paga.*'
 
 # Tab bar volta pro Início
 - tapOn:

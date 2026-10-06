@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
-import { View, type TextInput } from 'react-native';
+import { Alert, View, type TextInput } from 'react-native';
 import { BottomSheet, Button, CreditCardFace, Input, Pressable, cardGradients, useTheme } from '@/design-system';
 import { formatBRL, parseMoneyInput } from '@/domain/money';
 import { useKashStore } from '@/store';
@@ -15,21 +15,28 @@ const dayOrNull = (v: string) => {
 export function AddCardSheet() {
   const visible = useKashStore((s) => s.ui.sheet === 'addCard');
   const nonce = useKashStore((s) => s.ui.sheetNonce);
+  const editingId = useKashStore((s) => (s.ui.editing?.kind === 'card' ? s.ui.editing.id : null));
   const closeSheet = useKashStore((s) => s.closeSheet);
-  return <AddCardForm key={nonce} visible={visible} onClose={closeSheet} />;
+  return <AddCardForm key={`${nonce}-${editingId ?? 'new'}`} visible={visible} editingId={editingId} onClose={closeSheet} />;
 }
 
-function AddCardForm({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
   const { colors } = useTheme();
+  const editing = useKashStore((s) => (editingId ? (s.cards.find((c) => c.id === editingId) ?? null) : null));
+  // seletores primitivos: um objeto novo por render faria o zustand re-renderizar em loop
+  const txCount = useKashStore((s) => (editingId ? s.txs.filter((t) => t.sourceId === editingId).length : 0));
+  const planCount = useKashStore((s) => (editingId ? s.plans.filter((p) => p.cardId === editingId && p.current < p.installments).length : 0));
   const addCard = useKashStore((s) => s.addCard);
+  const updateCard = useKashStore((s) => s.updateCard);
+  const removeCard = useKashStore((s) => s.removeCard);
   const showToast = useKashStore((s) => s.showToast);
 
-  const [name, setName] = useState('');
-  const [last4, setLast4] = useState('');
-  const [limit, setLimit] = useState('');
-  const [closing, setClosing] = useState('');
-  const [due, setDue] = useState('');
-  const [colorIdx, setColorIdx] = useState(0);
+  const [name, setName] = useState(editing?.name ?? '');
+  const [last4, setLast4] = useState(editing?.last4 ?? '');
+  const [limit, setLimit] = useState(editing ? String(editing.limit) : '');
+  const [closing, setClosing] = useState(editing ? String(editing.closingDay) : '');
+  const [due, setDue] = useState(editing ? String(editing.dueDay) : '');
+  const [colorIdx, setColorIdx] = useState(editing ? Math.max(0, cardGradients.findIndex((g) => g.id === editing.gradientId)) : 0);
   const last4Ref = useRef<TextInput>(null);
   const limitRef = useRef<TextInput>(null);
 
@@ -39,17 +46,37 @@ function AddCardForm({ visible, onClose }: { visible: boolean; onClose: () => vo
 
   const onSave = () => {
     if (!canSave) return;
-    addCard({ name, last4, limit: limitN, closingDay: dayOrNull(closing), dueDay: dayOrNull(due), gradientId: gradient.id });
+    const input = { name, last4, limit: limitN, closingDay: dayOrNull(closing), dueDay: dayOrNull(due), gradientId: gradient.id };
+    if (editing) {
+      updateCard(editing.id, input);
+      showToast('Cartão atualizado');
+      return;
+    }
+    addCard(input);
     showToast(`Cartão “${name.trim()}” adicionado`);
+  };
+
+  const onDelete = () => {
+    if (!editing) return;
+    const parts = [txCount ? `${txCount} lançamento${txCount > 1 ? 's' : ''}` : '', planCount ? `${planCount} parcelamento${planCount > 1 ? 's' : ''}` : ''].filter(Boolean);
+    Alert.alert('Excluir cartão?', parts.length ? `Isso apaga ${parts.join(' e ')} deste cartão. Não dá pra desfazer.` : 'Não dá pra desfazer.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: () => { removeCard(editing.id); showToast(`Cartão “${editing.name}” excluído`); } },
+    ]);
   };
 
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Novo cartão"
+      title={editing ? 'Editar cartão' : 'Novo cartão'}
       testID="sheet-add-card"
-      footer={<Button label="Adicionar cartão" onPress={onSave} disabled={!canSave} testID="add-card-save" haptic="medium" />}
+      footer={
+        <>
+          <Button label={editing ? 'Salvar alterações' : 'Adicionar cartão'} onPress={onSave} disabled={!canSave} testID="add-card-save" haptic="medium" />
+          {editing ? <Button label="Excluir cartão" variant="dangerSoft" size="md" onPress={onDelete} testID="add-card-delete" /> : null}
+        </>
+      }
     >
       <CreditCardFace
         name={name.trim() || 'Nome do cartão'}

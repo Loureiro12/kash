@@ -4,6 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import {
   Card,
   CreditCardFace,
+  EmptyState,
   Pressable,
   ProgressBar,
   Screen,
@@ -18,6 +19,7 @@ import {
 import { formatBRL } from '@/domain/money';
 import type { Card as CardModel } from '@/domain/types';
 import { useCardsOverview, useKashStore, useMoney } from '@/store';
+import { DataGate } from '../navigation/DataGate';
 import { TxRow } from '../transactions/TxRow';
 
 export const gradientFor = (card: CardModel) => cardGradients.find((g) => g.id === card.gradientId) ?? cardGradients[0]!;
@@ -29,9 +31,14 @@ export function CardsScreen() {
   const { list, selected, selectedTxs, selectedPlans, selectedBills } = useCardsOverview();
   const selectCard = useKashStore((s) => s.selectCard);
   const openSheet = useKashStore((s) => s.openSheet);
+  const openEdit = useKashStore((s) => s.openEdit);
 
   return (
     <Screen testID="cards-screen" header={<ScreenTitle title="Cartões" subtitle="Toque num cartão pra ver a fatura." testID="cards-title" />}>
+      <DataGate>
+      {list.length === 0 ? (
+        <EmptyState icon="card" title="Nenhum cartão ainda" description="Cadastre um cartão pra acompanhar a fatura, o limite e as parcelas." actionLabel="Adicionar cartão" onAction={() => openSheet('addCard')} testID="cards-empty-state" />
+      ) : (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6, marginRight: -20, marginLeft: -5 }} contentContainerStyle={{ gap: 12, paddingRight: 20, paddingLeft: 5, paddingVertical: 5 }}>
         {list.map(({ card, usage, dates }) => (
           <SelectableCard key={card.id} selected={selected?.card.id === card.id} onPress={() => selectCard(card.id)} testID={`card-${card.id}`}>
@@ -60,15 +67,23 @@ export function CardsScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+      )}
 
       {selected ? (
         <>
           <Card padding={[18, 20]} style={{ marginTop: 18, gap: 12 }} testID="cards-limit">
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text variant="titleBold">Limite usado</Text>
-              <Text variant="meta" color="muted" testID="cards-limit-pct">
-                {selected.usage.pct}%
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text variant="meta" color="muted" testID="cards-limit-pct">
+                  {selected.usage.pct}%
+                </Text>
+                <Pressable onPress={() => openEdit({ kind: 'card', id: selected.card.id })} testID="card-edit" accessibilityRole="button" accessibilityLabel="Editar cartão" hitSlop={8}>
+                  <Text variant="chip" color="accentText">
+                    Editar
+                  </Text>
+                </Pressable>
+              </View>
             </View>
             <ProgressBar pct={selected.usage.pct} height={10} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -161,11 +176,8 @@ export function CardsScreen() {
             )}
           </View>
         </>
-      ) : (
-        <Text variant="body" color="muted" align="center" style={{ paddingVertical: 28 }} testID="cards-none">
-          Adicione um cartão pra acompanhar sua fatura.
-        </Text>
-      )}
+      ) : null}
+      </DataGate>
     </Screen>
   );
 }

@@ -35,6 +35,15 @@ export interface TxPatch {
 
 export type DeleteScope = 'single' | 'plan';
 
+export type EditableKind = 'card' | 'account' | 'bill' | 'goal';
+export interface EditingRef {
+  kind: EditableKind;
+  id: string;
+}
+
+/** Estado dos dados da sessão (preparação para a integração). */
+export type DataStatus = 'ready' | 'loading' | 'error';
+
 export interface ToastAction {
   label: string;
   onPress: () => void;
@@ -101,6 +110,9 @@ export interface KashState {
     editingTxId: string | null;
     /** último lançamento excluído, para desfazer */
     lastDeleted: { txs: Tx[]; plan: Plan | null; accounts: Account[]; bills: Bill[] } | null;
+    /** cartão/conta/conta fixa/meta em edição no sheet correspondente (null = novo) */
+    editing: EditingRef | null;
+    dataStatus: DataStatus;
     selectedCardId: string | null;
     accountsSegment: AccountsSegment;
     /** meta alvo do sheet de depósito */
@@ -126,6 +138,8 @@ export interface KashState {
   openSheet: (sheet: SheetName) => void;
   openDeposit: (goalId: string) => void;
   openTransaction: (txId: string) => void;
+  openEdit: (ref: EditingRef) => void;
+  setDataStatus: (status: DataStatus) => void;
   closeSheet: () => void;
   showToast: (message: string, action?: ToastAction) => void;
   hideToast: () => void;
@@ -138,11 +152,19 @@ export interface KashState {
   deleteTransaction: (id: string, scope?: DeleteScope) => void;
   undoDelete: () => void;
   addCard: (input: NewCard) => void;
+  updateCard: (id: string, input: NewCard) => void;
+  removeCard: (id: string) => void;
   addAccount: (input: NewAccount) => void;
+  updateAccount: (id: string, input: NewAccount) => void;
+  removeAccount: (id: string) => void;
   toggleBillPaid: (id: string) => void;
   addBill: (input: NewBill) => void;
+  updateBill: (id: string, input: NewBill) => void;
+  removeBill: (id: string) => void;
   contributeToGoal: (id: string, amount: number) => void;
   addGoal: (input: NewGoal) => void;
+  updateGoal: (id: string, input: NewGoal) => void;
+  removeGoal: (id: string) => void;
   recordDeposit: (input: NewDeposit) => void;
 
   /** reseta para o seed (usado em testes) */
@@ -154,7 +176,7 @@ const buildInitial = () => {
   return {
     auth: 'onboarding' as AuthStatus,
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null },
+    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null },
   };
 };
 
@@ -192,7 +214,12 @@ export const useKashStore = create<KashState>((set, get) => ({
       },
     })),
 
-  openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editingTxId: sheet === 'expense' ? null : s.ui.editingTxId } })),
+  openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editingTxId: sheet === 'expense' ? null : s.ui.editingTxId, editing: null } })),
+  openEdit: (ref) => {
+    const sheet: SheetName = ref.kind === 'card' ? 'addCard' : ref.kind === 'account' ? 'addAccount' : ref.kind === 'bill' ? 'addBill' : 'addGoal';
+    set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editing: ref } }));
+  },
+  setDataStatus: (status) => set((s) => ({ ui: { ...s.ui, dataStatus: status } })),
   openTransaction: (txId) => set((s) => ({ ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: txId } })),
   openDeposit: (goalId) => set((s) => ({ ui: { ...s.ui, sheet: 'deposit', sheetNonce: s.ui.sheetNonce + 1, depositGoalId: goalId } })),
   closeSheet: () => set((s) => ({ ui: { ...s.ui, sheet: null } })),
@@ -310,6 +337,25 @@ export const useKashStore = create<KashState>((set, get) => ({
     set((s) => ({ cards: [...s.cards, card], ui: { ...s.ui, sheet: null, selectedCardId: id } }));
   },
 
+  updateCard: (id, { name, last4, limit, closingDay, dueDay, gradientId }) =>
+    set((s) => ({
+      cards: s.cards.map((c) => (c.id === id ? { ...c, name: name.trim() || c.name, last4: last4 || c.last4, limit: limit > 0 ? limit : c.limit, closingDay: closingDay ?? c.closingDay, dueDay: dueDay ?? c.dueDay, gradientId } : c)),
+      ui: { ...s.ui, sheet: null, editing: null },
+    })),
+
+  /** Remove o cartão com seus lançamentos e parcelamentos; contas fixas cobradas nele ficam sem origem. */
+  removeCard: (id) =>
+    set((s) => {
+      const cards = s.cards.filter((c) => c.id !== id);
+      return {
+        cards,
+        txs: s.txs.filter((t) => t.sourceId !== id),
+        plans: s.plans.filter((p) => p.cardId !== id),
+        bills: s.bills.map((b) => (b.sourceId === id ? { ...b, sourceId: undefined } : b)),
+        ui: { ...s.ui, sheet: null, editing: null, selectedCardId: s.ui.selectedCardId === id ? (cards[0]?.id ?? null) : s.ui.selectedCardId },
+      };
+    }),
+
   addAccount: ({ name, kind, bank, balance, color }) => {
     const account: Account = { id: createId('acc'), name: name.trim(), kind: bank.trim() ? `${kind} · ${bank.trim()}` : kind, balance, color };
     set((s) => ({ accounts: [...s.accounts, account], ui: { ...s.ui, sheet: null } }));
@@ -319,6 +365,22 @@ export const useKashStore = create<KashState>((set, get) => ({
    * Marcar como paga gera o lançamento da cobrança (fatura do cartão ou débito na conta);
    * desmarcar remove o lançamento e devolve o saldo.
    */
+  updateAccount: (id, { name, kind, bank, balance, color }) =>
+    set((s) => ({
+      accounts: s.accounts.map((a) => (a.id === id ? { ...a, name: name.trim() || a.name, kind: bank.trim() ? `${kind} · ${bank.trim()}` : kind, balance: round2(balance), color } : a)),
+      ui: { ...s.ui, sheet: null, editing: null },
+    })),
+
+  /** Remove a conta e seus lançamentos; contas fixas e metas ligadas a ela ficam sem conta. */
+  removeAccount: (id) =>
+    set((s) => ({
+      accounts: s.accounts.filter((a) => a.id !== id),
+      txs: s.txs.filter((t) => t.sourceId !== id),
+      bills: s.bills.map((b) => (b.sourceId === id ? { ...b, sourceId: undefined } : b)),
+      goals: s.goals.map((g) => (g.accountId === id ? { ...g, accountId: undefined } : g)),
+      ui: { ...s.ui, sheet: null, editing: null },
+    })),
+
   toggleBillPaid: (id) =>
     set((s) => {
       const bill = s.bills.find((b) => b.id === id);
@@ -348,6 +410,17 @@ export const useKashStore = create<KashState>((set, get) => ({
     set((s) => ({ bills: [...s.bills, bill].sort((a, b) => a.dueDay - b.dueDay), ui: { ...s.ui, sheet: null } }));
   },
 
+  updateBill: (id, { name, amount, dueDay, category, sourceId }) =>
+    set((s) => ({
+      bills: s.bills
+        .map((b) => (b.id === id ? { ...b, name: name.trim() || b.name, amount: amount > 0 ? round2(amount) : b.amount, dueDay: dueDay >= 1 && dueDay <= 31 ? dueDay : b.dueDay, category, sourceId } : b))
+        .sort((a, b) => a.dueDay - b.dueDay),
+      ui: { ...s.ui, sheet: null, editing: null },
+    })),
+
+  /** Remove a conta fixa; o lançamento de um pagamento já feito é mantido. */
+  removeBill: (id) => set((s) => ({ bills: s.bills.filter((b) => b.id !== id), ui: { ...s.ui, sheet: null, editing: null } })),
+
   contributeToGoal: (id, amount) => set((s) => ({ goals: s.goals.map((g) => (g.id === id ? addToGoal(g, amount) : g)) })),
 
   addGoal: ({ name, target, saved, monthly, color, accountId, depositDay }) => {
@@ -364,6 +437,19 @@ export const useKashStore = create<KashState>((set, get) => ({
     };
     set((s) => ({ goals: [...s.goals, goal], ui: { ...s.ui, sheet: null } }));
   },
+
+  updateGoal: (id, { name, target, saved, monthly, color, accountId, depositDay }) =>
+    set((s) => ({
+      goals: s.goals.map((g) =>
+        g.id === id
+          ? { ...g, name: name.trim() || g.name, target: target > 0 ? round2(target) : g.target, saved: round2(Math.min(Math.max(0, saved), target > 0 ? target : g.target)), monthly: round2(Math.max(0, monthly)), color, accountId, depositDay: depositDay ?? undefined }
+          : g,
+      ),
+      ui: { ...s.ui, sheet: null, editing: null },
+    })),
+
+  /** Remove a meta; o dinheiro guardado continua na conta. */
+  removeGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id), ui: { ...s.ui, sheet: null, editing: null } })),
 
   recordDeposit: ({ goalId, amountCents, accountId }) => {
     const amount = amountCents / 100;

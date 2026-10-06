@@ -30,7 +30,7 @@ name: Contas — bancárias, fixas e nova conta
 - tapOn:
     id: "add-account-save"
 - assertVisible: "Conta “Conta do estágio” adicionada"
-- assertVisible: "Poupança · Banco X"
+- assertVisible: 'Conta do estágio, Poupança · Banco X.*'
 - assertVisible: "R$ 4.525,50"
 
 # Contas fixas: marcar como paga

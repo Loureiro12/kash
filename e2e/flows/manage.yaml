@@ -1,0 +1,113 @@
+appId: ${APP_ID}
+name: Gerenciar — editar e excluir conta, cartão, conta fixa e meta; estados vazios
+---
+- runFlow: ../subflows/login.yaml
+
+# Conta: tocar edita; renomear e excluir
+- tapOn:
+    id: "tab-accounts"
+- tapOn:
+    id: "account-acc3"
+- assertVisible: "Editar conta"
+- tapOn:
+    id: "add-account-name"
+- eraseText: 20
+- inputText: "Dinheiro"
+- pressKey: Enter
+- tapOn:
+    id: "add-account-save"
+- assertVisible: "Conta atualizada"
+- assertVisible: 'Dinheiro, Carteira.*'
+- tapOn:
+    id: "account-acc3"
+- tapOn:
+    id: "add-account-delete"
+- assertVisible: "Excluir conta?"
+- tapOn: "Excluir"
+- assertVisible: "Conta “Dinheiro” excluída"
+- assertNotVisible:
+    id: "account-acc3"
+# total sem a carteira (85,00)
+- assertVisible: "R$ 4.140,50"
+
+# Conta fixa: segurar edita; renomear; excluir
+- tapOn:
+    id: "seg-bills"
+- longPressOn:
+    id: "bill-bill4"
+- assertVisible: "Editar conta fixa"
+- tapOn:
+    id: "add-bill-name"
+- eraseText: 20
+- inputText: "Crossfit"
+- pressKey: Enter
+- tapOn:
+    id: "add-bill-save"
+- assertVisible: "Conta fixa atualizada"
+- assertVisible: 'Crossfit, vence dia 15.*'
+- longPressOn:
+    id: "bill-bill4"
+- tapOn:
+    id: "add-bill-delete"
+- tapOn: "Excluir"
+- assertVisible: "Conta fixa “Crossfit” excluída"
+- assertVisible: "1/4"
+
+# Cartão: botão Editar; renomear; excluir os dois → estado vazio com CTA
+- tapOn:
+    id: "tab-cards"
+- tapOn:
+    id: "card-edit"
+- assertVisible: "Editar cartão"
+- tapOn:
+    id: "add-card-name"
+- eraseText: 30
+- inputText: "Cartão novo"
+- pressKey: Enter
+- tapOn:
+    id: "add-card-save"
+- assertVisible: "Cartão atualizado"
+- tapOn:
+    id: "card-edit"
+- tapOn:
+    id: "add-card-delete"
+- assertVisible: "Excluir cartão?"
+- tapOn: "Excluir"
+- assertVisible: "Cartão “Cartão novo” excluído"
+- tapOn:
+    id: "card-edit"
+- tapOn:
+    id: "add-card-delete"
+- tapOn: "Excluir"
+- assertVisible:
+    id: "cards-empty-state"
+- tapOn:
+    id: "cards-empty-state-action"
+- assertVisible:
+    id: "sheet-add-card"
+- tapOn:
+    id: "sheet-add-card-close"
+
+# Meta: segurar edita; renomear; excluir
+- tapOn:
+    id: "tab-goals"
+- longPressOn:
+    id: "goal-goal2"
+- assertVisible: "Editar meta"
+- tapOn:
+    id: "add-goal-name"
+- eraseText: 20
+- inputText: "Fone bluetooth"
+- pressKey: Enter
+- tapOn:
+    id: "add-goal-save"
+- assertVisible: "Meta atualizada"
+- assertVisible: "Fone bluetooth"
+- longPressOn:
+    id: "goal-goal2"
+- tapOn:
+    id: "add-goal-delete"
+- tapOn: "Excluir"
+- assertVisible: "Meta “Fone bluetooth” excluída"
+- assertNotVisible:
+    id: "goal-goal2"

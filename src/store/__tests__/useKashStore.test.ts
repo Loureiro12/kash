@@ -158,6 +158,56 @@ describe('cartões e contas', () => {
   });
 });
 
+describe('editar e excluir cartão, conta, conta fixa e meta', () => {
+  it('openEdit abre o sheet certo com a referência', () => {
+    act(() => useKashStore.getState().openEdit({ kind: 'bill', id: 'bill2' }));
+    expect(useKashStore.getState().ui).toMatchObject({ sheet: 'addBill', editing: { kind: 'bill', id: 'bill2' } });
+    act(() => useKashStore.getState().openSheet('addBill'));
+    expect(useKashStore.getState().ui.editing).toBeNull();
+  });
+  it('updateCard mantém campos inválidos e removeCard apaga lançamentos, planos e desliga contas fixas', () => {
+    act(() => useKashStore.getState().updateCard('card1', { name: 'Principal', last4: '', limit: 0, closingDay: null, dueDay: 12, gradientId: 'blue' }));
+    expect(useKashStore.getState().cards[0]).toMatchObject({ name: 'Principal', last4: '4821', limit: 2500, closingDay: 28, dueDay: 12, gradientId: 'blue' });
+    act(() => useKashStore.getState().removeCard('card1'));
+    const s = useKashStore.getState();
+    expect(s.cards.map((c) => c.id)).toEqual(['card2']);
+    expect(s.txs.some((t) => t.sourceId === 'card1')).toBe(false);
+    expect(s.plans.some((p) => p.cardId === 'card1')).toBe(false);
+    expect(s.bills.find((b) => b.id === 'bill2')?.sourceId).toBeUndefined();
+    expect(s.ui.selectedCardId).toBe('card2');
+  });
+  it('updateAccount e removeAccount (lançamentos somem, metas e contas fixas ficam sem conta)', () => {
+    act(() => useKashStore.getState().updateAccount('acc1', { name: 'Nubank', kind: 'Conta corrente', bank: 'Nu', balance: 100, color: '#6BC5FF' }));
+    expect(useKashStore.getState().accounts[0]).toMatchObject({ name: 'Nubank', kind: 'Conta corrente · Nu', balance: 100, color: '#6BC5FF' });
+    act(() => useKashStore.getState().removeAccount('acc2'));
+    const s = useKashStore.getState();
+    expect(s.accounts.map((a) => a.id)).toEqual(['acc1', 'acc3']);
+    expect(s.goals.find((g) => g.id === 'goal1')?.accountId).toBeUndefined();
+  });
+  it('updateBill reordena por dia; removeBill mantém o pagamento já lançado', () => {
+    act(() => useKashStore.getState().updateBill('bill5', { name: 'Celular', amount: 59.9, dueDay: 2, category: 'Assinaturas', sourceId: 'acc1' }));
+    let s = useKashStore.getState();
+    expect(s.bills[0]).toMatchObject({ id: 'bill5', name: 'Celular', amount: 59.9, dueDay: 2, sourceId: 'acc1' });
+    act(() => useKashStore.getState().toggleBillPaid('bill5'));
+    const txId = useKashStore.getState().bills.find((b) => b.id === 'bill5')!.paidTxId!;
+    act(() => useKashStore.getState().removeBill('bill5'));
+    s = useKashStore.getState();
+    expect(s.bills.find((b) => b.id === 'bill5')).toBeUndefined();
+    expect(s.txs.find((t) => t.id === txId)).toBeDefined();
+  });
+  it('updateGoal limita guardado ao alvo; removeGoal apaga só a meta', () => {
+    act(() => useKashStore.getState().updateGoal('goal2', { name: 'Fone', target: 500, saved: 620, monthly: 100, color: '#fff', accountId: undefined, depositDay: 3 }));
+    expect(useKashStore.getState().goals[1]).toMatchObject({ name: 'Fone', target: 500, saved: 500, depositDay: 3, accountId: undefined });
+    act(() => useKashStore.getState().removeGoal('goal2'));
+    expect(useKashStore.getState().goals.map((g) => g.id)).toEqual(['goal1', 'goal3']);
+  });
+  it('dataStatus alterna', () => {
+    act(() => useKashStore.getState().setDataStatus('loading'));
+    expect(useKashStore.getState().ui.dataStatus).toBe('loading');
+    act(() => useKashStore.getState().setDataStatus('ready'));
+  });
+});
+
 describe('contas fixas, metas, ui', () => {
   it('pagar conta cobrada no cartão gera lançamento na fatura; desmarcar remove', () => {
     const txsBefore = useKashStore.getState().txs.length;

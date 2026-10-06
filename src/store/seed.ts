@@ -10,9 +10,9 @@ export function seedData(today: Date) {
   const settings: Settings = { theme: 'dark', hideValues: false, billReminder: true, monthlyBudget: 1800, biometrics: true, currency: 'BRL' };
 
   const accounts: Account[] = [
-    { id: 'acc1', name: 'Conta corrente', kind: 'Banco digital', balance: 2340.5, color: '#C6F432' },
-    { id: 'acc2', name: 'Poupança', kind: 'Rende 100% CDI', balance: 1800, color: '#6BC5FF' },
-    { id: 'acc3', name: 'Carteira', kind: 'Dinheiro em espécie', balance: 85, color: '#FFB86B' },
+    { id: 'acc1', name: 'Conta corrente', kind: 'Conta corrente · Banco digital', balance: 2340.5, color: '#C6F432' },
+    { id: 'acc2', name: 'Poupança', kind: 'Poupança · Rende 100% CDI', balance: 1800, color: '#6BC5FF' },
+    { id: 'acc3', name: 'Carteira', kind: 'Carteira · Dinheiro em espécie', balance: 85, color: '#FFB86B' },
   ];
 
   const cards: Card[] = [

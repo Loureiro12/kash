@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Card, CheckCircle, DashedButton, Pressable, Screen, SegmentedControl, Text, TileIcon } from '@/design-system';
+import { Card, CheckCircle, DashedButton, EmptyState, Pressable, Screen, SegmentedControl, Text, TileIcon } from '@/design-system';
+import { DataGate } from '../navigation/DataGate';
 import { formatBRL } from '@/domain/money';
 import { totalBalance } from '@/domain/selectors/balance';
 import { useBillsSummary, useBillsView, useKashStore, useMoney } from '@/store';
@@ -22,7 +23,7 @@ export function AccountsScreen() {
           ]}
         />
       </View>
-      {segment === 'bank' ? <BankAccounts /> : <FixedBills />}
+      <DataGate>{segment === 'bank' ? <BankAccounts /> : <FixedBills />}</DataGate>
     </Screen>
   );
 }
@@ -31,6 +32,14 @@ function BankAccounts() {
   const money = useMoney();
   const accounts = useKashStore((s) => s.accounts);
   const openSheet = useKashStore((s) => s.openSheet);
+  const openEdit = useKashStore((s) => s.openEdit);
+  if (accounts.length === 0) {
+    return (
+      <View testID="accounts-bank">
+        <EmptyState icon="wallet" title="Nenhuma conta ainda" description="Adicione sua conta corrente, poupança ou carteira pra ver o saldo total." actionLabel="Adicionar conta" onAction={() => openSheet('addAccount')} testID="accounts-empty-state" />
+      </View>
+    );
+  }
   return (
     <View testID="accounts-bank">
       <Card padding={20} style={{ marginTop: 18, gap: 4 }}>
@@ -43,16 +52,26 @@ function BankAccounts() {
       </Card>
       <View style={{ gap: 10, marginTop: 14 }}>
         {accounts.map((a) => (
-          <Card key={a.id} radius="card" padding={16} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }} testID={`account-${a.id}`}>
-            <TileIcon initial={a.name[0] ?? '?'} color={a.color} mode="solid" size={42} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="title">{a.name}</Text>
-              <Text variant="meta" color="muted">
-                {a.kind}
-              </Text>
-            </View>
-            <Text variant="valueLg">{money(a.balance)}</Text>
-          </Card>
+          <Pressable
+            key={a.id}
+            onPress={() => openEdit({ kind: 'account', id: a.id })}
+            testID={`account-${a.id}`}
+            pressedOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${a.name}, ${a.kind}, ${money(a.balance)}`}
+            accessibilityHint="Abre a conta para editar"
+          >
+            <Card radius="card" padding={16} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <TileIcon initial={a.name[0] ?? '?'} color={a.color} mode="solid" size={42} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text variant="title">{a.name}</Text>
+                <Text variant="meta" color="muted">
+                  {a.kind}
+                </Text>
+              </View>
+              <Text variant="valueLg">{money(a.balance)}</Text>
+            </Card>
+          </Pressable>
         ))}
         <DashedButton label="+ Adicionar conta" onPress={() => openSheet('addAccount')} testID="accounts-add" />
       </View>
@@ -64,7 +83,15 @@ function FixedBills() {
   const bills = useBillsView();
   const toggle = useKashStore((s) => s.toggleBillPaid);
   const openSheet = useKashStore((s) => s.openSheet);
+  const openEdit = useKashStore((s) => s.openEdit);
   const summary = useBillsSummary();
+  if (bills.length === 0) {
+    return (
+      <View testID="accounts-bills">
+        <EmptyState icon="calendar" title="Nenhuma conta fixa" description="Aluguel, internet, streaming: cadastre o que vence todo mês e nunca mais esqueça." actionLabel="Nova conta fixa" onAction={() => openSheet('addBill')} testID="bills-empty-state" />
+      </View>
+    );
+  }
   return (
     <View testID="accounts-bills">
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
@@ -86,19 +113,21 @@ function FixedBills() {
         </Card>
       </View>
       <Text variant="meta" color="muted" style={{ marginTop: 16 }}>
-        Toque pra marcar como paga
+        Toque pra marcar como paga · segure pra editar
       </Text>
       <View style={{ gap: 10, marginTop: 10 }}>
         {bills.map(({ bill: b, sourceName }) => (
           <Pressable
             key={b.id}
             onPress={() => toggle(b.id)}
+            onLongPress={() => openEdit({ kind: 'bill', id: b.id })}
             testID={`bill-${b.id}`}
             haptic="light"
             pressedOpacity={0.8}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: b.paid }}
             accessibilityLabel={`${b.name}, ${b.paid ? 'paga' : `vence dia ${b.dueDay}`}${sourceName ? `, cobrada em ${sourceName}` : ''}`}
+            accessibilityHint="Toque marca como paga; toque longo edita"
           >
             <Card radius="card" padding={[14, 16]} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, opacity: b.paid ? 0.55 : 1 }}>
               <CheckCircle checked={b.paid} testID={`bill-${b.id}-check`} />

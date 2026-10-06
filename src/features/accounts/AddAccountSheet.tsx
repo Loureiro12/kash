@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { View, type TextInput } from 'react-native';
+import { Alert, View, type TextInput } from 'react-native';
 import { BottomSheet, Button, Chip, Input, Pressable, Text, accountColors, useTheme } from '@/design-system';
 import { parseMoneyInput } from '@/domain/money';
 import { ACCOUNT_KINDS, type AccountKind } from '@/domain/types';
@@ -9,37 +9,68 @@ import { useKashStore } from '@/store';
 export function AddAccountSheet() {
   const visible = useKashStore((s) => s.ui.sheet === 'addAccount');
   const nonce = useKashStore((s) => s.ui.sheetNonce);
+  const editingId = useKashStore((s) => (s.ui.editing?.kind === 'account' ? s.ui.editing.id : null));
   const closeSheet = useKashStore((s) => s.closeSheet);
-  return <AddAccountForm key={nonce} visible={visible} onClose={closeSheet} />;
+  return <AddAccountForm key={`${nonce}-${editingId ?? 'new'}`} visible={visible} editingId={editingId} onClose={closeSheet} />;
 }
 
-function AddAccountForm({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colors } = useTheme();
-  const addAccount = useKashStore((s) => s.addAccount);
-  const showToast = useKashStore((s) => s.showToast);
+const splitKind = (kind: string): { kind: AccountKind; bank: string } => {
+  const [k, ...rest] = kind.split(' · ');
+  const known = ACCOUNT_KINDS.find((x) => x === k) ?? 'Conta corrente';
+  return { kind: known, bank: rest.join(' · ') };
+};
 
-  const [kind, setKind] = useState<AccountKind>('Conta corrente');
-  const [name, setName] = useState('');
-  const [bank, setBank] = useState('');
-  const [balance, setBalance] = useState('');
-  const [colorIdx, setColorIdx] = useState(0);
+function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
+  const { colors } = useTheme();
+  const editing = useKashStore((s) => (editingId ? (s.accounts.find((a) => a.id === editingId) ?? null) : null));
+  const txCount = useKashStore((s) => (editingId ? s.txs.filter((t) => t.sourceId === editingId).length : 0));
+  const addAccount = useKashStore((s) => s.addAccount);
+  const updateAccount = useKashStore((s) => s.updateAccount);
+  const removeAccount = useKashStore((s) => s.removeAccount);
+  const showToast = useKashStore((s) => s.showToast);
+  const initial = editing ? splitKind(editing.kind) : null;
+
+  const [kind, setKind] = useState<AccountKind>(initial?.kind ?? 'Conta corrente');
+  const [name, setName] = useState(editing?.name ?? '');
+  const [bank, setBank] = useState(initial?.bank ?? '');
+  const [balance, setBalance] = useState(editing ? String(editing.balance).replace('.', ',') : '');
+  const [colorIdx, setColorIdx] = useState(editing ? Math.max(0, accountColors.findIndex((c) => c === editing.color)) : 0);
   const bankRef = useRef<TextInput>(null);
   const balanceRef = useRef<TextInput>(null);
 
   const canSave = name.trim().length > 0;
   const onSave = () => {
     if (!canSave) return;
-    addAccount({ name, kind, bank, balance: parseMoneyInput(balance), color: accountColors[colorIdx] ?? accountColors[0] });
+    const input = { name, kind, bank, balance: parseMoneyInput(balance), color: accountColors[colorIdx] ?? accountColors[0] };
+    if (editing) {
+      updateAccount(editing.id, input);
+      showToast('Conta atualizada');
+      return;
+    }
+    addAccount(input);
     showToast(`Conta “${name.trim()}” adicionada`);
+  };
+
+  const onDelete = () => {
+    if (!editing) return;
+    Alert.alert('Excluir conta?', txCount ? `Isso apaga ${txCount} lançamento${txCount > 1 ? 's' : ''} desta conta. Não dá pra desfazer.` : 'Não dá pra desfazer.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: () => { removeAccount(editing.id); showToast(`Conta “${editing.name}” excluída`); } },
+    ]);
   };
 
   return (
     <BottomSheet
       visible={visible}
       onClose={onClose}
-      title="Nova conta"
+      title={editing ? 'Editar conta' : 'Nova conta'}
       testID="sheet-add-account"
-      footer={<Button label="Adicionar conta" onPress={onSave} disabled={!canSave} testID="add-account-save" haptic="medium" />}
+      footer={
+        <>
+          <Button label={editing ? 'Salvar alterações' : 'Adicionar conta'} onPress={onSave} disabled={!canSave} testID="add-account-save" haptic="medium" />
+          {editing ? <Button label="Excluir conta" variant="dangerSoft" size="md" onPress={onDelete} testID="add-account-delete" /> : null}
+        </>
+      }
     >
       <Text variant="metaMedium" color="muted">
         Tipo de conta

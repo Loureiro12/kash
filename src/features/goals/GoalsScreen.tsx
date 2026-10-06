@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Button, Card, DashedButton, Icon, Pressable, ProgressRing, Screen, Text, staticColors, useTheme } from '@/design-system';
+import { Button, Card, DashedButton, EmptyState, Icon, Pressable, ProgressRing, Screen, Text, staticColors, useTheme } from '@/design-system';
+import { DataGate } from '../navigation/DataGate';
 import { formatBRL } from '@/domain/money';
 import { useGoalsOverview, useKashStore, useMoney } from '@/store';
 
@@ -15,6 +16,7 @@ export function GoalsScreen() {
   const showToast = useKashStore((s) => s.showToast);
   const openSheet = useKashStore((s) => s.openSheet);
   const openDeposit = useKashStore((s) => s.openDeposit);
+  const openEdit = useKashStore((s) => s.openEdit);
 
   const onAdd = (id: string, name: string) => {
     contribute(id, CONTRIBUTION);
@@ -36,11 +38,20 @@ export function GoalsScreen() {
 
   return (
     <Screen testID="goals-screen" header={header}>
+      <DataGate>
+      {goals.length === 0 ? (
+        <EmptyState icon="target" title="Nenhuma meta ainda" description="Viagem, reserva de emergência, fone novo: crie uma meta e veja o dinheiro crescer." actionLabel="Criar meta" onAction={() => openSheet('addGoal')} testID="goals-empty-state" />
+      ) : (
+        <Text variant="micro" color="muted" style={{ marginTop: 2 }}>
+          Toque e segure uma meta pra editar
+        </Text>
+      )}
       <View style={{ gap: 12, marginTop: 6 }}>
         {goals.map(({ goal, progress, deposit, depositLabel, accountName }) => {
           const due = deposit.kind === 'due' && !progress.done;
           return (
-            <Card key={goal.id} padding={18} style={{ gap: 12 }} testID={`goal-${goal.id}`}>
+            <Pressable key={goal.id} onLongPress={() => openEdit({ kind: 'goal', id: goal.id })} testID={`goal-${goal.id}`} pressedOpacity={1} accessible={false}>
+            <Card padding={18} style={{ gap: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                 <ProgressRing pct={progress.pct} color={goal.color} testID={`goal-${goal.id}-ring`} />
                 <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
@@ -76,6 +87,7 @@ export function GoalsScreen() {
                 </Pressable>
               ) : null}
             </Card>
+            </Pressable>
           );
         })}
         <DashedButton label="+ Nova meta" height={56} onPress={() => openSheet('addGoal')} testID="goals-add" />
@@ -91,6 +103,7 @@ export function GoalsScreen() {
           </Text>
         </Card>
       ) : null}
+      </DataGate>
     </Screen>
   );
 }
