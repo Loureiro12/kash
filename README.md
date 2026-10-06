@@ -71,6 +71,15 @@ Tokens vêm do handoff (`design_handoff_kash/README.md`) e são a única fonte d
 - Animações: sheets 300ms `cubic-bezier(.2,.8,.2,1)`, barras/anéis 400ms, switch 200ms, cartão selecionado scale .96→1.
 - Haptics leves em toques de ação (`Pressable haptic`).
 
+## Ícone e splash
+
+Assets em `assets/brand/` (ver `assets/brand/README.md`). O `app.json` aponta:
+- iOS: ícone claro/escuro (`ios.icon.light/dark`), Android: adaptive icon (foreground + fundo `#C6F432` + monocromático gerado).
+- Splash nativa (`expo-splash-screen`): logo isolado centralizado sobre `#C6F432`.
+- Splash animada em código (`src/features/splash/AnimatedSplash.tsx`): segue a spec do handoff (ícone com overshoot, ponto, wordmark, tagline, barra, saída com fade/scale, ~2,8 s) e pode ser pulada com um toque.
+
+Mudou ícone ou splash? Regere o projeto nativo: `npx expo prebuild --clean` e depois `pnpm ios`.
+
 ## Testes
 
 - **Unitários** (`src/**/__tests__`): seletores de domínio, store (fluxos de auth, lançar gasto, parcelas, metas), componentes do DS e o sheet de gasto.

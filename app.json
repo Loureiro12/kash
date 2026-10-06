@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "scheme": "kash",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/brand/icon-1024.png",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#0B0C0E",
     "newArchEnabled": true,
@@ -14,20 +14,23 @@
       "bundleIdentifier": "com.kash.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "icon": {
+        "light": "./assets/brand/icon-1024.png",
+        "dark": "./assets/brand/icon-dark-1024.png"
       }
     },
     "android": {
       "package": "com.kash.app",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/icon-432-android-adaptive-fg.png",
         "backgroundColor": "#C6F432",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "monochromeImage": "./assets/brand/icon-432-android-adaptive-mono.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/brand/favicon.png",
       "bundler": "metro",
       "output": "single"
     },
@@ -37,10 +40,14 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 160,
+          "image": "./assets/brand/splash-logo-1024-transparent.png",
+          "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#C6F432"
+          "backgroundColor": "#C6F432",
+          "dark": {
+            "image": "./assets/brand/splash-logo-1024-transparent.png",
+            "backgroundColor": "#C6F432"
+          }
         }
       ]
     ],

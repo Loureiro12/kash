@@ -3,11 +3,12 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '@/design-system';
 import { ToastHost } from '@/features/navigation/SheetsHost';
+import { AnimatedSplash } from '@/features/splash/AnimatedSplash';
 import { useKashStore } from '@/store';
 
 void SplashScreen.preventAutoHideAsync();
@@ -15,6 +16,9 @@ void SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold });
   const theme = useKashStore((s) => s.settings.theme);
+  // A splash nativa (logo estático) dá lugar à animada assim que as fontes carregam.
+  const [splashDone, setSplashDone] = useState(false);
+  const finishSplash = useCallback(() => setSplashDone(true), []);
 
   useEffect(() => {
     if (fontsLoaded) void SplashScreen.hideAsync();
@@ -27,6 +31,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider mode={theme}>
           <RootNavigator />
+          {!splashDone ? <AnimatedSplash onFinish={finishSplash} /> : null}
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
