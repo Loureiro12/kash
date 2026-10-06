@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test -- --ci
+
+  # E2E (Maestro) exige simulador iOS — roda em macOS e só manualmente/por tag para não travar PRs.
+  e2e-ios:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: curl -Ls "https://get.maestro.mobile.dev" | bash
+      - run: npx expo run:ios --device "iPhone 16 Pro" --no-bundler
+      - run: (npx expo start --dev-client &) && sleep 20
+      - run: PATH="$HOME/.maestro/bin:$PATH" pnpm e2e:ios
