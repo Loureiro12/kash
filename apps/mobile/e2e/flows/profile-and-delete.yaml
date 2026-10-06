@@ -8,7 +8,7 @@ tags: [critical]
 - assertVisible:
     id: "profile-screen"
 - assertVisible: "Lara Mendes"
-- assertVisible: "lara.mendes@email.com"
+- assertVisible: "lara@email.com"
 
 # Tema claro ↔ escuro
 - tapOn:

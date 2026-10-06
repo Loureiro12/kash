@@ -1,4 +1,5 @@
 import { act } from '@testing-library/react-native';
+import * as api from '@kash/supabase-client';
 import { setClock } from '@/lib/clock';
 import { useKashStore } from '../useKashStore';
 
@@ -11,60 +12,76 @@ beforeEach(() => {
 
 afterAll(() => setClock(null));
 
-describe('fluxo de auth', () => {
-  it('onboarding → login → app → logout → login', () => {
-    const s = useKashStore.getState();
-    expect(s.auth).toBe('onboarding');
-    act(() => s.start());
-    expect(useKashStore.getState().auth).toBe('login');
-    act(() => s.login());
-    expect(useKashStore.getState().auth).toBe('app');
-    act(() => s.logout());
-    expect(useKashStore.getState().auth).toBe('login');
-  });
-  it('excluir conta volta ao onboarding, zera dados e mostra toast', () => {
-    const s = useKashStore.getState();
-    act(() => {
-      s.login();
-      s.contributeToGoal('goal1', 50);
-      s.deleteAccount();
-    });
-    const after = useKashStore.getState();
-    expect(after.auth).toBe('onboarding');
-    expect(after.goals[0]?.saved).toBe(1240);
-    expect(after.ui.toast).toBe('Conta excluída');
-  });
-});
+const mocked = api as jest.Mocked<typeof api>;
 
-describe('auth simulada', () => {
-  it('signIn: credencial inválida, offline e sucesso', async () => {
-    jest.useFakeTimers();
-    const s = useKashStore.getState();
-    let p = s.signIn({ email: 'lara@email.com', password: 'errada123' });
-    await act(async () => { jest.runAllTimers(); });
-    expect(await p).toBe(false);
-    expect(useKashStore.getState().authRequest).toEqual({ status: 'error', error: 'E-mail ou senha incorretos.' });
-    p = s.signIn({ email: 'lara@offline.test', password: '123456' });
-    await act(async () => { jest.runAllTimers(); });
-    expect(await p).toBe(false);
-    expect(useKashStore.getState().authRequest.error).toMatch(/Sem conexão/);
-    p = s.signIn({ email: 'lara@email.com', password: '123456' });
-    await act(async () => { jest.runAllTimers(); });
-    expect(await p).toBe(true);
+describe('fluxo de auth (API mockada)', () => {
+  it('start → login; signIn com sucesso entra; logout volta pro login', async () => {
+    act(() => useKashStore.getState().start());
+    expect(useKashStore.getState().auth).toBe('login');
+    mocked.signIn.mockResolvedValueOnce({} as never);
+    await act(async () => {
+      await useKashStore.getState().signIn({ email: 'lara@email.com', password: '123456' });
+    });
     expect(useKashStore.getState().auth).toBe('app');
-    jest.useRealTimers();
+    await act(async () => useKashStore.getState().logout());
+    expect(useKashStore.getState().auth).toBe('login');
   });
-  it('signUp atualiza nome/e-mail e entra; reset de senha confirma', async () => {
-    jest.useFakeTimers();
-    const p = useKashStore.getState().signUp({ name: ' Ana ', email: 'ana@email.com', password: '123456' });
-    await act(async () => { jest.runAllTimers(); });
-    expect(await p).toBe(true);
-    expect(useKashStore.getState().user).toMatchObject({ name: 'Ana', email: 'ana@email.com' });
-    const r = useKashStore.getState().requestPasswordReset('ana@email.com');
-    await act(async () => { jest.runAllTimers(); });
-    expect(await r).toBe(true);
+  it('signIn com erro mostra a mensagem do KashApiError', async () => {
+    mocked.signIn.mockRejectedValueOnce(new api.KashApiError('invalid_credentials', 'E-mail ou senha incorretos.'));
+    let ok = true;
+    await act(async () => {
+      ok = await useKashStore.getState().signIn({ email: 'lara@email.com', password: 'errada' });
+    });
+    expect(ok).toBe(false);
+    expect(useKashStore.getState().authRequest).toEqual({ status: 'error', error: 'E-mail ou senha incorretos.' });
+  });
+  it('signUp com sessão entra com o nome; sem sessão pede confirmação de e-mail', async () => {
+    mocked.signUp.mockResolvedValueOnce({} as never);
+    await act(async () => {
+      await useKashStore.getState().signUp({ name: ' Ana ', email: 'ana@email.com', password: '123456' });
+    });
+    expect(useKashStore.getState()).toMatchObject({ auth: 'app', user: { name: 'Ana', email: 'ana@email.com' } });
+    useKashStore.getState().reset();
+    mocked.signUp.mockResolvedValueOnce(null);
+    await act(async () => {
+      await useKashStore.getState().signUp({ name: 'Bia', email: 'bia@email.com', password: '123456' });
+    });
+    expect(useKashStore.getState().authRequest.error).toMatch(/confirmar/);
+  });
+  it('requestPasswordReset sucesso e erro', async () => {
+    mocked.requestPasswordReset.mockResolvedValueOnce(undefined);
+    await act(async () => {
+      await useKashStore.getState().requestPasswordReset('lara@email.com');
+    });
     expect(useKashStore.getState().authRequest.status).toBe('success');
-    jest.useRealTimers();
+    mocked.requestPasswordReset.mockRejectedValueOnce(new api.KashApiError('network', 'Sem conexão.'));
+    await act(async () => {
+      await useKashStore.getState().requestPasswordReset('lara@email.com');
+    });
+    expect(useKashStore.getState().authRequest.error).toBe('Sem conexão.');
+  });
+  it('excluir conta chama a API, zera dados e volta ao onboarding; falha mostra toast', async () => {
+    mocked.deleteOwnAccount.mockResolvedValueOnce(undefined);
+    await act(async () => {
+      useKashStore.getState().contributeToGoal('goal1', 50);
+      await useKashStore.getState().deleteAccount();
+    });
+    let s = useKashStore.getState();
+    expect(s.auth).toBe('onboarding');
+    expect(s.goals[0]?.saved).toBe(1240);
+    expect(s.ui.toast).toBe('Conta excluída');
+    mocked.deleteOwnAccount.mockRejectedValueOnce(new api.KashApiError('network', 'Sem conexão.'));
+    let ok = true;
+    await act(async () => {
+      ok = await useKashStore.getState().deleteAccount();
+    });
+    s = useKashStore.getState();
+    expect(ok).toBe(false);
+    expect(s.ui.toast).toBe('Sem conexão.');
+  });
+  it('bootstrapAuth sem sessão vai pro onboarding (ou login se já visto)', async () => {
+    await act(async () => useKashStore.getState().bootstrapAuth());
+    expect(['onboarding', 'login']).toContain(useKashStore.getState().auth);
   });
 });
 

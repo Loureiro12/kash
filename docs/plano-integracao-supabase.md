@@ -71,6 +71,8 @@ CI (GitHub Actions): `backend` (ubuntu: CLI do Supabase em Docker, `test db`, Vi
 
 ## 5. Fases e critérios de pronto
 
+Status: Fase 0 ✅ · Fase 1 ✅ · Fase 2 ✅ (auth real, sessão criptografada, Edge Function `delete-account`) · Fases 3–6 pendentes.
+
 **Fase 0 — Monorepo** (sem mudar comportamento)
 - Mover o app para `apps/mobile`; extrair `packages/domain` e `packages/config`; Turbo com `build/lint/test/typecheck`.
 - Pronto quando: app roda no simulador a partir do monorepo, todos os testes atuais passam, CI verde.

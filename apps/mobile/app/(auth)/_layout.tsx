@@ -8,12 +8,15 @@ export default function AuthLayout() {
   const auth = useKashStore((s) => s.auth);
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: colors.bg } }}>
+      {/* o estado de auth decide a tela: onboarding só no primeiro uso; login/cadastro/esqueci só depois dele */}
       <Stack.Protected guard={auth === 'onboarding'}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="signup" options={{ animation: "slide_from_right" }} />
-      <Stack.Screen name="forgot" options={{ animation: "slide_from_right" }} />
+      <Stack.Protected guard={auth !== 'onboarding'}>
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signup" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="forgot" options={{ animation: 'slide_from_right' }} />
+      </Stack.Protected>
     </Stack>
   );
 }

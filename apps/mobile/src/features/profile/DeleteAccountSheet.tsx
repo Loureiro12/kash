@@ -15,6 +15,7 @@ function DeleteAccountForm({ visible, onCancel }: { visible: boolean; onCancel: 
   const { colors } = useTheme();
   const deleteAccount = useKashStore((s) => s.deleteAccount);
   const [confirmed, setConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   return (
     <BottomSheet
@@ -23,7 +24,19 @@ function DeleteAccountForm({ visible, onCancel }: { visible: boolean; onCancel: 
       testID="sheet-delete-account"
       footer={
         <>
-          <Button label="Excluir definitivamente" variant="danger" disabled={!confirmed} onPress={deleteAccount} testID="delete-confirm" haptic="medium" />
+          <Button
+        label="Excluir definitivamente"
+        variant="danger"
+        disabled={!confirmed}
+        loading={busy}
+        onPress={async () => {
+          setBusy(true);
+          const ok = await deleteAccount();
+          if (!ok) setBusy(false);
+        }}
+        testID="delete-confirm"
+        haptic="medium"
+      />
           <Button label="Cancelar" variant="ghost" size="md" onPress={onCancel} testID="delete-cancel" style={{ height: 50 }} />
         </>
       }

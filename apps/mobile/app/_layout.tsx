@@ -19,6 +19,7 @@ export default function RootLayout() {
   const theme = useKashStore((s) => s.settings.theme);
   // A splash nativa (logo estático) dá lugar à animada assim que as fontes carregam.
   const [splashDone, setSplashDone] = useState(false);
+  const authReady = useKashStore((s) => s.auth !== 'booting');
   const finishSplash = useCallback(() => setSplashDone(true), []);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider mode={theme}>
           <RootNavigator />
-          {!splashDone ? <AnimatedSplash onFinish={finishSplash} /> : null}
+          {!splashDone || !authReady ? <AnimatedSplash onFinish={finishSplash} holdUntil={authReady} /> : null}
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -43,6 +44,12 @@ function RootNavigator() {
   const { colors, isDark } = useTheme();
   const auth = useKashStore((s) => s.auth);
   const rolloverIfNeeded = useKashStore((s) => s.rolloverIfNeeded);
+  const bootstrapAuth = useKashStore((s) => s.bootstrapAuth);
+
+  // Sessão guardada decide a primeira tela (a splash animada cobre a leitura).
+  useEffect(() => {
+    void bootstrapAuth();
+  }, [bootstrapAuth]);
 
   // Virada de mês: ao abrir e sempre que o app volta pro primeiro plano.
   useEffect(() => {
@@ -61,7 +68,7 @@ function RootNavigator() {
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: colors.bg } }}>
-        <Stack.Protected guard={auth !== 'app'}>
+        <Stack.Protected guard={auth !== 'app' && auth !== 'booting'}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
         <Stack.Protected guard={auth === 'app'}>

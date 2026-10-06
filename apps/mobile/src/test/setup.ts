@@ -22,3 +22,32 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), navigate: jest.fn(), back: jest.fn() }),
   usePathname: () => '/',
 }));
+
+// Supabase: o serviço real precisa de módulos nativos; nos testes usamos um cliente falso e mocks da API.
+jest.mock('@/services/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn(async () => ({ data: { session: null } })),
+      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      signOut: jest.fn(async () => ({ error: null })),
+    },
+  },
+}));
+jest.mock('@/services/onboarding', () => {
+  let seen = false;
+  return { onboardingFlag: { get: jest.fn(async () => seen), set: jest.fn(async (v: boolean) => { seen = v; }) } };
+});
+jest.mock('@kash/supabase-client', () => {
+  const actual = jest.requireActual('@kash/supabase-client');
+  return {
+    ...actual,
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(async () => undefined),
+    requestPasswordReset: jest.fn(),
+    deleteOwnAccount: jest.fn(),
+    getProfile: jest.fn(async () => {
+      throw new Error('offline');
+    }),
+  };
+});

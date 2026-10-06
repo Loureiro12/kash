@@ -1,11 +1,15 @@
 import { create } from 'zustand';
+import { deleteOwnAccount, getProfile, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError } from '@kash/supabase-client';
+import { onboardingFlag } from '@/services/onboarding';
+import { supabase } from '@/services/supabase';
 import type { CardGradient } from '@/design-system/tokens/colors';
 import { addToGoal, isAccountId, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 
-export type AuthStatus = 'onboarding' | 'login' | 'app';
-/** estado de uma requisição de auth simulada */
+/** 'booting' = ainda lendo a sessão guardada */
+export type AuthStatus = 'booting' | 'onboarding' | 'login' | 'app';
+/** estado de uma requisição de auth */
 export type RequestStatus = 'idle' | 'loading' | 'error' | 'success';
 
 export interface Credentials {
@@ -15,16 +19,6 @@ export interface Credentials {
 export interface SignUpInput extends Credentials {
   name: string;
 }
-
-/** Auth simulada (sem backend): regras documentadas no README. */
-export const MOCK_AUTH = {
-  delayMs: 600,
-  /** senha que simula credencial inválida */
-  wrongPassword: 'errada123',
-  /** domínio de e-mail que simula falha de rede */
-  offlineDomain: '@offline.test',
-  minPassword: 6,
-} as const;
 export type AccountsSegment = 'bank' | 'bills';
 export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount';
 
@@ -141,14 +135,17 @@ export interface KashState {
   };
 
   // auth
+  /** lê a sessão guardada e decide a tela inicial; chamado uma vez no boot */
+  bootstrapAuth: () => Promise<void>;
   start: () => void;
-  login: () => void;
   signIn: (input: Credentials) => Promise<boolean>;
   signUp: (input: SignUpInput) => Promise<boolean>;
   requestPasswordReset: (email: string) => Promise<boolean>;
   resetAuthRequest: () => void;
-  logout: () => void;
-  deleteAccount: () => void;
+  logout: () => Promise<void>;
+  deleteAccount: () => Promise<boolean>;
+  /** carrega nome/e-mail/configurações do perfil remoto */
+  loadProfile: () => Promise<void>;
 
   // settings
   setTheme: (theme: ThemeMode) => void;
@@ -203,7 +200,7 @@ export interface KashState {
 const buildInitial = () => {
   const seed = seedData(now());
   return {
-    auth: 'onboarding' as AuthStatus,
+    auth: 'booting' as AuthStatus,
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
     ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null },
@@ -211,7 +208,6 @@ const buildInitial = () => {
 };
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
-const mockDelay = () => new Promise<void>((resolve) => setTimeout(resolve, MOCK_AUTH.delayMs));
 export const TOAST_DURATION_MS = 2200;
 /** toasts com ação (Desfazer) ficam mais tempo */
 export const TOAST_ACTION_DURATION_MS = 4500;
@@ -219,51 +215,94 @@ export const TOAST_ACTION_DURATION_MS = 4500;
 export const useKashStore = create<KashState>((set, get) => ({
   ...buildInitial(),
 
-  start: () => set({ auth: 'login' }),
-  login: () => set({ auth: 'app' }),
-  resetAuthRequest: () => set({ authRequest: { status: 'idle', error: null } }),
-  signIn: async ({ email, password }) => {
-    set({ authRequest: { status: 'loading', error: null } });
-    await mockDelay();
-    if (email.trim().toLowerCase().endsWith(MOCK_AUTH.offlineDomain)) {
-      set({ authRequest: { status: 'error', error: 'Sem conexão. Confere sua internet e tenta de novo.' } });
-      return false;
+  bootstrapAuth: async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        set({ auth: 'app' });
+        void get().loadProfile();
+      } else {
+        set({ auth: (await onboardingFlag.get()) ? 'login' : 'onboarding' });
+      }
+    } catch {
+      set({ auth: 'onboarding' });
     }
-    if (password === MOCK_AUTH.wrongPassword) {
-      set({ authRequest: { status: 'error', error: 'E-mail ou senha incorretos.' } });
-      return false;
-    }
-    set({ auth: 'app', authRequest: { status: 'success', error: null } });
-    return true;
+    // sessão expirada/revogada em outro lugar → volta pro login
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') set((s) => (s.auth === 'app' ? { ...buildInitial(), auth: 'login' } : s));
+    });
   },
-  signUp: async ({ name, email, password }) => {
+  start: () => {
+    void onboardingFlag.set(true);
+    set({ auth: 'login' });
+  },
+  resetAuthRequest: () => set({ authRequest: { status: 'idle', error: null } }),
+  signIn: async (input) => {
     set({ authRequest: { status: 'loading', error: null } });
-    await mockDelay();
-    if (email.trim().toLowerCase().endsWith(MOCK_AUTH.offlineDomain)) {
-      set({ authRequest: { status: 'error', error: 'Sem conexão. Confere sua internet e tenta de novo.' } });
+    try {
+      await apiSignIn(supabase, input);
+      set({ auth: 'app', authRequest: { status: 'success', error: null } });
+      void get().loadProfile();
+      return true;
+    } catch (err) {
+      set({ authRequest: { status: 'error', error: toKashError(err).message } });
       return false;
     }
-    if (password.length < MOCK_AUTH.minPassword) {
-      set({ authRequest: { status: 'error', error: `A senha precisa ter pelo menos ${MOCK_AUTH.minPassword} caracteres.` } });
+  },
+  signUp: async (input) => {
+    set({ authRequest: { status: 'loading', error: null } });
+    try {
+      const session = await apiSignUp(supabase, input);
+      if (!session) {
+        set({ authRequest: { status: 'error', error: 'Confira seu e-mail pra confirmar a conta e depois entre.' } });
+        return false;
+      }
+      set((s) => ({ auth: 'app', user: { ...s.user, name: input.name.trim(), email: input.email.trim() }, authRequest: { status: 'success', error: null } }));
+      void get().loadProfile();
+      return true;
+    } catch (err) {
+      set({ authRequest: { status: 'error', error: toKashError(err).message } });
       return false;
     }
-    set((s) => ({ auth: 'app', user: { ...s.user, name: name.trim(), email: email.trim() }, authRequest: { status: 'success', error: null } }));
-    return true;
   },
   requestPasswordReset: async (email) => {
     set({ authRequest: { status: 'loading', error: null } });
-    await mockDelay();
-    if (email.trim().toLowerCase().endsWith(MOCK_AUTH.offlineDomain)) {
-      set({ authRequest: { status: 'error', error: 'Sem conexão. Confere sua internet e tenta de novo.' } });
+    try {
+      await apiRequestPasswordReset(supabase, email);
+      set({ authRequest: { status: 'success', error: null } });
+      return true;
+    } catch (err) {
+      set({ authRequest: { status: 'error', error: toKashError(err).message } });
       return false;
     }
-    set({ authRequest: { status: 'success', error: null } });
-    return true;
   },
-  logout: () => set({ auth: 'login', ui: { ...get().ui, sheet: null } }),
-  deleteAccount: () => {
+  logout: async () => {
+    try {
+      await apiSignOut(supabase);
+    } catch {
+      // sem rede: a sessão local já foi descartada pelo supabase-js
+    }
+    set({ ...buildInitial(), auth: 'login' });
+  },
+  deleteAccount: async () => {
+    try {
+      await deleteOwnAccount(supabase);
+    } catch (err) {
+      get().showToast(toKashError(err).message);
+      return false;
+    }
+    await onboardingFlag.set(false);
     set({ ...buildInitial(), auth: 'onboarding' });
     get().showToast('Conta excluída');
+    return true;
+  },
+  loadProfile: async () => {
+    try {
+      const profile = await getProfile(supabase);
+      set((s) => ({ user: profile.user, settings: { ...s.settings, ...profile.settings } }));
+    } catch {
+      // perfil indisponível (offline): mantém o que está em memória
+    }
   },
 
   setTheme: (theme) => set((s) => ({ settings: { ...s.settings, theme } })),

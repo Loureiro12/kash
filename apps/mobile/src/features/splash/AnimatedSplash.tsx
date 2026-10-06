@@ -18,6 +18,8 @@ import { Text, fontFamily, staticColors } from '@/design-system';
  */
 export interface AnimatedSplashProps {
   onFinish: () => void;
+  /** segura a saída até estar true (ex.: sessão lida) */
+  holdUntil?: boolean;
 }
 
 const OVERSHOOT = Easing.bezier(0.34, 1.56, 0.64, 1);
@@ -28,8 +30,11 @@ const EXIT_MS = 450;
 
 export const SPLASH_TOTAL_MS = EXIT_AT + EXIT_MS;
 
-export function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
-  const [exiting, setExiting] = useState(false);
+export function AnimatedSplash({ onFinish, holdUntil = true }: AnimatedSplashProps) {
+  const [skipped, setSkipped] = useState(false);
+  const [timeUp, setTimeUp] = useState(false);
+  // sai quando o tempo acabou (ou o usuário pulou) e nada mais segura a splash
+  const exiting = holdUntil && (timeUp || skipped);
 
   const iconScale = useSharedValue(0.4);
   const iconRotate = useSharedValue(-12);
@@ -59,8 +64,8 @@ export function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
     tagY.value = withDelay(1350, withTiming(0, { duration: 500, easing: SMOOTH }));
     // 6. barra de progresso
     barScale.value = withDelay(500, withTiming(1, { duration: 1900, easing: LINEAR_ISH }));
-    // 7. saída
-    const t = setTimeout(() => setExiting(true), EXIT_AT);
+    // 7. saída (quando o tempo acabar e nada mais segurar)
+    const t = setTimeout(() => setTimeUp(true), EXIT_AT);
     return () => clearTimeout(t);
   }, [iconScale, iconRotate, dotOffset, dotScale, groupY, wordY, tagOpacity, tagY, barScale]);
 
@@ -84,7 +89,7 @@ export function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.root, rootStyle]} pointerEvents={exiting ? 'none' : 'auto'} testID="splash">
-      <Pressable style={StyleSheet.absoluteFill} onPress={() => setExiting(true)} accessibilityLabel="Pular abertura" testID="splash-skip" />
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => setSkipped(true)} accessibilityLabel="Pular abertura" testID="splash-skip" />
       <Animated.View style={[styles.group, groupStyle]} pointerEvents="none">
         <View style={styles.iconWrap}>
           <Animated.View style={[styles.icon, iconStyle]}>

@@ -6,7 +6,8 @@
     "types": ["jest"],
     "paths": {
       "@/*": ["./src/*"],
-      "@kash/domain": ["../../packages/domain/src"]
+      "@kash/domain": ["../../packages/domain/src"],
+      "@kash/supabase-client": ["../../packages/supabase-client/src"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],

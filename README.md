@@ -115,18 +115,20 @@ pnpm db:reset        # reaplica migrações + seed
 pnpm db:test         # pgTAP
 pnpm test:backend    # pgTAP + integração
 pnpm db:types        # regenera packages/supabase-client/src/database.types.ts (o CI falha se houver drift)
+(cd supabase/functions && deno test)   # Edge Functions
 ```
+
+O app lê `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY` de `apps/mobile/.env` (ver `.env.example`; valores do `supabase status -o env`).
 
 Decisões (ver `docs/plano-integracao-supabase.md`): saldo de conta é uma view (abertura + lançamentos), escritas multi-linha são RPCs (`pay_bill`, `pay_invoice`, `add_installment_purchase`, `soft_delete_transaction`/`undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`), e a virada de mês roda por RPC ao abrir o app e por `pg_cron` diariamente.
 
 ## Auth simulada e virada de mês
 
-- Login, cadastro e "esqueci a senha" têm validação, estado carregando e erros. Sem backend, o store simula: senha `errada123` → credencial inválida; e-mail terminando em `@offline.test` → falha de rede; qualquer outra combinação entra (cadastro exige 6+ caracteres).
+- Login, cadastro e "esqueci a senha" usam o Supabase Auth via `@kash/supabase-client`; a sessão fica criptografada no aparelho (chave AES no SecureStore, payload no AsyncStorage) e o app abre direto na Início quando há sessão. Excluir conta chama a Edge Function `delete-account`. No local, a usuária do seed é `lara@email.com` / `123456`.
 - Virada de mês (`src/domain/selectors/rollover.ts`, acionada ao abrir o app e ao voltar ao primeiro plano): fecha a fatura de cada cartão com o total do mês anterior, zera "paga" das contas fixas e lança a parcela do mês de cada parcelamento. A fatura fechada aparece na Início e no cartão, com "Pagar fatura" debitando uma conta; o pagamento tem categoria `Fatura` e não entra como gasto no relatório (os gastos já foram contados ao serem lançados no cartão).
 
 ## Próxima fase (integrações)
 
 Pontos de encaixe já previstos:
 - `src/store/useKashStore.ts` — trocar `seedData` por carga remota e adicionar persistência (ex.: `zustand/middleware persist` + MMKV).
-- `signIn`/`signUp`/`requestPasswordReset` no store — trocar a simulação por chamadas reais mantendo `authRequest` como estado de UI.
 - Moeda: só Real (R$) nesta fase; outras aparecem como "em breve". Alterar senha valida localmente (a troca real vem com auth).

@@ -8,6 +8,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@kash/domain$': '<rootDir>/../../packages/domain/src',
+    '^@kash/supabase-client$': '<rootDir>/../../packages/supabase-client/src',
     // lucide publica ESM (.mjs) como entrada principal; em testes usamos o build CJS
     // lucide publica ESM como entrada; require.resolve usa a condição "require" e cai no build CJS
     '^lucide-react-native$': require.resolve('lucide-react-native'),
