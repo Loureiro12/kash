@@ -14,8 +14,6 @@ export function ProfileScreen() {
   const toggleBillReminder = useKashStore((s) => s.toggleBillReminder);
   const logout = useKashStore((s) => s.logout);
   const openSheet = useKashStore((s) => s.openSheet);
-  const showToast = useKashStore((s) => s.showToast);
-  const soon = (what: string) => () => showToast(`Em breve: ${what}`);
 
   return (
     <Screen testID="profile-screen" header={<PageHeader title="Perfil" onBack={() => router.back()} testID="profile" />}>
@@ -27,14 +25,14 @@ export function ProfileScreen() {
             {user.email}
           </Text>
         </View>
-        <Button label="Editar" variant="secondary" size="xs" fullWidth={false} onPress={soon('editar perfil')} testID="profile-edit" />
+        <Button label="Editar" variant="secondary" size="xs" fullWidth={false} onPress={() => router.push('/profile/personal')} testID="profile-edit" />
       </Card>
 
       <Eyebrow>Conta</Eyebrow>
       <Group>
-        <ListRow title="Dados pessoais" value="Nome, e-mail, celular" onPress={soon('dados pessoais')} testID="profile-personal" />
-        <ListRow title="Segurança" value="Senha, biometria" onPress={soon('segurança')} testID="profile-security" />
-        <ListRow title="Limite mensal" value={formatBRL(settings.monthlyBudget)} onPress={soon('limite mensal')} divider={false} testID="profile-budget" />
+        <ListRow title="Dados pessoais" value="Nome, e-mail, celular" onPress={() => router.push('/profile/personal')} testID="profile-personal" />
+        <ListRow title="Segurança" value="Senha, biometria" onPress={() => router.push('/profile/security')} testID="profile-security" />
+        <ListRow title="Limite mensal" value={formatBRL(settings.monthlyBudget)} onPress={() => router.push('/profile/budget')} divider={false} testID="profile-budget" />
       </Group>
 
       <Eyebrow>Preferências</Eyebrow>
@@ -47,14 +45,14 @@ export function ProfileScreen() {
           onPress={toggleBillReminder}
           testID="profile-reminder"
         />
-        <ListRow title="Moeda" value="Real (R$)" divider={false} onPress={soon('moeda')} testID="profile-currency" />
+        <ListRow title="Moeda" value="Real (R$)" divider={false} onPress={() => router.push('/profile/currency')} testID="profile-currency" />
       </Group>
 
       <Eyebrow>Sobre</Eyebrow>
       <Group>
         <ListRow title="Termos de uso" onPress={() => router.push('/terms')} testID="profile-terms" />
         <ListRow title="Política de privacidade" onPress={() => router.push('/privacy')} testID="profile-privacy" />
-        <ListRow title="Ajuda e suporte" onPress={soon('ajuda e suporte')} testID="profile-help" />
+        <ListRow title="Ajuda e suporte" onPress={() => router.push('/profile/help')} testID="profile-help" />
         <ListRow title="Versão" value="1.0.0" chevron={false} divider={false} testID="profile-version" />
       </Group>
 

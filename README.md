@@ -30,7 +30,8 @@ app/                    Rotas (Expo Router). Arquivos finos: só montam a tela d
   (auth)/               onboarding, login
   (app)/_layout.tsx     Stack logado + FloatingTabBar + SheetsHost
   (app)/(tabs)/         index (Início), cards, accounts, goals
-  (app)/report|forecast|profile|terms|privacy   páginas internas (push)
+  (app)/report|forecast|terms|privacy          páginas internas (push)
+  (app)/profile/                                 index, personal, security, budget, currency, help
 
 src/design-system/      Design system — nada aqui conhece o domínio
   tokens/               cores (dark/light), tipografia Sora, spacing, radii, shadows, motion
@@ -82,4 +83,4 @@ Convenção de `testID`: kebab-case por área: `tab-add`, `chip-cat-Comida`, `bi
 Pontos de encaixe já previstos:
 - `src/store/useKashStore.ts` — trocar `seedData` por carga remota e adicionar persistência (ex.: `zustand/middleware persist` + MMKV).
 - `LoginScreen` — ligar `login()` a auth real.
-- "Editar perfil" e itens de Perfil sem fluxo mostram toast "Em breve".
+- Moeda: só Real (R$) nesta fase; outras aparecem como "em breve". Alterar senha valida localmente (a troca real vem com auth).

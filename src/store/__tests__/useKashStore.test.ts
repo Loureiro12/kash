@@ -156,13 +156,24 @@ describe('contas fixas, metas, ui', () => {
     expect(useKashStore.getState().ui.toast).toBeNull();
     jest.useRealTimers();
   });
+  it('updateUser ignora nome/e-mail vazios e normaliza espaços', () => {
+    act(() => useKashStore.getState().updateUser({ name: '  Lara M. ', email: '', phone: ' 11 9 ' }));
+    expect(useKashStore.getState().user).toEqual({ name: 'Lara M.', email: 'lara.mendes@email.com', phone: '11 9' });
+  });
+  it('setMonthlyBudget aceita só valores positivos', () => {
+    act(() => useKashStore.getState().setMonthlyBudget(2000));
+    expect(useKashStore.getState().settings.monthlyBudget).toBe(2000);
+    act(() => useKashStore.getState().setMonthlyBudget(0));
+    expect(useKashStore.getState().settings.monthlyBudget).toBe(2000);
+  });
   it('preferências', () => {
     const s = useKashStore.getState();
     act(() => {
       s.toggleTheme();
       s.toggleHideValues();
       s.toggleBillReminder();
+      s.toggleBiometrics();
     });
-    expect(useKashStore.getState().settings).toMatchObject({ theme: 'light', hideValues: true, billReminder: false });
+    expect(useKashStore.getState().settings).toMatchObject({ theme: 'light', hideValues: true, billReminder: false, biometrics: false });
   });
 });

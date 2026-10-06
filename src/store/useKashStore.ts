@@ -11,7 +11,7 @@ import { seedData } from './seed';
 
 export type AuthStatus = 'onboarding' | 'login' | 'app';
 export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'deleteAccount';
+export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'deleteAccount';
 
 export interface NewExpense {
   amountCents: number;
@@ -94,6 +94,9 @@ export interface KashState {
   toggleTheme: () => void;
   toggleHideValues: () => void;
   toggleBillReminder: () => void;
+  toggleBiometrics: () => void;
+  setMonthlyBudget: (value: number) => void;
+  updateUser: (input: Partial<User>) => void;
 
   // ui
   openSheet: (sheet: SheetName) => void;
@@ -145,6 +148,19 @@ export const useKashStore = create<KashState>((set, get) => ({
   toggleTheme: () => set((s) => ({ settings: { ...s.settings, theme: s.settings.theme === 'dark' ? 'light' : 'dark' } })),
   toggleHideValues: () => set((s) => ({ settings: { ...s.settings, hideValues: !s.settings.hideValues } })),
   toggleBillReminder: () => set((s) => ({ settings: { ...s.settings, billReminder: !s.settings.billReminder } })),
+  toggleBiometrics: () => set((s) => ({ settings: { ...s.settings, biometrics: !s.settings.biometrics } })),
+  setMonthlyBudget: (value) => {
+    if (!(value > 0)) return;
+    set((s) => ({ settings: { ...s.settings, monthlyBudget: round2(value) } }));
+  },
+  updateUser: (input) =>
+    set((s) => ({
+      user: {
+        name: (input.name ?? s.user.name).trim() || s.user.name,
+        email: (input.email ?? s.user.email).trim() || s.user.email,
+        phone: (input.phone ?? s.user.phone).trim(),
+      },
+    })),
 
   openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1 } })),
   openDeposit: (goalId) => set((s) => ({ ui: { ...s.ui, sheet: 'deposit', sheetNonce: s.ui.sheetNonce + 1, depositGoalId: goalId } })),

@@ -91,11 +91,16 @@ export interface Settings {
   hideValues: boolean;
   billReminder: boolean;
   monthlyBudget: number;
+  /** entrar com Face ID / Touch ID */
+  biometrics: boolean;
+  /** código ISO da moeda de exibição (só BRL nesta fase) */
+  currency: 'BRL';
 }
 
 export interface User {
   name: string;
   email: string;
+  phone: string;
 }
 
 export type AccountKind = 'Conta corrente' | 'Poupança' | 'Carteira' | 'Investimento';

@@ -17,7 +17,12 @@ export default function AppLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="report" />
         <Stack.Screen name="forecast" />
-        <Stack.Screen name="profile" />
+        <Stack.Screen name="profile/index" />
+        <Stack.Screen name="profile/personal" />
+        <Stack.Screen name="profile/security" />
+        <Stack.Screen name="profile/budget" />
+        <Stack.Screen name="profile/currency" />
+        <Stack.Screen name="profile/help" />
         <Stack.Screen name="terms" />
         <Stack.Screen name="privacy" />
       </Stack>

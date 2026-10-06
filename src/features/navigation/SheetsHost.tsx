@@ -6,6 +6,7 @@ import { AddBillSheet } from '../accounts/AddBillSheet';
 import { AddCardSheet } from '../cards/AddCardSheet';
 import { AddGoalSheet } from '../goals/AddGoalSheet';
 import { DepositSheet } from '../goals/DepositSheet';
+import { ChangePasswordSheet } from '../profile/ChangePasswordSheet';
 import { DeleteAccountSheet } from '../profile/DeleteAccountSheet';
 import { ExpenseSheet } from '../transactions/ExpenseSheet';
 
@@ -19,6 +20,7 @@ export function SheetsHost() {
       <AddBillSheet />
       <AddGoalSheet />
       <DepositSheet />
+      <ChangePasswordSheet />
       <DeleteAccountSheet />
     </>
   );

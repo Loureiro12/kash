@@ -1,0 +1,126 @@
+appId: ${APP_ID}
+name: Perfil — dados pessoais, segurança, limite, moeda e ajuda
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "home-avatar"
+- assertVisible:
+    id: "profile-screen"
+
+# Dados pessoais via "Editar"
+- tapOn:
+    id: "profile-edit"
+- assertVisible:
+    id: "personal-screen"
+- tapOn:
+    id: "personal-name"
+- eraseText: 20
+- inputText: "Lara Souza"
+- pressKey: Enter
+- tapOn:
+    id: "personal-save"
+- assertVisible: "Dados atualizados"
+- assertVisible: "Lara Souza"
+
+# Limite mensal: 1.800 → 2.000 reflete na Início
+- tapOn:
+    id: "profile-budget"
+- assertVisible:
+    id: "budget-screen"
+- assertVisible: "R$ 1.800,00"
+# apaga os 6 dígitos de 1.800,00 (centavos) e digita 2.000,00
+- tapOn:
+    id: "key-del"
+- tapOn:
+    id: "key-del"
+- tapOn:
+    id: "key-del"
+- tapOn:
+    id: "key-del"
+- tapOn:
+    id: "key-del"
+- tapOn:
+    id: "key-del"
+- tapOn:
+    id: "key-2"
+- tapOn:
+    id: "key-00"
+- tapOn:
+    id: "key-00"
+- tapOn:
+    id: "key-0"
+- assertVisible: "R$ 2.000,00"
+- tapOn:
+    id: "budget-save"
+- assertVisible: "Limite mensal: R$ 2.000,00"
+# o valor na linha do Perfil fica dentro de um container acessível; confere reabrindo a tela
+- tapOn:
+    id: "profile-budget"
+- assertVisible: "R$ 2.000,00"
+- tapOn:
+    id: "budget-back"
+
+# Segurança: biometria e alterar senha com validação
+- tapOn:
+    id: "profile-security"
+- assertVisible:
+    id: "security-screen"
+- tapOn:
+    id: "security-biometrics-switch"
+- tapOn:
+    id: "security-password"
+- assertVisible:
+    id: "sheet-change-password"
+- tapOn:
+    id: "cp-current"
+- inputText: "senha123"
+- pressKey: Enter
+- inputText: "novasenha"
+- pressKey: Enter
+- inputText: "outra"
+- assertVisible: "As senhas não conferem."
+- eraseText: 10
+- inputText: "novasenha"
+- assertNotVisible: "As senhas não conferem."
+- tapOn:
+    id: "cp-save"
+- assertVisible: "Senha alterada"
+- tapOn:
+    id: "security-back"
+
+# Moeda
+- scrollUntilVisible:
+    element:
+      id: "profile-currency"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "profile-currency"
+- assertVisible:
+    id: "currency-screen"
+- assertVisible: "em breve"
+- tapOn:
+    id: "currency-back"
+
+# Ajuda: FAQ expande
+- scrollUntilVisible:
+    element:
+      id: "profile-help"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "profile-help"
+- assertVisible:
+    id: "help-screen"
+- tapOn:
+    id: "help-faq-0"
+- assertVisible:
+    id: "help-faq-0-answer"
+- tapOn:
+    id: "help-faq-0"
+- assertNotVisible:
+    id: "help-faq-0-answer"
+- tapOn:
+    id: "help-back"
+- assertVisible:
+    id: "profile-screen"
