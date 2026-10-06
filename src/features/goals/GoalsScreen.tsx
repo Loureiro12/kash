@@ -18,8 +18,8 @@ export function GoalsScreen() {
     showToast(`${formatBRL(CONTRIBUTION)} guardados em “${name}”`);
   };
 
-  return (
-    <Screen testID="goals-screen">
+  const header = (
+    <View>
       <Text variant="screenTitle">Metas</Text>
       <Text variant="body" color="muted" style={{ marginTop: 4 }}>
         Você já guardou{' '}
@@ -28,8 +28,12 @@ export function GoalsScreen() {
         </Text>{' '}
         no total.
       </Text>
+    </View>
+  );
 
-      <View style={{ gap: 12, marginTop: 18 }}>
+  return (
+    <Screen testID="goals-screen" header={header}>
+      <View style={{ gap: 12, marginTop: 6 }}>
         {goals.map(({ goal, progress }) => (
           <Card key={goal.id} padding={18} style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }} testID={`goal-${goal.id}`}>
             <ProgressRing pct={progress.pct} color={goal.color} testID={`goal-${goal.id}-ring`} />

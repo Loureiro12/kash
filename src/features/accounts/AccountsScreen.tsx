@@ -11,9 +11,8 @@ export function AccountsScreen() {
   const segment = useKashStore((s) => s.ui.accountsSegment);
   const setSegment = useKashStore((s) => s.setAccountsSegment);
   return (
-    <Screen testID="accounts-screen">
-      <Text variant="screenTitle">Contas</Text>
-      <View style={{ marginTop: 16 }}>
+    <Screen testID="accounts-screen" header={<Text variant="screenTitle">Contas</Text>}>
+      <View style={{ marginTop: 4 }}>
         <SegmentedControl<AccountsSegment>
           value={segment}
           onChange={setSegment}

@@ -14,9 +14,8 @@ export function ReportScreen() {
   const { spent, history, delta, categories } = useReport();
 
   return (
-    <Screen testID="report-screen">
-      <PageHeader title="Relatório" onBack={() => router.back()} testID="report" />
-      <Card padding={20} style={{ marginTop: 18 }}>
+    <Screen testID="report-screen" header={<PageHeader title="Relatório" onBack={() => router.back()} testID="report" />}>
+      <Card padding={20} style={{ marginTop: 6 }}>
         <Text variant="meta" color="muted">
           Gastos · {monthName(0, now())}
         </Text>

@@ -44,10 +44,8 @@ export function HomeScreen() {
     router.navigate('/accounts');
   };
 
-  return (
-    <Screen testID="home-screen">
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+  const header = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Pressable onPress={() => router.push('/profile')} testID="home-avatar" accessibilityRole="button" accessibilityLabel="Abrir perfil" style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <Avatar initial={user.name[0] ?? 'K'} />
           <View>
@@ -64,10 +62,13 @@ export function HomeScreen() {
           testID="home-toggle-hide"
           style={{ marginLeft: 'auto' }}
         />
-      </View>
+    </View>
+  );
 
+  return (
+    <Screen testID="home-screen" header={header}>
       {/* Saldo total */}
-      <Card radius="cardXl" padding={[22, 20]} style={{ marginTop: 22, gap: 6 }} testID="home-balance-card">
+      <Card radius="cardXl" padding={[22, 20]} style={{ marginTop: 10, gap: 6 }} testID="home-balance-card">
         <Text variant="metaMedium" color="muted">
           Saldo total
         </Text>

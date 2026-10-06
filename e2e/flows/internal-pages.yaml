@@ -41,16 +41,23 @@ name: Relatório, Previsão, Termos e Privacidade
     direction: UP
 - tapOn:
     id: "home-avatar"
+# centerElement evita que a linha fique sob a tab bar flutuante
 - scrollUntilVisible:
     element:
       id: "profile-terms"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "profile-terms"
 - assertVisible: "Termos de uso"
 - assertVisible: "1. O que é o Kash"
 - tapOn:
     id: "legal-terms-back"
+- scrollUntilVisible:
+    element:
+      id: "profile-privacy"
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: "profile-privacy"
 - assertVisible: "Privacidade"

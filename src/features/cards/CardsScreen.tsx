@@ -31,10 +31,8 @@ export function CardsScreen() {
   const openSheet = useKashStore((s) => s.openSheet);
 
   return (
-    <Screen testID="cards-screen">
-      <ScreenTitle title="Cartões" subtitle="Toque num cartão pra ver a fatura." testID="cards-title" />
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 18, marginRight: -20, marginLeft: -5 }} contentContainerStyle={{ gap: 12, paddingRight: 20, paddingLeft: 5, paddingVertical: 5 }}>
+    <Screen testID="cards-screen" header={<ScreenTitle title="Cartões" subtitle="Toque num cartão pra ver a fatura." testID="cards-title" />}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6, marginRight: -20, marginLeft: -5 }} contentContainerStyle={{ gap: 12, paddingRight: 20, paddingLeft: 5, paddingVertical: 5 }}>
         {list.map(({ card, usage, dates }) => (
           <SelectableCard key={card.id} selected={selected?.card.id === card.id} onPress={() => selectCard(card.id)} testID={`card-${card.id}`}>
             <CreditCardFace

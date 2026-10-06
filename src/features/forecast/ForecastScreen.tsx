@@ -18,9 +18,8 @@ export function ForecastScreen() {
   const current = months[selected - 1] ?? next;
 
   return (
-    <Screen testID="forecast-screen">
-      <PageHeader title="Previsão" onBack={() => router.back()} testID="forecast" />
-      <Text variant="body" color="muted" style={{ marginTop: 8 }}>
+    <Screen testID="forecast-screen" header={<PageHeader title="Previsão" onBack={() => router.back()} testID="forecast" />}>
+      <Text variant="body" color="muted">
         Quanto já está comprometido nos próximos meses com contas fixas e parcelas do cartão.
       </Text>
 

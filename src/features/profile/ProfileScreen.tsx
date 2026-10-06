@@ -18,10 +18,8 @@ export function ProfileScreen() {
   const soon = (what: string) => () => showToast(`Em breve: ${what}`);
 
   return (
-    <Screen testID="profile-screen">
-      <PageHeader title="Perfil" onBack={() => router.back()} testID="profile" />
-
-      <Card padding={18} style={{ marginTop: 22, flexDirection: 'row', alignItems: 'center', gap: 14 }} testID="profile-identity">
+    <Screen testID="profile-screen" header={<PageHeader title="Perfil" onBack={() => router.back()} testID="profile" />}>
+      <Card padding={18} style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 14 }} testID="profile-identity">
         <Avatar initial={user.name[0] ?? 'K'} size={56} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Text variant="titleLg">{user.name}</Text>

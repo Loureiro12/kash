@@ -9,9 +9,8 @@ export function LegalScreen({ doc }: { doc: LegalDocKey }) {
   const router = useRouter();
   const content = LEGAL_DOCS[doc];
   return (
-    <Screen testID={`legal-${doc}`}>
-      <PageHeader title={content.title} onBack={() => router.back()} testID={`legal-${doc}`} />
-      <Text variant="meta" color="muted" style={{ marginTop: 18 }}>
+    <Screen testID={`legal-${doc}`} header={<PageHeader title={content.title} onBack={() => router.back()} testID={`legal-${doc}`} />}>
+      <Text variant="meta" color="muted" style={{ marginTop: 6 }}>
         {content.updatedAt}
       </Text>
       <View style={{ gap: 18, marginTop: 16 }}>
