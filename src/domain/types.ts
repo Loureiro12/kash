@@ -39,13 +39,19 @@ export interface Tx {
   sourceId: ID;
 }
 
-/** Conta fixa mensal. */
+/** Conta fixa mensal (recorrente). */
 export interface Bill {
   id: ID;
   name: string;
   amount: number;
   dueDay: number;
   paid: boolean;
+  /** categoria usada no lançamento gerado ao pagar */
+  category: Category;
+  /** onde a cobrança acontece: Card.id (entra na fatura) ou Account.id (debita o saldo) */
+  sourceId?: ID;
+  /** lançamento gerado ao marcar como paga neste mês (removido ao desmarcar) */
+  paidTxId?: ID;
 }
 
 export interface Goal {

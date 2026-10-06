@@ -7,7 +7,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { formatMoney } from '@/domain/money';
 import {
   activePlans,
+  billSourceName,
   billsSummary,
+  cardBills,
   budgetStatus,
   cardDates,
   cardUsage,
@@ -70,13 +72,19 @@ export function useBillsSummary() {
 }
 
 export function useForecast() {
-  const { plans, bills, cards } = useKashStore(useShallow((s) => ({ plans: s.plans, bills: s.bills, cards: s.cards })));
-  return useMemo(() => forecast(plans, bills, cards, now()), [plans, bills, cards]);
+  const { plans, bills, cards, accounts } = useKashStore(useShallow((s) => ({ plans: s.plans, bills: s.bills, cards: s.cards, accounts: s.accounts })));
+  return useMemo(() => forecast(plans, bills, cards, now(), accounts), [plans, bills, cards, accounts]);
+}
+
+/** Contas fixas com o nome de onde são cobradas. */
+export function useBillsView() {
+  const { bills, cards, accounts } = useKashStore(useShallow((s) => ({ bills: s.bills, cards: s.cards, accounts: s.accounts })));
+  return useMemo(() => bills.map((bill) => ({ bill, sourceName: billSourceName(bill, cards, accounts) })), [bills, cards, accounts]);
 }
 
 export function useCardsOverview() {
-  const { cards, txs, plans, accounts, selectedCardId } = useKashStore(
-    useShallow((s) => ({ cards: s.cards, txs: s.txs, plans: s.plans, accounts: s.accounts, selectedCardId: s.ui.selectedCardId })),
+  const { cards, txs, plans, bills, accounts, selectedCardId } = useKashStore(
+    useShallow((s) => ({ cards: s.cards, txs: s.txs, plans: s.plans, bills: s.bills, accounts: s.accounts, selectedCardId: s.ui.selectedCardId })),
   );
   return useMemo(() => {
     const today = now();
@@ -84,8 +92,9 @@ export function useCardsOverview() {
     const selected = list.find((c) => c.card.id === selectedCardId) ?? list[0] ?? null;
     const selectedTxs = selected ? txs.filter((t) => t.sourceId === selected.card.id).map((t) => txView(t, accounts, cards, today)) : [];
     const selectedPlans = selected ? activePlans(plans, selected.card.id, today) : [];
-    return { list, selected, selectedTxs, selectedPlans };
-  }, [cards, txs, plans, accounts, selectedCardId]);
+    const selectedBills = selected ? cardBills(bills, selected.card.id) : [];
+    return { list, selected, selectedTxs, selectedPlans, selectedBills };
+  }, [cards, txs, plans, bills, accounts, selectedCardId]);
 }
 
 export function useGoalsOverview() {

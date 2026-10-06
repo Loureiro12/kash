@@ -11,7 +11,7 @@ import { seedData } from './seed';
 
 export type AuthStatus = 'onboarding' | 'login' | 'app';
 export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'deleteAccount';
+export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'deleteAccount';
 
 export interface NewExpense {
   amountCents: number;
@@ -46,6 +46,14 @@ export interface NewGoal {
   color: string;
   accountId?: string;
   depositDay?: number | null;
+}
+
+export interface NewBill {
+  name: string;
+  amount: number;
+  dueDay: number;
+  category: Category;
+  sourceId?: string;
 }
 
 export interface NewDeposit {
@@ -101,6 +109,7 @@ export interface KashState {
   addCard: (input: NewCard) => void;
   addAccount: (input: NewAccount) => void;
   toggleBillPaid: (id: string) => void;
+  addBill: (input: NewBill) => void;
   contributeToGoal: (id: string, amount: number) => void;
   addGoal: (input: NewGoal) => void;
   recordDeposit: (input: NewDeposit) => void;
@@ -180,7 +189,38 @@ export const useKashStore = create<KashState>((set, get) => ({
     set((s) => ({ accounts: [...s.accounts, account], ui: { ...s.ui, sheet: null } }));
   },
 
-  toggleBillPaid: (id) => set((s) => ({ bills: s.bills.map((b) => (b.id === id ? { ...b, paid: !b.paid } : b)) })),
+  /**
+   * Marcar como paga gera o lançamento da cobrança (fatura do cartão ou débito na conta);
+   * desmarcar remove o lançamento e devolve o saldo.
+   */
+  toggleBillPaid: (id) =>
+    set((s) => {
+      const bill = s.bills.find((b) => b.id === id);
+      if (!bill) return s;
+      if (!bill.paid) {
+        const txId = createId('tx');
+        const tx: Tx = { id: txId, title: bill.name, category: bill.category, amount: -bill.amount, date: toISODate(now()), sourceId: bill.sourceId ?? 'manual' };
+        const debit = bill.sourceId && isAccountId(bill.sourceId) ? bill.sourceId : null;
+        return {
+          bills: s.bills.map((b) => (b.id === id ? { ...b, paid: true, paidTxId: txId } : b)),
+          txs: [tx, ...s.txs],
+          accounts: debit ? s.accounts.map((a) => (a.id === debit ? { ...a, balance: round2(a.balance - bill.amount) } : a)) : s.accounts,
+        };
+      }
+      const paidTx = bill.paidTxId ? s.txs.find((t) => t.id === bill.paidTxId) : undefined;
+      const refund = paidTx && isAccountId(paidTx.sourceId) ? paidTx.sourceId : null;
+      return {
+        bills: s.bills.map((b) => (b.id === id ? { ...b, paid: false, paidTxId: undefined } : b)),
+        txs: paidTx ? s.txs.filter((t) => t.id !== paidTx.id) : s.txs,
+        accounts: refund ? s.accounts.map((a) => (a.id === refund ? { ...a, balance: round2(a.balance + bill.amount) } : a)) : s.accounts,
+      };
+    }),
+
+  addBill: ({ name, amount, dueDay, category, sourceId }) => {
+    if (!name.trim() || amount <= 0 || dueDay < 1 || dueDay > 31) return;
+    const bill: Bill = { id: createId('bill'), name: name.trim(), amount: round2(amount), dueDay, paid: false, category, sourceId };
+    set((s) => ({ bills: [...s.bills, bill].sort((a, b) => a.dueDay - b.dueDay), ui: { ...s.ui, sheet: null } }));
+  },
 
   contributeToGoal: (id, amount) => set((s) => ({ goals: s.goals.map((g) => (g.id === id ? addToGoal(g, amount) : g)) })),
 

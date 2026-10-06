@@ -48,6 +48,27 @@ name: Contas — bancárias, fixas e nova conta
     id: "bill-bill2"
 - assertVisible: "1/5"
 
+# Nova conta fixa cobrada no cartão
+- tapOn:
+    id: "bills-add"
+- assertVisible:
+    id: "sheet-add-bill"
+- tapOn:
+    id: "add-bill-src-card1"
+# categoria padrão já é Assinaturas (o chip fica fora da área visível na linha rolável)
+- tapOn:
+    id: "add-bill-name"
+- inputText: "Spotify"
+- pressKey: Enter
+- inputText: "21,90"
+- tapOn:
+    id: "add-bill-day"
+- inputText: "8"
+- tapOn:
+    id: "add-bill-save"
+- assertVisible: "Conta fixa “Spotify” adicionada"
+- assertVisible: "1/6"
+
 # Conta paga some das próximas contas na Início
 - tapOn:
     id: "bill-bill3"
@@ -57,3 +78,18 @@ name: Contas — bancárias, fixas e nova conta
     id: "home-bill-bill3"
 - assertVisible:
     id: "home-bill-bill2"
+
+# Internet (cobrada no Cartão principal) paga → entra na fatura: limite usado 16% → 20%
+- tapOn:
+    id: "tab-accounts"
+- tapOn:
+    id: "bill-bill2"
+- tapOn:
+    id: "tab-cards"
+- assertVisible: "20%"
+- scrollUntilVisible:
+    element:
+      text: "Cobranças recorrentes"
+    direction: DOWN
+- assertVisible: "Já na fatura deste mês"
+- assertVisible: "Spotify"

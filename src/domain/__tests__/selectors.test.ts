@@ -1,7 +1,7 @@
 import { seedData } from '@/store/seed';
 import { budgetStatus } from '../selectors/budget';
 import { activePlans, cardDates, cardUsage, installmentPreview } from '../selectors/cards';
-import { billsSummary, upcomingBills } from '../selectors/bills';
+import { billSourceName, billsSummary, cardBills, upcomingBills } from '../selectors/bills';
 import { addToGoal, depositLabel, depositStatus, goalProgress, recordDeposit, totalSaved } from '../selectors/goals';
 import { categoryBreakdown, monthDelta, monthlyHistory, topCategoryTip } from '../selectors/report';
 import { forecast, forecastHeights } from '../selectors/forecast';
@@ -65,6 +65,12 @@ describe('contas fixas', () => {
   it('resumo', () => {
     expect(billsSummary(seed.bills)).toEqual({ pendingTotal: 274.6, paidCount: 1, count: 5 });
   });
+  it('cobranças recorrentes por cartão e nome da origem', () => {
+    expect(cardBills(seed.bills, 'card1').map((b) => b.name)).toEqual(['Internet', 'Plano do celular']);
+    expect(billSourceName(seed.bills[1]!, seed.cards, seed.accounts)).toBe('Cartão principal');
+    expect(billSourceName(seed.bills[0]!, seed.cards, seed.accounts)).toBe('Conta corrente');
+    expect(billSourceName({ ...seed.bills[0]!, sourceId: undefined }, seed.cards, seed.accounts)).toBeNull();
+  });
   it('próximas = não pagas ordenadas', () => {
     expect(upcomingBills(seed.bills).map((b) => b.name)).toEqual(['Internet', 'Streaming de vídeo', 'Academia', 'Plano do celular']);
   });
@@ -127,8 +133,9 @@ describe('relatório', () => {
 
 describe('previsão', () => {
   it('6 meses: contas fixas + parcelas restantes', () => {
-    const f = forecast(seed.plans, seed.bills, seed.cards, now);
+    const f = forecast(seed.plans, seed.bills, seed.cards, now, seed.accounts);
     expect(f).toHaveLength(6);
+    expect(f[0]?.items.find((i) => i.title === 'Internet')?.subtitle).toBe('Conta fixa · dia 10 · Cartão principal');
     expect(f[0]).toMatchObject({ name: 'novembro', bills: 924.6, installments: 289.8, total: 1214.4 });
     // tênis termina em 3 meses (3/6 → 6/6): no 4º mês só o celular
     expect(f[3]?.installments).toBeCloseTo(199.9, 2);

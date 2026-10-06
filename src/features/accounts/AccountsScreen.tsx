@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Card, CheckCircle, DashedButton, Pressable, Screen, SegmentedControl, Text, TileIcon } from '@/design-system';
 import { formatBRL } from '@/domain/money';
 import { totalBalance } from '@/domain/selectors/balance';
-import { useBillsSummary, useKashStore, useMoney } from '@/store';
+import { useBillsSummary, useBillsView, useKashStore, useMoney } from '@/store';
 import type { AccountsSegment } from '@/store';
 
 /** Tela 5 — Contas (segmentado Bancárias | Fixas). */
@@ -61,9 +61,9 @@ function BankAccounts() {
 }
 
 function FixedBills() {
-  const bills = useKashStore((s) => s.bills);
+  const bills = useBillsView();
   const toggle = useKashStore((s) => s.toggleBillPaid);
-  const showToast = useKashStore((s) => s.showToast);
+  const openSheet = useKashStore((s) => s.openSheet);
   const summary = useBillsSummary();
   return (
     <View testID="accounts-bills">
@@ -89,7 +89,7 @@ function FixedBills() {
         Toque pra marcar como paga
       </Text>
       <View style={{ gap: 10, marginTop: 10 }}>
-        {bills.map((b) => (
+        {bills.map(({ bill: b, sourceName }) => (
           <Pressable
             key={b.id}
             onPress={() => toggle(b.id)}
@@ -98,23 +98,24 @@ function FixedBills() {
             pressedOpacity={0.8}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: b.paid }}
-            accessibilityLabel={`${b.name}, ${b.paid ? 'paga' : `vence dia ${b.dueDay}`}`}
+            accessibilityLabel={`${b.name}, ${b.paid ? 'paga' : `vence dia ${b.dueDay}`}${sourceName ? `, cobrada em ${sourceName}` : ''}`}
           >
             <Card radius="card" padding={[14, 16]} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, opacity: b.paid ? 0.55 : 1 }}>
               <CheckCircle checked={b.paid} testID={`bill-${b.id}-check`} />
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text variant="title" style={b.paid ? { textDecorationLine: 'line-through' } : null}>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <Text variant="title" numberOfLines={1} style={b.paid ? { textDecorationLine: 'line-through' } : null}>
                   {b.name}
                 </Text>
-                <Text variant="meta" color="muted" testID={`bill-${b.id}-status`}>
+                <Text variant="meta" color="muted" numberOfLines={1} testID={`bill-${b.id}-status`}>
                   {b.paid ? 'Paga' : `Vence dia ${b.dueDay}`}
+                  {sourceName ? ` · ${sourceName}` : ''}
                 </Text>
               </View>
               <Text variant="valueLg">{formatBRL(b.amount)}</Text>
             </Card>
           </Pressable>
         ))}
-        <DashedButton label="+ Nova conta fixa" onPress={() => showToast('Em breve: cadastro de conta fixa')} testID="bills-add" />
+        <DashedButton label="+ Nova conta fixa" onPress={() => openSheet('addBill')} testID="bills-add" />
       </View>
     </View>
   );

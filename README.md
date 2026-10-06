@@ -54,6 +54,7 @@ Decisões:
 - **Tab bar flutuante fora dos navegadores** (`(app)/_layout`): continua visível em páginas internas sem aba ativa, como no protótipo, e as páginas internas usam push/swipe-back nativo.
 - **Sheets globais** montados uma vez (`SheetsHost`) e controlados pelo store (`ui.sheet`). Cada formulário é remontado por `key = ui.sheetNonce`, então abre sempre limpo sem efeitos de reset.
 - **CTA fixo no rodapé dos sheets** (`BottomSheet footer`): o botão principal fica sempre visível, mesmo com o teclado aberto ou o conteúdo rolando; o sheet encolhe para o espaço restante abaixo da status bar.
+- **Contas fixas cobradas em cartão ou conta** (`bill.sourceId`): marcar como paga gera o lançamento (entra na fatura do cartão ou debita a conta); desmarcar remove. O cartão lista suas cobranças recorrentes.
 - **Metas com depósito mensal**: cada meta pode ter conta onde o dinheiro fica guardado e dia do depósito. Quando o dia chega sem registro no mês, o card entra em "pendente" e o botão vira "Depositar" (sheet com valor sugerido = aporte mensal). O depósito é um registro na meta, não movimenta o saldo da conta.
 - **Regras de cálculo no domínio**, nunca nas telas; hooks em `src/store/hooks.ts` fazem a ponte. Trocar o seed por API depois não toca em componentes.
 - **Dinheiro** formatado por função própria (`formatBRL`) para evitar diferenças de `Intl` entre plataformas; agregados arredondados a 2 casas.
@@ -81,4 +82,4 @@ Convenção de `testID`: kebab-case por área: `tab-add`, `chip-cat-Comida`, `bi
 Pontos de encaixe já previstos:
 - `src/store/useKashStore.ts` — trocar `seedData` por carga remota e adicionar persistência (ex.: `zustand/middleware persist` + MMKV).
 - `LoginScreen` — ligar `login()` a auth real.
-- "Nova conta fixa" e "Editar perfil" hoje mostram toast "Em breve".
+- "Editar perfil" e itens de Perfil sem fluxo mostram toast "Em breve".

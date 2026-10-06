@@ -1,7 +1,7 @@
-import type { Bill, Card, Plan } from '../types';
+import type { Account, Bill, Card, Plan } from '../types';
 import { monthName } from '../dates';
 import { round2 } from '../money';
-import { billsTotal } from './bills';
+import { billSourceName, billsTotal } from './bills';
 
 export interface ForecastItem {
   id: string;
@@ -27,7 +27,7 @@ export interface ForecastMonth {
 export const FORECAST_MONTHS = 6;
 
 /** Previsão mês k (1..6): Σ bills + Σ plan.per para planos com cur + k ≤ n. */
-export function forecast(plans: Plan[], bills: Bill[], cards: Card[], now: Date): ForecastMonth[] {
+export function forecast(plans: Plan[], bills: Bill[], cards: Card[], now: Date, accounts: Account[] = []): ForecastMonth[] {
   const cardName = (id: string) => cards.find((c) => c.id === id)?.name ?? '';
   const fixed = billsTotal(bills);
   return Array.from({ length: FORECAST_MONTHS }, (_, i) => {
@@ -47,7 +47,7 @@ export function forecast(plans: Plan[], bills: Bill[], cards: Card[], now: Date)
         id: `${b.id}-${k}`,
         kind: 'bill' as const,
         title: b.name,
-        subtitle: `Conta fixa · dia ${b.dueDay}`,
+        subtitle: `Conta fixa · dia ${b.dueDay}${billSourceName(b, cards, accounts) ? ` · ${billSourceName(b, cards, accounts)}` : ''}`,
         amount: b.amount,
         tag: 'FIXA',
       })),

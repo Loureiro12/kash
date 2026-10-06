@@ -41,11 +41,11 @@ export function seedData(today: Date) {
   ];
 
   const bills: Bill[] = [
-    { id: 'bill1', name: 'Aluguel da república', amount: 650, dueDay: 5, paid: true },
-    { id: 'bill2', name: 'Internet', amount: 99.9, dueDay: 10, paid: false },
-    { id: 'bill3', name: 'Streaming de vídeo', amount: 34.9, dueDay: 12, paid: false },
-    { id: 'bill4', name: 'Academia', amount: 89.9, dueDay: 15, paid: false },
-    { id: 'bill5', name: 'Plano do celular', amount: 49.9, dueDay: 20, paid: false },
+    { id: 'bill1', name: 'Aluguel da república', amount: 650, dueDay: 5, paid: true, category: 'Outros', sourceId: 'acc1' },
+    { id: 'bill2', name: 'Internet', amount: 99.9, dueDay: 10, paid: false, category: 'Assinaturas', sourceId: 'card1' },
+    { id: 'bill3', name: 'Streaming de vídeo', amount: 34.9, dueDay: 12, paid: false, category: 'Assinaturas', sourceId: 'card2' },
+    { id: 'bill4', name: 'Academia', amount: 89.9, dueDay: 15, paid: false, category: 'Lazer', sourceId: 'acc1' },
+    { id: 'bill5', name: 'Plano do celular', amount: 49.9, dueDay: 20, paid: false, category: 'Assinaturas', sourceId: 'card1' },
   ];
 
   const goals: Goal[] = [

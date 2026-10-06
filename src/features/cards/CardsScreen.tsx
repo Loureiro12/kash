@@ -26,7 +26,7 @@ export const gradientFor = (card: CardModel) => cardGradients.find((g) => g.id =
 export function CardsScreen() {
   const { colors } = useTheme();
   const money = useMoney();
-  const { list, selected, selectedTxs, selectedPlans } = useCardsOverview();
+  const { list, selected, selectedTxs, selectedPlans, selectedBills } = useCardsOverview();
   const selectCard = useKashStore((s) => s.selectCard);
   const openSheet = useKashStore((s) => s.openSheet);
 
@@ -122,6 +122,31 @@ export function CardsScreen() {
                   </Card>
                 ))}
               </View>
+            </>
+          ) : null}
+
+          {selectedBills.length > 0 ? (
+            <>
+              <SectionHeader title="Cobranças recorrentes" />
+              <Card radius="card" padding={0} style={{ marginTop: 12, overflow: 'hidden' }} testID="cards-bills">
+                {selectedBills.map((b, i) => (
+                  <View
+                    key={b.id}
+                    testID={`card-bill-${b.id}`}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: i < selectedBills.length - 1 ? 1 : 0, borderBottomColor: colors.line }}
+                  >
+                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                      <Text variant="title" numberOfLines={1}>
+                        {b.name}
+                      </Text>
+                      <Text variant="meta" color="muted">
+                        {b.paid ? 'Já na fatura deste mês' : `Todo dia ${b.dueDay}`}
+                      </Text>
+                    </View>
+                    <Text variant="value">{formatBRL(b.amount)}</Text>
+                  </View>
+                ))}
+              </Card>
             </>
           ) : null}
 

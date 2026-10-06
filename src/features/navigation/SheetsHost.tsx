@@ -2,6 +2,7 @@ import React from 'react';
 import { Toast } from '@/design-system';
 import { useKashStore } from '@/store';
 import { AddAccountSheet } from '../accounts/AddAccountSheet';
+import { AddBillSheet } from '../accounts/AddBillSheet';
 import { AddCardSheet } from '../cards/AddCardSheet';
 import { AddGoalSheet } from '../goals/AddGoalSheet';
 import { DepositSheet } from '../goals/DepositSheet';
@@ -15,6 +16,7 @@ export function SheetsHost() {
       <ExpenseSheet />
       <AddCardSheet />
       <AddAccountSheet />
+      <AddBillSheet />
       <AddGoalSheet />
       <DepositSheet />
       <DeleteAccountSheet />

@@ -85,11 +85,33 @@ describe('cartões e contas', () => {
 });
 
 describe('contas fixas, metas, ui', () => {
-  it('toggleBillPaid alterna', () => {
+  it('pagar conta cobrada no cartão gera lançamento na fatura; desmarcar remove', () => {
+    const txsBefore = useKashStore.getState().txs.length;
     act(() => useKashStore.getState().toggleBillPaid('bill2'));
-    expect(useKashStore.getState().bills.find((b) => b.id === 'bill2')?.paid).toBe(true);
+    let s = useKashStore.getState();
+    const bill = s.bills.find((b) => b.id === 'bill2')!;
+    expect(bill.paid).toBe(true);
+    expect(s.txs[0]).toMatchObject({ id: bill.paidTxId, title: 'Internet', category: 'Assinaturas', amount: -99.9, sourceId: 'card1', date: '2026-10-15' });
+    expect(s.accounts[0]?.balance).toBe(2340.5);
     act(() => useKashStore.getState().toggleBillPaid('bill2'));
-    expect(useKashStore.getState().bills.find((b) => b.id === 'bill2')?.paid).toBe(false);
+    s = useKashStore.getState();
+    expect(s.bills.find((b) => b.id === 'bill2')).toMatchObject({ paid: false, paidTxId: undefined });
+    expect(s.txs).toHaveLength(txsBefore);
+  });
+  it('pagar conta cobrada na conta debita o saldo; desmarcar devolve', () => {
+    act(() => useKashStore.getState().toggleBillPaid('bill4'));
+    expect(useKashStore.getState().accounts[0]?.balance).toBe(2250.6);
+    act(() => useKashStore.getState().toggleBillPaid('bill4'));
+    expect(useKashStore.getState().accounts[0]?.balance).toBe(2340.5);
+  });
+  it('addBill valida, ordena por dia e fecha o sheet', () => {
+    act(() => useKashStore.getState().addBill({ name: ' Spotify ', amount: 21.9, dueDay: 8, category: 'Assinaturas', sourceId: 'card2' }));
+    const s = useKashStore.getState();
+    expect(s.bills.map((b) => b.dueDay)).toEqual([5, 8, 10, 12, 15, 20]);
+    expect(s.bills.find((b) => b.name === 'Spotify')).toMatchObject({ amount: 21.9, paid: false, sourceId: 'card2' });
+    expect(s.ui.sheet).toBeNull();
+    act(() => useKashStore.getState().addBill({ name: 'x', amount: 10, dueDay: 40, category: 'Outros' }));
+    expect(useKashStore.getState().bills).toHaveLength(6);
   });
   it('addGoal cria meta com valores saneados e fecha o sheet', () => {
     act(() => useKashStore.getState().addGoal({ name: '  Notebook ', target: 4000, saved: 5000, monthly: 400, color: '#6BC5FF' }));

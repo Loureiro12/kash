@@ -12,3 +12,4 @@ appId: ${APP_ID}
     visible:
       id: "home-screen"
     timeout: 10000
+- waitForAnimationToEnd
