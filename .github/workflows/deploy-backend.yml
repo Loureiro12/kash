@@ -1,0 +1,40 @@
+name: Deploy backend (produção)
+
+# Aplica migrações, Edge Functions e config de auth no projeto Supabase de produção.
+# Só roda quando os secrets/variáveis existem (ver docs/release.md); a CI de testes continua em ci.yml.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'supabase/templates/**'
+      - 'supabase/config.toml'
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.SUPABASE_PROJECT_REF != ''
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Migrações
+        run: supabase db push --linked
+      - name: Edge Functions
+        run: supabase functions deploy delete-account --project-ref "$SUPABASE_PROJECT_REF"
+      - name: Config de auth (templates, redirects)
+        run: supabase config push --project-ref "$SUPABASE_PROJECT_REF" --yes

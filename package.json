@@ -16,7 +16,12 @@
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "db:types": "pnpm --filter @kash/supabase-client gen:types",
-    "test:backend": "pnpm db:test && pnpm --filter @kash/supabase-client test"
+    "test:backend": "pnpm db:test && pnpm --filter @kash/supabase-client test",
+    "db:link": "supabase link --project-ref \"$SUPABASE_PROJECT_REF\"",
+    "db:push": "supabase db push --linked",
+    "config:push": "supabase config push --project-ref \"$SUPABASE_PROJECT_REF\"",
+    "functions:deploy": "supabase functions deploy delete-account --project-ref \"$SUPABASE_PROJECT_REF\"",
+    "deploy:backend": "pnpm db:push && pnpm functions:deploy && pnpm config:push"
   },
   "devDependencies": {
     "prettier": "^3.9.9",

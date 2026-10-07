@@ -9,7 +9,13 @@ appId: ${APP_ID}
 - tapOn:
     text: "Permitir|Allow|Cancelar|Cancel"
     optional: true
+# Android: limpar o estado apaga a URL do dev client; reabre apontando pro Metro (adb reverse tcp:8081)
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - openLink: kash://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081
 - extendedWaitUntil:
     visible:
       id: "onboarding-screen"
-    timeout: 20000
+    timeout: 60000

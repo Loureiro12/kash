@@ -1,0 +1,72 @@
+# Release em produção (Supabase + EAS)
+
+Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que precisa da sua conta está marcado com **[você]**; o resto já está no repositório.
+
+## 1. Supabase — projeto de produção
+
+1. **[você]** Crie o projeto em https://supabase.com/dashboard (região `sa-east-1` / São Paulo; guarde a senha do banco). Anote o **project ref** (20 letras na URL do projeto).
+2. **[você]** Token pessoal em https://supabase.com/dashboard/account/tokens → `export SUPABASE_ACCESS_TOKEN=...`.
+3. Preencha `project_id` em `[remotes.production]` no `supabase/config.toml` com o ref.
+4. Primeiro deploy, no seu terminal:
+   ```bash
+   export SUPABASE_PROJECT_REF=<ref>
+   pnpm db:link            # pede a senha do banco; grava em supabase/.temp (gitignored)
+   pnpm deploy:backend     # db push (migrações, sem seed) → functions deploy → config push (templates de e-mail, redirects, confirmação de e-mail)
+   ```
+   `config push` mostra o diff e pede confirmação por recurso. O que ele aplica em produção: template de recuperação com deep link `kash://reset-password`, `site_url`/redirects do app e **confirmação de e-mail ligada** (o cadastro mostra "Confira seu e-mail" até confirmar).
+5. **[você]** No dashboard, Authentication → SMTP: configure um provedor (Resend, Postmark…). O SMTP padrão do Supabase limita a poucos e-mails por hora e não serve para usuários reais.
+6. Confira no SQL Editor que a virada de mês está agendada: `select * from cron.job;` deve listar o job diário (criado pela migração inicial; `pg_cron` já vem habilitado nos projetos hospedados).
+7. **[você]** Em Settings → API copie `Project URL` e `anon public key` (vão para o EAS no passo 2.3).
+
+## 2. Expo / EAS — app
+
+1. **[você]** `cd apps/mobile && eas login` (conta Expo), depois:
+   ```bash
+   eas init                     # cria o projeto no EAS e grava extra.eas.projectId no app.json
+   eas update:configure         # grava updates.url no app.json (runtimeVersion já está como appVersion)
+   ```
+   Commit as duas linhas que esses comandos adicionam ao `app.json`.
+2. Credenciais nativas (uma vez): `eas credentials` — iOS gera certificado/perfil na sua Apple Developer; Android gera a keystore (guarde o backup que ele oferece).
+3. Variáveis de produção (ficam no EAS, não no repositório):
+   ```bash
+   eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value https://<ref>.supabase.co --visibility plaintext
+   eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value <anon key> --visibility plaintext
+   ```
+   (`preview`/`development` podem apontar para o mesmo projeto ou ficar sem valor para usar o `.env` local.)
+4. Primeiro build de loja: `eas build --platform all --profile production` (perfil em `eas.json`; `autoIncrement` cuida de `buildNumber`/`versionCode`).
+5. Envio: `eas submit --platform ios --profile production` (preencha `ascAppId` em `eas.json` com o id do app no App Store Connect) e `eas submit --platform android --profile production` (faixa interna do Play Console; o primeiro envio do Android precisa ser manual pelo console).
+6. Updates só de JS depois do lançamento: `eas update --branch production --message "..."`. O canal `production` do build aponta para o branch `production`. Mudou dependência nativa, versão em `app.json` ou plugin? Então é build novo, não update (a `runtimeVersion` = versão do app garante que um update nunca cai num binário incompatível).
+
+## 3. GitHub Actions
+
+Crie o environment **production** no repositório e, nele:
+
+| Tipo | Nome | Valor |
+|---|---|---|
+| secret | `SUPABASE_ACCESS_TOKEN` | token pessoal (passo 1.2) |
+| secret | `SUPABASE_DB_PASSWORD` | senha do banco (passo 1.1) |
+| variable | `SUPABASE_PROJECT_REF` | ref do projeto |
+| secret | `EXPO_TOKEN` | token em https://expo.dev/accounts/<conta>/settings/access-tokens |
+
+- `deploy-backend.yml` roda a cada push em `main` que mude `supabase/**` (migrações, functions, templates, config) e aplica em produção. Enquanto `SUPABASE_PROJECT_REF` não existir, o job é pulado.
+- `release-app.yml` é manual (Actions → "Release do app (EAS)"): marque *build* para gerar binários de loja e/ou *update* para publicar o JS no canal `production`.
+- `ci.yml` continua testando tudo contra um Supabase local (pgTAP, Vitest, Jest, drift dos tipos).
+
+## 4. Antes de publicar
+
+- [ ] Política de privacidade e termos publicados em URL pública (as lojas exigem link); o texto já está no app (`src/features/legal`).
+- [ ] Exportar e excluir conta funcionam em produção (teste com uma conta real): Perfil → "Exportar meus dados" e "Excluir conta".
+- [ ] Recuperação de senha: em clientes de e-mail que não tornam `kash://` clicável, o usuário não consegue tocar no link. Solução definitiva: um universal link `https://` (página estática que redireciona para o esquema) — exige domínio; pendente.
+- [ ] App Store: capturas de tela, categoria Finanças, declaração de criptografia já marcada como isenta (`ITSAppUsesNonExemptEncryption=false`).
+- [ ] Play Console: formulário de segurança de dados (coleta e-mail, dados financeiros inseridos pelo usuário; criptografados em trânsito; exclusão disponível no app).
+- [ ] Rotação: o `anon key` é público por desenho (RLS protege os dados); o `service_role` nunca entra no app nem no repositório.
+
+## 5. Android
+
+Compilado e validado localmente no emulador Pixel 7 (debug, dev client): ícone adaptativo, splash, onboarding e login funcionam; notificações usam o canal `reminders`. Os builds de loja saem pelo EAS (passo 2.4), que também gera a keystore. A suíte Maestro completa está validada no iOS; no Android ver `apps/mobile/e2e/README.md`.
+
+## 6. Fluxo do dia a dia
+
+1. Mudou o banco? Nova migração em `supabase/migrations`, `pnpm db:reset`, `pnpm db:types`, testes; o merge em `main` aplica em produção.
+2. Mudou só JS? Merge e rode o workflow de release com *update*.
+3. Mudou algo nativo? Suba a versão em `app.json`, rode o workflow com *build*, envie para as lojas.

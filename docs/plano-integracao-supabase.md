@@ -71,7 +71,7 @@ CI (GitHub Actions): `backend` (ubuntu: CLI do Supabase em Docker, `test db`, Vi
 
 ## 5. Fases e critérios de pronto
 
-Status: Fase 0 ✅ · Fase 1 ✅ · Fase 2 ✅ (auth real, sessão criptografada, Edge Function `delete-account`) · Fase 3 ✅ (snapshot via TanStack Query hidratando o store, cache persistida, seed do banco com ids fixos e paridade com o app) · Fase 4 ✅ (escritas otimistas persistidas por repositórios/RPCs com reconciliação pelo snapshot) · Fase 5 ✅ (`ensure_rollover` + `pg_cron`; lembretes locais com `expo-notifications` planejados pelo domínio) · Fase 6 pendente.
+Status: Fase 0 ✅ · Fase 1 ✅ · Fase 2 ✅ (auth real, sessão criptografada, Edge Function `delete-account`) · Fase 3 ✅ (snapshot via TanStack Query hidratando o store, cache persistida, seed do banco com ids fixos e paridade com o app) · Fase 4 ✅ (escritas otimistas persistidas por repositórios/RPCs com reconciliação pelo snapshot) · Fase 5 ✅ (`ensure_rollover` + `pg_cron`; lembretes locais com `expo-notifications` planejados pelo domínio) · Fase 6 ✅ preparada (só produção: `[remotes.production]` no config.toml, `pnpm deploy:backend`, workflows `deploy-backend.yml`/`release-app.yml`, `eas.json`, `expo-updates`; passos que exigem a conta do usuário em `docs/release.md`).
 
 **Fase 0 — Monorepo** (sem mudar comportamento)
 - Mover o app para `apps/mobile`; extrair `packages/domain` e `packages/config`; Turbo com `build/lint/test/typecheck`.

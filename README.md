@@ -148,5 +148,5 @@ Escritas (`apps/mobile/src/data/remoteActions.ts`): cada ação do store continu
 ## Próxima fase (integrações)
 
 Pontos de encaixe já previstos:
-- Fase 6: staging/produção com EAS (Fase 5 — notificações locais — entregue, ver seção acima).
+- Fase 6: produção. Ver `docs/release.md` (Supabase de produção via `pnpm deploy:backend` e workflow `deploy-backend.yml`; app via EAS Build/Update, perfis em `apps/mobile/eas.json`, workflow manual `release-app.yml`). `expo-updates` com `runtimeVersion` = versão do app.
 - Moeda: só Real (R$) nesta fase; outras aparecem como "em breve".

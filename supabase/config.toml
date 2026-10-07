@@ -418,3 +418,18 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# ---------------------------------------------------------------------------
+# Produção (docs/release.md). `supabase config push --project-ref <ref>` aplica o config.toml ao
+# projeto remoto; as seções abaixo sobrescrevem só o que difere do local. Preencha project_id.
+[remotes.production]
+project_id = "xxxxxxxxxxxxxxxxxxxx"
+
+[remotes.production.auth]
+# o app não tem site web: o esquema do app é a única origem válida de redirecionamento
+site_url = "kash://"
+additional_redirect_urls = ["kash://reset-password"]
+
+[remotes.production.auth.email]
+# em produção a conta só entra depois de confirmar o e-mail (o app já trata sessão nula no cadastro)
+enable_confirmations = true

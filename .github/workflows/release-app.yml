@@ -1,0 +1,41 @@
+name: Release do app (EAS)
+
+# Manual: build de produção nas duas plataformas e/ou update OTA do JS no canal production.
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: 'Gerar builds nativos de produção (iOS + Android)'
+        type: boolean
+        default: false
+      update:
+        description: 'Publicar update OTA (EAS Update) no canal production'
+        type: boolean
+        default: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - name: EAS Build (produção)
+        if: inputs.build
+        working-directory: apps/mobile
+        run: eas build --platform all --profile production --non-interactive --no-wait
+      - name: EAS Update (production)
+        if: inputs.update
+        working-directory: apps/mobile
+        run: eas update --branch production --message "${{ github.sha }}" --non-interactive

@@ -18,7 +18,8 @@
       "icon": {
         "light": "./assets/brand/icon-1024.png",
         "dark": "./assets/brand/icon-dark-1024.png"
-      }
+      },
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.kash.app",
@@ -27,7 +28,8 @@
         "backgroundColor": "#C6F432",
         "monochromeImage": "./assets/brand/icon-432-android-adaptive-mono.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/brand/favicon.png",
@@ -63,6 +65,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }
