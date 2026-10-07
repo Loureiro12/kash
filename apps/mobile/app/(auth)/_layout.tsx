@@ -12,10 +12,14 @@ export default function AuthLayout() {
       <Stack.Protected guard={auth === 'onboarding'}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
-      <Stack.Protected guard={auth !== 'onboarding'}>
+      <Stack.Protected guard={auth !== 'onboarding' && auth !== 'recovery'}>
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="forgot" options={{ animation: 'slide_from_right' }} />
+      </Stack.Protected>
+      {/* link do e-mail de recuperação: enquanto durar, só esta tela existe */}
+      <Stack.Protected guard={auth === 'recovery'}>
+        <Stack.Screen name="reset-password" />
       </Stack.Protected>
     </Stack>
   );

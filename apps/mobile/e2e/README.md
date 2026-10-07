@@ -15,6 +15,9 @@ e2e/run.sh e2e/flows/expense.yaml    # um fluxo, com reset
 maestro test e2e/flows/expense.yaml --env APP_ID=com.kash.app   # sem reset (estado atual do banco)
 ```
 
+## E-mails (recuperação de senha)
+- O fluxo `reset-password.yaml` lê o e-mail no Mailpit do Supabase local (`http://127.0.0.1:54324/api/v1`) via `runScript` (`scripts/recovery-link.js`) e abre o deep link com `openLink`. O iOS pergunta "Abrir com Kash?"; o fluxo toca em Abrir. Alertas que sobrem de uma execução interrompida são dispensados no `launch-fresh.yaml`.
+
 ## Convenções
 - Todo elemento interativo tem `testID` em kebab-case (`tab-add`, `chip-cat-Comida`, `bill-bill2`).
 - Os fluxos começam limpos via `subflows/launch-fresh.yaml` (`clearState: true`, que também descarta a sessão guardada).

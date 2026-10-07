@@ -128,9 +128,11 @@ Decisões (ver `docs/plano-integracao-supabase.md`): saldo de conta é uma view 
 
 Escritas (`apps/mobile/src/data/remoteActions.ts`): cada ação do store continua aplicando a mudança localmente (otimista) e ganha um "depois" que chama o repositório ou a RPC correspondente via `persist`; dando certo ou não, o snapshot é refeito, então o servidor é a verdade (ids reais substituem os temporários, erro vira toast e o estado volta ao do servidor). Excluir lançamento usa soft delete no servidor e "Desfazer" chama a RPC de undo. A virada de mês no modo remoto é a RPC `ensure_rollover`.
 
-## Auth simulada e virada de mês
+## Auth e virada de mês
 
 - Login, cadastro e "esqueci a senha" usam o Supabase Auth via `@kash/supabase-client`; a sessão fica criptografada no aparelho (chave AES no SecureStore, payload no AsyncStorage) e o app abre direto na Início quando há sessão. Excluir conta chama a Edge Function `delete-account`. No local, a usuária do seed é `lara@email.com` / `123456`.
+- Alterar senha (Perfil › Segurança) re-autentica com a senha atual e grava a nova (`changePassword` no client; erros: senha atual incorreta, nova igual à atual).
+- Recuperar senha: o e-mail (template em `supabase/templates/recovery.html`) traz o deep link `kash://reset-password?token_hash=…`; o app (`src/features/auth/useAuthLinks.ts`) troca o token por sessão (`recoverSessionFromUrl`), entra no estado `recovery`, em que só a tela de nova senha existe, e ao salvar cai na Início. Links expirados viram toast. Em produção, prefira um universal link (https) que redirecione para o esquema, porque alguns clientes de e-mail não tornam `kash://` clicável — fica para a Fase 6.
 - Virada de mês (`src/domain/selectors/rollover.ts`, acionada ao abrir o app e ao voltar ao primeiro plano): fecha a fatura de cada cartão com o total do mês anterior, zera "paga" das contas fixas e lança a parcela do mês de cada parcelamento. A fatura fechada aparece na Início e no cartão, com "Pagar fatura" debitando uma conta; o pagamento tem categoria `Fatura` e não entra como gasto no relatório (os gastos já foram contados ao serem lançados no cartão).
 
 ## Lembretes (notificações locais)
@@ -143,4 +145,4 @@ Escritas (`apps/mobile/src/data/remoteActions.ts`): cada ação do store continu
 
 Pontos de encaixe já previstos:
 - Fase 6: staging/produção com EAS (Fase 5 — notificações locais — entregue, ver seção acima).
-- Moeda: só Real (R$) nesta fase; outras aparecem como "em breve". Alterar senha valida localmente (a troca real vem com auth).
+- Moeda: só Real (R$) nesta fase; outras aparecem como "em breve".

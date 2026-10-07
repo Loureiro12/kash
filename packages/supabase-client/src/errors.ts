@@ -30,6 +30,7 @@ export function fromAuthError(error: AuthError): KashApiError {
   if (error.status === 400 && /invalid login credentials|invalid_credentials/.test(msg)) return new KashApiError('invalid_credentials', 'E-mail ou senha incorretos.', error);
   if (/already registered|already been registered|user_already_exists/.test(msg)) return new KashApiError('email_taken', 'Esse e-mail já tem conta. Quer entrar?', error);
   if (/password|weak/.test(msg) && /short|weak|characters/.test(msg)) return new KashApiError('weak_password', 'A senha precisa ter pelo menos 6 caracteres.', error);
+  if (/different from the old password|same_password/.test(msg)) return new KashApiError('validation', 'A nova senha precisa ser diferente da atual.', error);
   if (/fetch|network/.test(msg)) return new KashApiError('network', NETWORK_MESSAGE, error);
   return new KashApiError('unknown', 'Não deu pra concluir. Tenta de novo.', error);
 }

@@ -11,6 +11,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { QUERY_CACHE_BUSTER, queryClient, queryPersister } from '@/data/queryClient';
 import { installRemoteActions } from '@/data/remoteActions';
 import { ThemeProvider, useTheme } from '@/design-system';
+import { useAuthLinks } from '@/features/auth/useAuthLinks';
 import { ToastHost } from '@/features/navigation/SheetsHost';
 import { AnimatedSplash } from '@/features/splash/AnimatedSplash';
 import { useKashStore } from '@/store';
@@ -56,6 +57,7 @@ function RootNavigator() {
   useEffect(() => {
     void bootstrapAuth();
   }, [bootstrapAuth]);
+  useAuthLinks();
 
   // Virada de mês: ao abrir e sempre que o app volta pro primeiro plano.
   useEffect(() => {

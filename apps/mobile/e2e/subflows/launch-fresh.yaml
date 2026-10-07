@@ -5,9 +5,9 @@ appId: ${APP_ID}
     clearState: true
     permissions:
       notifications: allow
-# alerta do sistema que possa ter sobrado de uma execução anterior
+# alerta do sistema que possa ter sobrado de uma execução anterior (permissão ou "Abrir com Kash?")
 - tapOn:
-    text: "Permitir|Allow"
+    text: "Permitir|Allow|Cancelar|Cancel"
     optional: true
 - extendedWaitUntil:
     visible:

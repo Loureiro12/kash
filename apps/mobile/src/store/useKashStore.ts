@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { deleteOwnAccount, getProfile, type KashSnapshot, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError } from '@kash/supabase-client';
+import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, type KashSnapshot, RECOVERY_PATH, recoverSessionFromUrl, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
 import { onboardingFlag } from '@/services/onboarding';
 import { supabase } from '@/services/supabase';
 import { queryClient } from '@/data/queryClient';
@@ -9,7 +9,11 @@ import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 
 /** 'booting' = ainda lendo a sessão guardada */
-export type AuthStatus = 'booting' | 'onboarding' | 'login' | 'app';
+/** `recovery`: sessão aberta por link de recuperação; só a tela de nova senha fica acessível */
+/** esquema do deep link (app.json → scheme) */
+export const APP_SCHEME = 'kash';
+
+export type AuthStatus = 'booting' | 'onboarding' | 'login' | 'recovery' | 'app';
 /** estado de uma requisição de auth */
 export type RequestStatus = 'idle' | 'loading' | 'error' | 'success';
 
@@ -144,6 +148,13 @@ export interface KashState {
   signIn: (input: Credentials) => Promise<boolean>;
   signUp: (input: SignUpInput) => Promise<boolean>;
   requestPasswordReset: (email: string) => Promise<boolean>;
+  /** deep link recebido pelo app; true se era um link de recuperação válido (vai pra tela de nova senha) */
+  handleAuthUrl: (url: string) => Promise<boolean>;
+  /** define a nova senha na sessão de recuperação e entra no app */
+  completePasswordRecovery: (password: string) => Promise<boolean>;
+  cancelPasswordRecovery: () => Promise<void>;
+  /** troca a senha do usuário logado; devolve a mensagem de erro ou null */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<string | null>;
   resetAuthRequest: () => void;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
@@ -234,8 +245,9 @@ export const useKashStore = create<KashState>((set, get) => ({
       set({ auth: 'onboarding' });
     }
     // sessão expirada/revogada em outro lugar → volta pro login
-    supabase.auth.onAuthStateChange((event) => {
+    supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') set((s) => (s.auth === 'app' ? { ...buildInitial(), auth: 'login' } : s));
+      if (event === 'PASSWORD_RECOVERY') set((s) => ({ auth: 'recovery', userId: session?.user.id ?? s.userId, authRequest: { status: 'idle', error: null } }));
     });
   },
   start: () => {
@@ -274,12 +286,52 @@ export const useKashStore = create<KashState>((set, get) => ({
   requestPasswordReset: async (email) => {
     set({ authRequest: { status: 'loading', error: null } });
     try {
-      await apiRequestPasswordReset(supabase, email);
+      await apiRequestPasswordReset(supabase, email, `${APP_SCHEME}://${RECOVERY_PATH}`);
       set({ authRequest: { status: 'success', error: null } });
       return true;
     } catch (err) {
       set({ authRequest: { status: 'error', error: toKashError(err).message } });
       return false;
+    }
+  },
+  handleAuthUrl: async (url) => {
+    try {
+      const session = await recoverSessionFromUrl(supabase, url);
+      if (!session) return false;
+      set({ auth: 'recovery', userId: session.user.id, authRequest: { status: 'idle', error: null } });
+      return true;
+    } catch (err) {
+      get().showToast(toKashError(err).message);
+      return false;
+    }
+  },
+  completePasswordRecovery: async (password) => {
+    set({ authRequest: { status: 'loading', error: null } });
+    try {
+      await updatePassword(supabase, password);
+      set({ auth: 'app', authRequest: { status: 'success', error: null } });
+      void get().loadProfile();
+      get().showToast('Senha alterada. Bem-vinda de volta!');
+      return true;
+    } catch (err) {
+      set({ authRequest: { status: 'error', error: toKashError(err).message } });
+      return false;
+    }
+  },
+  cancelPasswordRecovery: async () => {
+    try {
+      await apiSignOut(supabase);
+    } catch {
+      // sessão local já descartada
+    }
+    set({ ...buildInitial(), auth: 'login' });
+  },
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      await apiChangePassword(supabase, { currentPassword, newPassword });
+      return null;
+    } catch (err) {
+      return toKashError(err).message;
     }
   },
   logout: async () => {

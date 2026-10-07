@@ -1,5 +1,5 @@
-import { KashApiError, signIn, signUp, signOut, requestPasswordReset } from '../src';
-import { anonClient, createTestUser, deleteTestUser } from './helpers';
+import { changePassword, KashApiError, parseRecoveryUrl, recoverSessionFromUrl, requestPasswordReset, signIn, signOut, signUp, updatePassword } from '../src';
+import { admin, anonClient, createTestUser, deleteTestUser } from './helpers';
 
 describe('auth', () => {
   it('signUp cria o perfil com o nome e signIn entra', async () => {
@@ -30,6 +30,36 @@ describe('auth', () => {
 
   it('reset de senha não lança para e-mail válido', async () => {
     await expect(requestPasswordReset(anonClient(), 'alguem@kash.test')).resolves.toBeUndefined();
+  });
+
+  it('trocar senha exige a atual correta e a nova diferente; depois entra com a nova', async () => {
+    const user = await createTestUser('pwd');
+    await expect(changePassword(user.db, { currentPassword: 'errada', newPassword: 'nova-senha-1' })).rejects.toMatchObject({ code: 'invalid_credentials' });
+    await expect(changePassword(user.db, { currentPassword: user.password, newPassword: user.password })).rejects.toMatchObject({ code: 'validation' });
+    await changePassword(user.db, { currentPassword: user.password, newPassword: 'nova-senha-1' });
+    const again = await signIn(anonClient(), { email: user.email, password: 'nova-senha-1' });
+    expect(again.user.id).toBe(user.id);
+    await deleteTestUser(user);
+  });
+
+  it('deep link de recuperação abre sessão e permite definir nova senha', async () => {
+    const user = await createTestUser('rec');
+    const { data, error } = await admin().auth.admin.generateLink({ type: 'recovery', email: user.email });
+    expect(error).toBeNull();
+    const url = `kash://reset-password?token_hash=${data.properties!.hashed_token}&type=recovery`;
+    expect(parseRecoveryUrl(url)).toEqual({ tokenHash: data.properties!.hashed_token });
+    expect(parseRecoveryUrl('kash://outra-coisa')).toBeNull();
+    expect(parseRecoveryUrl('kash://reset-password#error=access_denied&error_description=Email+link+is+invalid')).toMatchObject({ error: 'Email link is invalid' });
+
+    const db = anonClient();
+    const session = await recoverSessionFromUrl(db, url);
+    expect(session?.user.id).toBe(user.id);
+    await updatePassword(db, 'recuperada-1');
+    // o mesmo link não serve duas vezes
+    await expect(recoverSessionFromUrl(anonClient(), url)).rejects.toMatchObject({ code: 'validation' });
+    const again = await signIn(anonClient(), { email: user.email, password: 'recuperada-1' });
+    expect(again.user.id).toBe(user.id);
+    await deleteTestUser(user);
   });
 });
 

@@ -92,7 +92,7 @@ name: Perfil — dados pessoais, segurança, limite, moeda e ajuda
     id: "sheet-change-password"
 - tapOn:
     id: "cp-current"
-- inputText: "senha123"
+- inputText: "123456"
 - pressKey: Enter
 - inputText: "novasenha"
 - pressKey: Enter
