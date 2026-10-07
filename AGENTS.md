@@ -7,7 +7,7 @@ Monorepo pnpm + Turborepo. App Expo SDK 57 em `apps/mobile`; regras puras em `pa
 - Cores/tipografia/espaços só via tokens de `src/design-system` — nunca hex solto em telas.
 - Regras de negócio em `packages/domain` (puras, Vitest). Telas consomem hooks de `src/store/hooks.ts`; nunca importar design-system ou React no domínio.
 - Todo elemento interativo recebe `testID` (kebab-case) e props de acessibilidade.
-- Antes de concluir (na raiz): `pnpm typecheck && pnpm lint && pnpm test`. Fluxos E2E em `apps/mobile/e2e/` (Maestro).
+- Antes de concluir (na raiz): `pnpm typecheck && pnpm lint && pnpm test` (unitários) e, com o Supabase local de pé, `pnpm test:backend` (pgTAP + integração). `pnpm test:all` roda tudo. Fluxos E2E em `apps/mobile/e2e/` (Maestro).
 - Não edite `ios/` ou `android/` à mão (gerados por prebuild).
 
 <!-- BEGIN:turborepo-agent-rules -->

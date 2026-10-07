@@ -22,6 +22,9 @@ pnpm ios          # build nativo (dev client) + simulador iOS
 pnpm dev          # Metro do app (depois do primeiro build)
 
 pnpm typecheck    # todos os pacotes (turbo)
+pnpm test         # unitários: domínio (Vitest) e app (Jest)
+pnpm test:backend # pgTAP + integração do client (exige Supabase local)
+pnpm test:all     # os dois
 pnpm lint
 pnpm test         # Jest no app + Vitest no domínio
 pnpm e2e:ios      # ponta a ponta (Maestro) — ver apps/mobile/e2e/README.md

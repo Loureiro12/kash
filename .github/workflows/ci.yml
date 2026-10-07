@@ -32,7 +32,7 @@ jobs:
           cache: pnpm
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.120.0 # mesma versão local: o check de drift dos tipos depende do gerador
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -44,10 +44,10 @@ jobs:
       - name: pgTAP
         run: supabase test db
       - name: Contrato de tipos (gen types sem diff)
+        # regenera com o mesmo script usado localmente (mesma CLI, mesmo prettier) e exige arquivo idêntico ao commitado
         run: |
-          supabase gen types typescript --local > /tmp/database.types.ts
-          npx prettier --write /tmp/database.types.ts packages/supabase-client/src/database.types.ts >/dev/null
-          diff -q /tmp/database.types.ts packages/supabase-client/src/database.types.ts
+          pnpm db:types
+          git diff --exit-code -- packages/supabase-client/src/database.types.ts
       - name: Integração (Vitest contra o Supabase local)
         run: pnpm --filter @kash/supabase-client test
       - if: always()
