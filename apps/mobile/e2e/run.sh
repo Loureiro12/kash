@@ -12,7 +12,11 @@ if [ ${#flows[@]} -eq 0 ]; then flows=(e2e/flows/*.yaml); fi
 failed=()
 for flow in "${flows[@]}"; do
   echo "▶ reset do banco + $flow"
-  (cd ../.. && supabase db reset >/dev/null 2>&1) || { echo "falha ao resetar o banco"; exit 1; }
+  if ! out=$(cd ../.. && supabase db reset 2>&1); then
+    echo "falha ao resetar o banco (Supabase local de pé? Docker aberto?):"
+    echo "$out" | tail -3
+    exit 1
+  fi
   if maestro "${device_flag[@]}" test "$flow" --env APP_ID="$APP_ID"; then
     echo "✅ $flow"
   else

@@ -32,6 +32,13 @@ tags: [smoke]
 - tapOn:
     id: "login-password"
 - inputText: "123456"
+# olho mostra e volta a ocultar a senha
+- tapOn:
+    id: "login-password-toggle"
+- assertVisible: "123456"
+- tapOn:
+    id: "login-password-toggle"
+- assertNotVisible: "123456"
 - pressKey: Enter
 - extendedWaitUntil:
     visible:

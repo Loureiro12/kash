@@ -1,5 +1,6 @@
-import React, { forwardRef, useRef } from 'react';
-import { TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import React, { forwardRef, useRef, useState } from 'react';
+import { Pressable, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { Icon } from '../icons';
 import { useTheme } from '../theme';
 import { radii } from '../tokens/radii';
 import { textVariants } from '../tokens/typography';
@@ -17,12 +18,14 @@ export interface InputProps extends TextInputProps {
   error?: string | null;
 }
 
-/** Campo de texto padrão: surface, borda line, raio 14. */
+/** Campo de texto padrão: surface, borda line, raio 14. Com `secureTextEntry`, ganha o olho de mostrar/ocultar. */
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, height = 48, containerStyle, labelSize = 'md', style, onFocus, error, testID, ...rest },
+  { label, height = 48, containerStyle, labelSize = 'md', style, onFocus, error, testID, secureTextEntry, ...rest },
   ref,
 ) {
   const { colors } = useTheme();
+  const [revealed, setRevealed] = useState(false);
+  const toggleSize = height === 52 ? 44 : 40;
   const sheet = useSheetScroll();
   const inner = useRef<TextInput | null>(null);
   const setRefs = (node: TextInput | null) => {
@@ -37,8 +40,10 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
           {label}
         </Text>
       ) : null}
+      <View>
       <TextInput
         ref={setRefs}
+        secureTextEntry={secureTextEntry && !revealed}
         placeholderTextColor={colors.muted}
         selectionColor={colors.accent}
         onFocus={(e) => {
@@ -58,6 +63,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
             backgroundColor: colors.surface,
             color: colors.text,
             paddingHorizontal: height === 52 ? 16 : 14,
+            paddingRight: secureTextEntry ? toggleSize + 6 : undefined,
             fontFamily: textVariants.input.fontFamily,
             fontSize: height === 52 ? 15 : 14,
             minWidth: 0,
@@ -65,6 +71,19 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
           style,
         ]}
       />
+      {secureTextEntry ? (
+        <Pressable
+          onPress={() => setRevealed((v) => !v)}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={revealed ? 'Ocultar senha' : 'Mostrar senha'}
+          testID={testID ? `${testID}-toggle` : undefined}
+          style={({ pressed }) => ({ position: 'absolute', right: 2, top: (height - toggleSize) / 2, width: toggleSize, height: toggleSize, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}
+        >
+          <Icon name={revealed ? 'eye-off' : 'eye'} size={height === 52 ? 20 : 18} color={colors.muted} />
+        </Pressable>
+      ) : null}
+      </View>
       {error ? (
         <Text variant="meta" color="neg" testID={testID ? `${testID}-error` : undefined}>
           {error}
