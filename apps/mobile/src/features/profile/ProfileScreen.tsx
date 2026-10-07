@@ -5,6 +5,7 @@ import { Avatar, Button, Card, ListRow, PageHeader, Screen, Switch, Text } from 
 import { formatBRL } from '@kash/domain';
 import { useToggleBillReminder } from '@/features/notifications';
 import { useKashStore } from '@/store';
+import { useExportData } from './useExportData';
 
 /** Tela 9 — Perfil (página interna). */
 export function ProfileScreen() {
@@ -15,6 +16,7 @@ export function ProfileScreen() {
   const toggleBillReminder = useToggleBillReminder();
   const logout = useKashStore((s) => s.logout);
   const openSheet = useKashStore((s) => s.openSheet);
+  const { exportData, exporting } = useExportData();
 
   return (
     <Screen testID="profile-screen" header={<PageHeader title="Perfil" onBack={() => router.back()} testID="profile" />}>
@@ -53,6 +55,7 @@ export function ProfileScreen() {
       <Group>
         <ListRow title="Termos de uso" onPress={() => router.push('/terms')} testID="profile-terms" />
         <ListRow title="Política de privacidade" onPress={() => router.push('/privacy')} testID="profile-privacy" />
+        <ListRow title="Exportar meus dados" subtitle={exporting ? 'Preparando o arquivo…' : 'Arquivo JSON com tudo que você lançou'} onPress={() => void exportData()} testID="profile-export" />
         <ListRow title="Ajuda e suporte" onPress={() => router.push('/profile/help')} testID="profile-help" />
         <ListRow title="Versão" value="1.0.0" chevron={false} divider={false} testID="profile-version" />
       </Group>

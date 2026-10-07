@@ -10,6 +10,7 @@ export * from './repositories/cards';
 export * from './repositories/goals';
 export * from './repositories/invoices';
 export * from './repositories/plans';
+export * from './repositories/export';
 export * from './repositories/profile';
 export * from './repositories/transactions';
 export * from './snapshot';

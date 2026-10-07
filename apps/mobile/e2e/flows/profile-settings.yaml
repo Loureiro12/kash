@@ -143,3 +143,22 @@ name: Perfil — dados pessoais, segurança, limite, moeda e ajuda
     id: "help-back"
 - assertVisible:
     id: "profile-screen"
+
+# Exportar meus dados: gera o JSON e abre a folha de compartilhamento do sistema
+- scrollUntilVisible:
+    element:
+      id: "profile-export"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "profile-export"
+- extendedWaitUntil:
+    visible: "kash-export-.*"
+    timeout: 15000
+- assertVisible: "JSON.*"
+# fecha a folha (botão X)
+- tapOn:
+    text: "Fechar|Close"
+    optional: true
+- assertVisible:
+    id: "profile-screen"

@@ -135,6 +135,10 @@ Escritas (`apps/mobile/src/data/remoteActions.ts`): cada ação do store continu
 - Recuperar senha: o e-mail (template em `supabase/templates/recovery.html`) traz o deep link `kash://reset-password?token_hash=…`; o app (`src/features/auth/useAuthLinks.ts`) troca o token por sessão (`recoverSessionFromUrl`), entra no estado `recovery`, em que só a tela de nova senha existe, e ao salvar cai na Início. Links expirados viram toast. Em produção, prefira um universal link (https) que redirecione para o esquema, porque alguns clientes de e-mail não tornam `kash://` clicável — fica para a Fase 6.
 - Virada de mês (`src/domain/selectors/rollover.ts`, acionada ao abrir o app e ao voltar ao primeiro plano): fecha a fatura de cada cartão com o total do mês anterior, zera "paga" das contas fixas e lança a parcela do mês de cada parcelamento. A fatura fechada aparece na Início e no cartão, com "Pagar fatura" debitando uma conta; o pagamento tem categoria `Fatura` e não entra como gasto no relatório (os gastos já foram contados ao serem lançados no cartão).
 
+## Exportar dados (privacidade)
+
+- Perfil › "Exportar meus dados" chama a RPC `export_my_data` (SQL puro sob RLS; devolve perfil, configurações e todas as coleções, inclusive lançamentos excluídos com `deleted_at`, num JSON versionado `kash-export/1`), grava `kash-export-<data>.json` no cache (`expo-file-system`) e abre a folha de compartilhamento (`expo-sharing`). No modo `seed` o JSON vem do store. Hook em `src/features/profile/useExportData.ts`; testes em pgTAP (`006_export.sql`), Vitest (`tests/export.test.ts`) e Jest.
+
 ## Lembretes (notificações locais)
 
 - `planReminders` (`@kash/domain`) é pura: a partir de contas fixas, faturas em aberto, metas e `settings.billReminder` devolve a lista de lembretes (2 dias antes do vencimento de contas e faturas às 9h, dia do depósito das metas, aviso "faturas fecharam" no dia 1º). Testada em `packages/domain/src/__tests__/reminders.test.ts`.

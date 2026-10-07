@@ -489,6 +489,7 @@ export type Database = {
       delete_account: { Args: { p_account_id: string }; Returns: undefined };
       delete_card: { Args: { p_card_id: string }; Returns: undefined };
       ensure_rollover: { Args: Record<PropertyKey, never>; Returns: number };
+      export_my_data: { Args: Record<PropertyKey, never>; Returns: Json };
       kash_today: { Args: Record<PropertyKey, never>; Returns: string };
       month_key: { Args: { d: string }; Returns: string };
       pay_bill: { Args: { p_bill_id: string; p_date?: string }; Returns: string };

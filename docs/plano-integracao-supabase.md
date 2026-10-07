@@ -98,7 +98,7 @@ Status: Fase 0 ✅ · Fase 1 ✅ · Fase 2 ✅ (auth real, sessão criptografada
 - Pronto quando: pgTAP cobre múltiplos meses e idempotência; app reflete a virada sem reinstalar.
 
 **Fase 6 — Preparar release**
-- Projeto Supabase de staging + produção com migrações aplicadas pelo CI; `eas build` e `eas update`; checklist de privacidade (exportar/apagar dados).
+- Projeto Supabase de staging + produção com migrações aplicadas pelo CI; `eas build` e `eas update`; checklist de privacidade (exportar ✅ RPC `export_my_data` / apagar ✅ Edge Function `delete-account`).
 
 ## 6. Riscos e pontos para confirmar
 

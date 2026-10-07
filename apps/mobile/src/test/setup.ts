@@ -63,6 +63,23 @@ jest.mock('expo-notifications', () => ({
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
 
+jest.mock('expo-file-system', () => {
+  const written: Record<string, string> = {};
+  class File {
+    uri: string;
+    name: string;
+    constructor(dir: { uri: string }, name: string) {
+      this.name = name;
+      this.uri = `${dir.uri}/${name}`;
+    }
+    write(content: string) {
+      written[this.uri] = content;
+    }
+  }
+  return { File, Paths: { cache: { uri: 'file:///cache' } }, __written: written };
+});
+jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => undefined) }));
+
 jest.mock('@/data/queryClient', () => ({
   queryClient: { clear: jest.fn(), refetchQueries: jest.fn(), invalidateQueries: jest.fn(async () => undefined) },
   queryPersister: {},
