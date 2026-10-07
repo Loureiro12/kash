@@ -4,6 +4,7 @@ export * from './budget';
 export * from './cards';
 export * from './forecast';
 export * from './goals';
+export * from './reminders';
 export * from './report';
 export * from './rollover';
 export * from './transactions';

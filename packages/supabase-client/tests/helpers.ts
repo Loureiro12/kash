@@ -32,5 +32,6 @@ export async function deleteTestUser(user: TestUser) {
   await admin().auth.admin.deleteUser(user.id);
 }
 
-export const today = () => new Date().toISOString().slice(0, 10);
+/** mesma data que `public.kash_today()` (fuso America/Sao_Paulo), não a data UTC */
+export const today = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 export const anonClient = () => createKashClient({ url: url(), anonKey: anon(), options: { auth: { persistSession: false, autoRefreshToken: false } } });

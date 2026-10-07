@@ -51,6 +51,18 @@ jest.mock('@kash/supabase-client', () => {
   return mocked;
 });
 
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn(async () => ({ granted: true, canAskAgain: true, status: 'granted' })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true, canAskAgain: true, status: 'granted' })),
+  setNotificationChannelAsync: jest.fn(async () => null),
+  cancelAllScheduledNotificationsAsync: jest.fn(async () => undefined),
+  scheduleNotificationAsync: jest.fn(async () => 'id'),
+  useLastNotificationResponse: jest.fn(() => null),
+  AndroidImportance: { DEFAULT: 3 },
+  SchedulableTriggerInputTypes: { DATE: 'date' },
+}));
+
 jest.mock('@/data/queryClient', () => ({
   queryClient: { clear: jest.fn(), refetchQueries: jest.fn(), invalidateQueries: jest.fn(async () => undefined) },
   queryPersister: {},

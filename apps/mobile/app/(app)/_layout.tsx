@@ -5,6 +5,7 @@ import { useTheme } from '@/design-system';
 import { FloatingTabBar } from '@/features/navigation/FloatingTabBar';
 import { SheetsHost } from '@/features/navigation/SheetsHost';
 import { useServerSync } from '@/data/useServerSync';
+import { useNotificationRouting, useReminderSync } from '@/features/notifications';
 import { useKashStore } from '@/store';
 
 /**
@@ -15,6 +16,8 @@ export default function AppLayout() {
   const { colors } = useTheme();
   const userId = useKashStore((s) => s.userId);
   useServerSync(userId);
+  useReminderSync();
+  useNotificationRouting();
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>

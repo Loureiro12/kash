@@ -3,6 +3,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Avatar, Button, Card, ListRow, PageHeader, Screen, Switch, Text } from '@/design-system';
 import { formatBRL } from '@kash/domain';
+import { useToggleBillReminder } from '@/features/notifications';
 import { useKashStore } from '@/store';
 
 /** Tela 9 — Perfil (página interna). */
@@ -11,7 +12,7 @@ export function ProfileScreen() {
   const user = useKashStore((s) => s.user);
   const settings = useKashStore((s) => s.settings);
   const toggleTheme = useKashStore((s) => s.toggleTheme);
-  const toggleBillReminder = useKashStore((s) => s.toggleBillReminder);
+  const toggleBillReminder = useToggleBillReminder();
   const logout = useKashStore((s) => s.logout);
   const openSheet = useKashStore((s) => s.openSheet);
 
@@ -41,8 +42,8 @@ export function ProfileScreen() {
         <ListRow
           title="Lembrete de contas"
           subtitle="Aviso 2 dias antes do vencimento"
-          trailing={<Switch value={settings.billReminder} onValueChange={toggleBillReminder} testID="profile-reminder-switch" accessibilityLabel="Lembrete de contas" />}
-          onPress={toggleBillReminder}
+          trailing={<Switch value={settings.billReminder} onValueChange={(v) => void toggleBillReminder(v)} testID="profile-reminder-switch" accessibilityLabel="Lembrete de contas" />}
+          onPress={() => void toggleBillReminder()}
           testID="profile-reminder"
         />
         <ListRow title="Moeda" value="Real (R$)" divider={false} onPress={() => router.push('/profile/currency')} testID="profile-currency" />

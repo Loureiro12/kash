@@ -50,7 +50,15 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/brand/icon-432-android-adaptive-mono.png",
+          "color": "#C6F432",
+          "defaultChannel": "reminders"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

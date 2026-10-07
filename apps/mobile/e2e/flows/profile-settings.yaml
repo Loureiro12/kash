@@ -7,6 +7,25 @@ name: Perfil — dados pessoais, segurança, limite, moeda e ajuda
 - assertVisible:
     id: "profile-screen"
 
+# Lembrete de contas: desliga e religa (religar pede a permissão de notificações)
+- assertVisible:
+    id: "profile-reminder-switch"
+    checked: true
+- tapOn:
+    id: "profile-reminder-switch"
+- assertVisible:
+    id: "profile-reminder-switch"
+    checked: false
+- tapOn:
+    id: "profile-reminder-switch"
+# diálogo do sistema (idioma do simulador pode variar)
+- tapOn:
+    text: "Permitir|Allow"
+    optional: true
+- assertVisible:
+    id: "profile-reminder-switch"
+    checked: true
+
 # Dados pessoais via "Editar"
 - tapOn:
     id: "profile-edit"

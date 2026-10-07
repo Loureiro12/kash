@@ -133,8 +133,14 @@ Escritas (`apps/mobile/src/data/remoteActions.ts`): cada ação do store continu
 - Login, cadastro e "esqueci a senha" usam o Supabase Auth via `@kash/supabase-client`; a sessão fica criptografada no aparelho (chave AES no SecureStore, payload no AsyncStorage) e o app abre direto na Início quando há sessão. Excluir conta chama a Edge Function `delete-account`. No local, a usuária do seed é `lara@email.com` / `123456`.
 - Virada de mês (`src/domain/selectors/rollover.ts`, acionada ao abrir o app e ao voltar ao primeiro plano): fecha a fatura de cada cartão com o total do mês anterior, zera "paga" das contas fixas e lança a parcela do mês de cada parcelamento. A fatura fechada aparece na Início e no cartão, com "Pagar fatura" debitando uma conta; o pagamento tem categoria `Fatura` e não entra como gasto no relatório (os gastos já foram contados ao serem lançados no cartão).
 
+## Lembretes (notificações locais)
+
+- `planReminders` (`@kash/domain`) é pura: a partir de contas fixas, faturas em aberto, metas e `settings.billReminder` devolve a lista de lembretes (2 dias antes do vencimento de contas e faturas às 9h, dia do depósito das metas, aviso "faturas fecharam" no dia 1º). Testada em `packages/domain/src/__tests__/reminders.test.ts`.
+- `src/services/notifications.ts` embrulha o `expo-notifications` (permissão, canal Android, agendar/cancelar serializado). `src/features/notifications/useReminders.ts`: `useReminderSync` reagenda sempre que o plano muda ou o app volta ao primeiro plano; `useNotificationRouting` abre a rota guardada na notificação; `useToggleBillReminder` pede a permissão ao ligar o switch (negada → toast com atalho pros Ajustes).
+- Em dev o Metro loga `[kash] lembretes agendados: N`. No Jest o módulo é mockado em `src/test/setup.ts`.
+
 ## Próxima fase (integrações)
 
 Pontos de encaixe já previstos:
-- Fase 5: `pg_cron`/notificações locais de lembrete; Fase 6: staging/produção com EAS.
+- Fase 6: staging/produção com EAS (Fase 5 — notificações locais — entregue, ver seção acima).
 - Moeda: só Real (R$) nesta fase; outras aparecem como "em breve". Alterar senha valida localmente (a troca real vem com auth).

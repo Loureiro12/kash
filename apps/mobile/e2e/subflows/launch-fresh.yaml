@@ -3,6 +3,12 @@ appId: ${APP_ID}
 ---
 - launchApp:
     clearState: true
+    permissions:
+      notifications: allow
+# alerta do sistema que possa ter sobrado de uma execução anterior
+- tapOn:
+    text: "Permitir|Allow"
+    optional: true
 - extendedWaitUntil:
     visible:
       id: "onboarding-screen"
