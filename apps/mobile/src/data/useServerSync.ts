@@ -5,12 +5,13 @@ import { supabase } from '@/services/supabase';
 import { useKashStore } from '@/store';
 import { queryKeys } from './keys';
 
+import { DATA_SOURCE } from './source';
+
 /**
  * Sincroniza o store com o servidor: uma query carrega o snapshot do usuário e hidrata o Zustand,
  * que continua sendo a cache normalizada que as telas consomem. Loading/erro viram `ui.dataStatus`.
  * Com EXPO_PUBLIC_DATA_SOURCE=seed o app segue com os dados de demonstração (sem rede).
  */
-export const DATA_SOURCE = process.env.EXPO_PUBLIC_DATA_SOURCE === 'seed' ? 'seed' : 'remote';
 
 export function useServerSync(userId: string | null) {
   const hydrate = useKashStore((s) => s.hydrateFromServer);

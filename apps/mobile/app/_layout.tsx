@@ -9,12 +9,14 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { QUERY_CACHE_BUSTER, queryClient, queryPersister } from '@/data/queryClient';
+import { installRemoteActions } from '@/data/remoteActions';
 import { ThemeProvider, useTheme } from '@/design-system';
 import { ToastHost } from '@/features/navigation/SheetsHost';
 import { AnimatedSplash } from '@/features/splash/AnimatedSplash';
 import { useKashStore } from '@/store';
 
 void SplashScreen.preventAutoHideAsync();
+installRemoteActions();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold });

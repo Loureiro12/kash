@@ -12,8 +12,8 @@
     "lint": "expo lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "e2e:ios": "maestro test e2e/flows --env APP_ID=com.kash.app",
-    "e2e:android": "maestro test e2e/flows --env APP_ID=com.kash.app",
+    "e2e:ios": "e2e/run.sh",
+    "e2e:android": "e2e/run.sh",
     "e2e:expo-go": "maestro test e2e/flows --env APP_ID=host.exp.Exponent"
   },
   "dependencies": {

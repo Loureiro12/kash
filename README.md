@@ -126,7 +126,7 @@ Decisões (ver `docs/plano-integracao-supabase.md`): saldo de conta é uma view 
 
 `apps/mobile/src/data/`: uma query carrega o snapshot do usuário (`loadSnapshot` do `@kash/supabase-client`, leituras em paralelo) e hidrata o Zustand, que continua sendo a cache normalizada consumida pelas telas; a cache da query é persistida no AsyncStorage, então o app abre com os últimos dados mesmo sem rede e refaz a leitura ao voltar ao primeiro plano. `DataGate` lê `ui.dataStatus` (esqueleto enquanto não há dados, erro com "tentar de novo" que refaz a query). `EXPO_PUBLIC_DATA_SOURCE=seed` mantém os dados de demonstração em memória (útil sem backend).
 
-Até a Fase 4, as escritas (lançar gasto, pagar conta etc.) continuam só em memória; o próximo refetch descarta o que não foi persistido.
+Escritas (`apps/mobile/src/data/remoteActions.ts`): cada ação do store continua aplicando a mudança localmente (otimista) e ganha um "depois" que chama o repositório ou a RPC correspondente via `persist`; dando certo ou não, o snapshot é refeito, então o servidor é a verdade (ids reais substituem os temporários, erro vira toast e o estado volta ao do servidor). Excluir lançamento usa soft delete no servidor e "Desfazer" chama a RPC de undo. A virada de mês no modo remoto é a RPC `ensure_rollover`.
 
 ## Auth simulada e virada de mês
 
@@ -136,5 +136,5 @@ Até a Fase 4, as escritas (lançar gasto, pagar conta etc.) continuam só em me
 ## Próxima fase (integrações)
 
 Pontos de encaixe já previstos:
-- Fase 4: mutations (repositórios + RPCs) com optimistic update e invalidação da query `snapshot`.
+- Fase 5: `pg_cron`/notificações locais de lembrete; Fase 6: staging/produção com EAS.
 - Moeda: só Real (R$) nesta fase; outras aparecem como "em breve". Alterar senha valida localmente (a troca real vem com auth).

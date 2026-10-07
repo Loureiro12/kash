@@ -39,21 +39,20 @@ jest.mock('@/services/onboarding', () => {
 });
 jest.mock('@kash/supabase-client', () => {
   const actual = jest.requireActual('@kash/supabase-client');
-  return {
-    ...actual,
-    signIn: jest.fn(),
-    signUp: jest.fn(),
-    signOut: jest.fn(async () => undefined),
-    requestPasswordReset: jest.fn(),
-    deleteOwnAccount: jest.fn(),
-    getProfile: jest.fn(async () => {
-      throw new Error('offline');
-    }),
-  };
+  const mocked: Record<string, unknown> = { ...actual };
+  // toda função exportada (minúscula) vira jest.fn; repositórios resolvem undefined por padrão
+  for (const key of Object.keys(actual)) {
+    if (typeof actual[key] === 'function' && /^[a-z]/.test(key)) mocked[key] = jest.fn(async () => undefined);
+  }
+  mocked.toKashError = actual.toKashError;
+  mocked.getProfile = jest.fn(async () => {
+    throw new Error('offline');
+  });
+  return mocked;
 });
 
 jest.mock('@/data/queryClient', () => ({
-  queryClient: { clear: jest.fn(), refetchQueries: jest.fn() },
+  queryClient: { clear: jest.fn(), refetchQueries: jest.fn(), invalidateQueries: jest.fn(async () => undefined) },
   queryPersister: {},
   QUERY_CACHE_BUSTER: 'test',
 }));
