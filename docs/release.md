@@ -1,6 +1,6 @@
 # Release em produção (Supabase + EAS)
 
-> **Estado em 2026-10-07:** projeto Supabase `kash` (ref `sqpxugyjnlwpkzuxzcpg`, região `ca-central-1`) criado e ligado; migrações, Edge Function `delete-account`, `site_url`/redirects aplicados; `pg_cron` agendado (`kash-rollover-daily`, 03:05 UTC). Projeto EAS `@loureiro_12/kash` ligado, EAS Update configurado e variáveis de produção criadas. Faltam: SMTP próprio (passo 1.5), secrets no GitHub (seção 3), credenciais nativas e primeiro build (seção 2).
+> **Estado em 2026-10-07:** projeto Supabase `kash` (ref `sqpxugyjnlwpkzuxzcpg`, região `ca-central-1`) criado e ligado; migrações, Edge Function `delete-account`, `site_url`/redirects aplicados; `pg_cron` agendado (`kash-rollover-daily`, 03:05 UTC). Projeto EAS `@loureiro_12/kash` ligado, EAS Update configurado e variáveis de produção criadas. Keystore Android gerada e guardada no EAS; variáveis de produção/preview/development criadas; primeiros builds concluídos e testados contra a produção: Android preview (APK instalável) e produção (AAB para o Play), iOS preview (simulador). Links e downloads em https://expo.dev/accounts/loureiro_12/projects/kash/builds. Faltam: credenciais Apple (passo 2.2, interativo, exige Apple Developer Program), SMTP próprio (passo 1.5).
 
 Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que precisa da sua conta está marcado com **[você]**; o resto já está no repositório.
 
@@ -28,7 +28,7 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
    eas update:configure         # grava updates.url no app.json (runtimeVersion já está como appVersion)
    ```
    Commit as duas linhas que esses comandos adicionam ao `app.json`.
-2. Credenciais nativas (uma vez): `eas credentials` — iOS gera certificado/perfil na sua Apple Developer; Android gera a keystore (guarde o backup que ele oferece).
+2. Credenciais nativas (uma vez). Android: **feito**, a keystore foi gerada e fica no EAS (`eas credentials -p android` mostra e permite baixar um backup). iOS: **[você]**, precisa de uma conta no Apple Developer Program (US$ 99/ano) e login interativo com 2FA, por isso não dá para automatizar: `cd apps/mobile && eas credentials -p ios`, escolha *production*, entre com o Apple ID e deixe o EAS criar o certificado de distribuição e o perfil de provisionamento. Depois disso `eas build -p ios --profile production` funciona também pela CI.
 3. Variáveis de produção (ficam no EAS, não no repositório):
    ```bash
    eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value https://<ref>.supabase.co --visibility plaintext

@@ -18,8 +18,7 @@
       "icon": {
         "light": "./assets/brand/icon-1024.png",
         "dark": "./assets/brand/icon-dark-1024.png"
-      },
-      "buildNumber": "1"
+      }
     },
     "android": {
       "package": "com.kash.app",
@@ -28,8 +27,7 @@
         "backgroundColor": "#C6F432",
         "monochromeImage": "./assets/brand/icon-432-android-adaptive-mono.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "versionCode": 1
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/brand/favicon.png",
