@@ -14,7 +14,8 @@
     "test:watch": "jest --watch",
     "e2e:ios": "e2e/run.sh",
     "e2e:android": "e2e/run.sh",
-    "e2e:expo-go": "maestro test e2e/flows --env APP_ID=host.exp.Exponent"
+    "e2e:expo-go": "maestro test e2e/flows --env APP_ID=host.exp.Exponent",
+    "start:prod": "env $(grep -v '^#' .env.prod | xargs) expo start --dev-client --clear"
   },
   "dependencies": {
     "@expo-google-fonts/sora": "^0.4.2",

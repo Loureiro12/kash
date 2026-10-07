@@ -142,6 +142,10 @@ Escritas (`apps/mobile/src/data/remoteActions.ts`): cada ação do store continu
 
 - Perfil › "Exportar meus dados" chama a RPC `export_my_data` (SQL puro sob RLS; devolve perfil, configurações e todas as coleções, inclusive lançamentos excluídos com `deleted_at`, num JSON versionado `kash-export/1`), grava `kash-export-<data>.json` no cache (`expo-file-system`) e abre a folha de compartilhamento (`expo-sharing`). No modo `seed` o JSON vem do store. Hook em `src/features/profile/useExportData.ts`; testes em pgTAP (`006_export.sql`), Vitest (`tests/export.test.ts`) e Jest.
 
+## Rodar local contra a produção
+
+`pnpm dev:prod` sobe o Metro com as variáveis de `apps/mobile/.env.prod` (gitignored: URL e anon key de produção, `EXPO_PUBLIC_LOG_REQUESTS=1`) e cache limpo, porque as variáveis `EXPO_PUBLIC_*` são embutidas no bundle. O dev client instalado no simulador/aparelho é o mesmo. Com o log ligado, cada chamada ao Supabase aparece no terminal como `[http] → POST /auth/v1/token?grant_type=password 200 312ms`; respostas de erro mostram o corpo (sem cabeçalhos nem credenciais). Implementação em `src/services/requestLogger.ts`, injetada como `global.fetch` do supabase-js. Para ver cabeçalhos e payloads completos, use o painel Network do React Native DevTools (tecla `j` no Metro). Volte ao local com `pnpm dev`.
+
 ## Lembretes (notificações locais)
 
 - `planReminders` (`@kash/domain`) é pura: a partir de contas fixas, faturas em aberto, metas e `settings.billReminder` devolve a lista de lembretes (2 dias antes do vencimento de contas e faturas às 9h, dia do depósito das metas, aviso "faturas fecharam" no dia 1º). Testada em `packages/domain/src/__tests__/reminders.test.ts`.

@@ -50,3 +50,4 @@ e2e/.output/
 
 # env local (ver apps/mobile/.env.example)
 .env
+.env.prod

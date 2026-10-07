@@ -22,7 +22,8 @@
     "config:push": "scripts/config-push.sh",
     "functions:deploy": "supabase functions deploy delete-account --project-ref \"$SUPABASE_PROJECT_REF\"",
     "deploy:backend": "pnpm db:push && pnpm functions:deploy && pnpm config:push",
-    "test:all": "pnpm test && pnpm test:backend"
+    "test:all": "pnpm test && pnpm test:backend",
+    "dev:prod": "pnpm --filter mobile start:prod"
   },
   "devDependencies": {
     "prettier": "^3.9.9",
