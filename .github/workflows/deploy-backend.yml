@@ -37,4 +37,5 @@ jobs:
       - name: Edge Functions
         run: supabase functions deploy delete-account --project-ref "$SUPABASE_PROJECT_REF"
       - name: Config de auth (templates, redirects)
-        run: supabase config push --project-ref "$SUPABASE_PROJECT_REF" --yes
+        # KASH_SMTP=1 (variável do environment) envia também os templates de e-mail; exige SMTP próprio
+        run: KASH_SMTP="${{ vars.KASH_SMTP || 0 }}" scripts/config-push.sh

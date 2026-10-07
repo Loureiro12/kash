@@ -72,7 +72,15 @@
     "updates": {
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
-    }
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/6aa3abe4-efa8-42a1-a362-0177fc216a53"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6aa3abe4-efa8-42a1-a362-0177fc216a53"
+      }
+    },
+    "owner": "loureiro_12"
   }
 }

@@ -423,7 +423,7 @@ enabled = true
 # Produção (docs/release.md). `supabase config push --project-ref <ref>` aplica o config.toml ao
 # projeto remoto; as seções abaixo sobrescrevem só o que difere do local. Preencha project_id.
 [remotes.production]
-project_id = "xxxxxxxxxxxxxxxxxxxx"
+project_id = "sqpxugyjnlwpkzuxzcpg"
 
 [remotes.production.auth]
 # o app não tem site web: o esquema do app é a única origem válida de redirecionamento
@@ -433,3 +433,18 @@ additional_redirect_urls = ["kash://reset-password"]
 [remotes.production.auth.email]
 # em produção a conta só entra depois de confirmar o e-mail (o app já trata sessão nula no cadastro)
 enable_confirmations = true
+# padrões do projeto hospedado (não mexemos nisso; evita que o push "corrija" para os valores locais)
+max_frequency = "1m0s"
+otp_length = 8
+
+[remotes.production.auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[remotes.production.db.pooler]
+default_pool_size = 15
+max_client_conn = 200
+
+[remotes.production.storage.analytics]
+enabled = true
+max_namespaces = 10

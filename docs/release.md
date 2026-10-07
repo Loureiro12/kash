@@ -1,10 +1,12 @@
 # Release em produção (Supabase + EAS)
 
+> **Estado em 2026-10-07:** projeto Supabase `kash` (ref `sqpxugyjnlwpkzuxzcpg`, região `ca-central-1`) criado e ligado; migrações, Edge Function `delete-account`, `site_url`/redirects aplicados; `pg_cron` agendado (`kash-rollover-daily`, 03:05 UTC). Projeto EAS `@loureiro_12/kash` ligado, EAS Update configurado e variáveis de produção criadas. Faltam: SMTP próprio (passo 1.5), secrets no GitHub (seção 3), credenciais nativas e primeiro build (seção 2).
+
 Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que precisa da sua conta está marcado com **[você]**; o resto já está no repositório.
 
 ## 1. Supabase — projeto de produção
 
-1. **[você]** Crie o projeto em https://supabase.com/dashboard (região `sa-east-1` / São Paulo; guarde a senha do banco). Anote o **project ref** (20 letras na URL do projeto).
+1. **[você]** Crie o projeto em https://supabase.com/dashboard (região `sa-east-1` / São Paulo; guarde a senha do banco). Anote o **project ref** (20 letras na URL do projeto). *Feito: o projeto atual ficou em `ca-central-1` (Canadá). A região não muda depois; se quiser latência menor para usuários no Brasil, recrie em São Paulo antes de ter dados reais e repita os passos 1.3–1.4 e 2.3.*
 2. **[você]** Token pessoal em https://supabase.com/dashboard/account/tokens → `export SUPABASE_ACCESS_TOKEN=...`.
 3. Preencha `project_id` em `[remotes.production]` no `supabase/config.toml` com o ref.
 4. Primeiro deploy, no seu terminal:
@@ -13,7 +15,7 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
    pnpm db:link            # pede a senha do banco; grava em supabase/.temp (gitignored)
    pnpm deploy:backend     # db push (migrações, sem seed) → functions deploy → config push (templates de e-mail, redirects, confirmação de e-mail)
    ```
-   `config push` mostra o diff e pede confirmação por recurso. O que ele aplica em produção: template de recuperação com deep link `kash://reset-password`, `site_url`/redirects do app e **confirmação de e-mail ligada** (o cadastro mostra "Confira seu e-mail" até confirmar).
+   `pnpm config:push` roda `scripts/config-push.sh`, que aplica `site_url`/redirects do app e deixa a **confirmação de e-mail ligada** (o cadastro mostra "Confira seu e-mail" até confirmar). **Templates de e-mail ficam de fora por padrão**: o plano gratuito sem SMTP próprio recusa qualquer template customizado e o push inteiro falha. Depois do passo 1.5, rode `KASH_SMTP=1 pnpm config:push` (ou defina a variável `KASH_SMTP=1` no environment do GitHub) para enviar o template de recuperação com o deep link. Até lá, o e-mail padrão do Supabase funciona: ele redireciona para `kash://reset-password#access_token=…`, formato que o app também entende.
 5. **[você]** No dashboard, Authentication → SMTP: configure um provedor (Resend, Postmark…). O SMTP padrão do Supabase limita a poucos e-mails por hora e não serve para usuários reais.
 6. Confira no SQL Editor que a virada de mês está agendada: `select * from cron.job;` deve listar o job diário (criado pela migração inicial; `pg_cron` já vem habilitado nos projetos hospedados).
 7. **[você]** Em Settings → API copie `Project URL` e `anon public key` (vão para o EAS no passo 2.3).
