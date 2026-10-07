@@ -11,7 +11,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.kash.app",
+      "bundleIdentifier": "com.andreloureiro.kash",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -21,7 +21,7 @@
       }
     },
     "android": {
-      "package": "com.kash.app",
+      "package": "com.andreloureiro.kash",
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/icon-432-android-adaptive-fg.png",
         "backgroundColor": "#C6F432",

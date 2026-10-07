@@ -32,7 +32,8 @@
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "PREENCHER_APP_STORE_CONNECT_ID"
+        "appleTeamId": "G58V8BP6VH",
+        "ascAppId": "6820170870"
       },
       "android": {
         "track": "internal"

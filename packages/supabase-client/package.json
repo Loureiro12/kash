@@ -10,8 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "gen:types": "supabase gen types typescript --local > src/database.types.ts && prettier --write src/database.types.ts",
-    "e2e:ios": "supabase db reset --workdir ../.. && maestro test e2e/flows --env APP_ID=com.kash.app",
-    "e2e:android": "supabase db reset --workdir ../.. && maestro test e2e/flows --env APP_ID=com.kash.app"
+    "e2e:ios": "supabase db reset --workdir ../.. && maestro test e2e/flows --env APP_ID=com.andreloureiro.kash",
+    "e2e:android": "supabase db reset --workdir ../.. && maestro test e2e/flows --env APP_ID=com.andreloureiro.kash"
   },
   "dependencies": {
     "@kash/domain": "workspace:*",

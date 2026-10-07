@@ -4,7 +4,7 @@
 # MAESTRO_DEVICE=<udid|emulator-5554> escolhe o aparelho quando há mais de um conectado.
 set -o pipefail
 cd "$(dirname "$0")/.."
-APP_ID="${APP_ID:-com.kash.app}"
+APP_ID="${APP_ID:-com.andreloureiro.kash}"
 device_flag=()
 if [ -n "${MAESTRO_DEVICE:-}" ]; then device_flag=(--device "$MAESTRO_DEVICE"); fi
 flows=("$@")

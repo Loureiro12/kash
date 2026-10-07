@@ -1,5 +1,5 @@
 # Maestro workspace config — https://docs.maestro.dev
-# Rode a partir da pasta e2e: `maestro test flows --env APP_ID=com.kash.app`
+# Rode a partir da pasta e2e: `maestro test flows --env APP_ID=com.andreloureiro.kash`
 flows:
   - flows/*.yaml
 executionOrder:
