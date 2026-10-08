@@ -1,7 +1,10 @@
+import { normalizeHexColor } from '@kash/domain';
 import type { Account, AccountKind } from '@kash/domain';
 import type { KashClient } from '../client';
 import { unwrap } from '../errors';
 import { accountKindToEnum, toAccount } from '../mappers';
+
+const DEFAULT_ACCOUNT_COLOR = '#C6F432';
 
 export interface AccountInput {
   name: string;
@@ -21,7 +24,7 @@ export async function createAccount(db: KashClient, input: AccountInput): Promis
   const row = unwrap(
     await db
       .from('accounts')
-      .insert({ name: input.name.trim(), kind: accountKindToEnum(input.kind), institution: input.institution.trim(), opening_balance: input.balance, color: input.color })
+      .insert({ name: input.name.trim(), kind: accountKindToEnum(input.kind), institution: input.institution.trim(), opening_balance: input.balance, color: normalizeHexColor(input.color) ?? DEFAULT_ACCOUNT_COLOR })
       .select('id')
       .single(),
   );
@@ -39,7 +42,7 @@ export async function updateAccount(db: KashClient, id: string, input: AccountIn
   unwrap(
     await db
       .from('accounts')
-      .update({ name: input.name.trim(), kind: accountKindToEnum(input.kind), institution: input.institution.trim(), opening_balance: input.balance - txSum, color: input.color })
+      .update({ name: input.name.trim(), kind: accountKindToEnum(input.kind), institution: input.institution.trim(), opening_balance: input.balance - txSum, color: normalizeHexColor(input.color) ?? DEFAULT_ACCOUNT_COLOR })
       .eq('id', id)
       .select('id'),
   );

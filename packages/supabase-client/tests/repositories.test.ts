@@ -1,7 +1,7 @@
 import {
   addInstallmentPurchase, createAccount, createBill, createCard, createGoal, createTransaction, deleteAccount, deleteCard,
   ensureRollover, getCardUsage, getProfile, listAccounts, listPlans, listBills, listCards, listGoals, listInvoices, listTransactions,
-  payBill, payInvoice, recordGoalDeposit, softDeleteTransaction, undoDeleteTransaction, unpayBill, updateAccount, updateSettings, updateTransaction, updateUser,
+  payBill, payInvoice, recordGoalDeposit, softDeleteTransaction, undoDeleteTransaction, unpayBill, updateAccount, updateCard, updateSettings, updateTransaction, updateUser,
 } from '../src';
 import { admin, createTestUser, deleteTestUser, today, type TestUser } from './helpers';
 
@@ -56,6 +56,10 @@ describe('contas, lançamentos e saldo', () => {
 describe('cartões, parcelas, contas fixas e faturas', () => {
   it('parcelado cria plano e 1ª parcela; fatura atual soma; excluir cartão limpa tudo', async () => {
     const card = await createCard(u.db, { name: 'Principal', last4: '4821', limit: 2500, closingDay: 28, dueDay: 5, gradientId: 'green' });
+    // cor personalizada: grava, lê e volta ao gradiente
+    expect((await updateCard(u.db, card.id, { name: card.name, last4: card.last4, limit: card.limit, closingDay: card.closingDay, dueDay: card.dueDay, gradientId: card.gradientId, color: '#FF5733' })).color).toBe('#FF5733');
+    expect((await listCards(u.db)).find((x) => x.id === card.id)?.color).toBe('#FF5733');
+    expect((await updateCard(u.db, card.id, { name: card.name, last4: card.last4, limit: card.limit, closingDay: card.closingDay, dueDay: card.dueDay, gradientId: card.gradientId, color: null })).color).toBeUndefined();
     expect(card).toMatchObject({ last4: '4821', limit: 2500, gradientId: 'green' });
     const planId = await addInstallmentPurchase(u.db, { title: 'Notebook', category: 'Outros', cardId: card.id, total: 1200, installments: 6 });
     // compra antiga: entra direto na parcela do mês, sem lançar as anteriores

@@ -99,13 +99,13 @@ export function installRemoteActions() {
   });
 
   // cartões
-  wrap('addCard', ([input]) => api.createCard(db, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId }), {
+  wrap('addCard', ([input]) => api.createCard(db, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId, color: input.color ?? null }), {
     onSuccess: (card) => {
       const id = (card as { id?: string } | undefined)?.id;
       if (id) useKashStore.setState((s) => ({ ui: { ...s.ui, selectedCardId: id } }));
     },
   });
-  wrap('updateCard', ([id, input]) => api.updateCard(db, id, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId }));
+  wrap('updateCard', ([id, input]) => api.updateCard(db, id, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId, color: input.color ?? null }));
   wrap('removeCard', ([id]) => api.deleteCard(db, id));
 
   // contas

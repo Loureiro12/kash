@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Alert, View, type TextInput } from 'react-native';
-import { accountColors, BottomSheet, Button, Chip, Input, MoneyInput, Pressable, Text, useTheme } from '@/design-system';
+import { accountColors, BottomSheet, Button, Chip, ColorPickerModal, CustomColorSwatch, Input, MoneyInput, Pressable, Text, useTheme } from '@/design-system';
 import { ACCOUNT_KINDS, type AccountKind } from '@kash/domain';
 import { useKashStore } from '@/store';
 
@@ -33,14 +33,19 @@ function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; edi
   const [name, setName] = useState(editing?.name ?? '');
   const [bank, setBank] = useState(initial?.bank ?? '');
   const [balance, setBalance] = useState(editing?.balance ?? 0);
-  const [colorIdx, setColorIdx] = useState(editing ? Math.max(0, accountColors.findIndex((c) => c === editing.color)) : 0);
+  const presetIdx = editing ? accountColors.findIndex((c) => c.toUpperCase() === editing.color.toUpperCase()) : 0;
+  const [colorIdx, setColorIdx] = useState(Math.max(0, presetIdx));
+  /** cor fora da paleta (inclusive a que já veio do servidor) fica como personalizada */
+  const [customColor, setCustomColor] = useState<string | null>(editing && presetIdx < 0 ? editing.color : null);
+  const [useCustom, setUseCustom] = useState(!!editing && presetIdx < 0);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const bankRef = useRef<TextInput>(null);
   const balanceRef = useRef<TextInput>(null);
 
   const canSave = name.trim().length > 0;
   const onSave = () => {
     if (!canSave) return;
-    const input = { name, kind, bank, balance, color: accountColors[colorIdx] ?? accountColors[0] };
+    const input = { name, kind, bank, balance, color: useCustom && customColor ? customColor : (accountColors[colorIdx] ?? accountColors[0]) };
     if (editing) {
       updateAccount(editing.id, input);
       showToast('Conta atualizada');
@@ -89,17 +94,33 @@ function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; edi
         {accountColors.map((c, i) => (
           <Pressable
             key={c}
-            onPress={() => setColorIdx(i)}
+            onPress={() => {
+              setColorIdx(i);
+              setUseCustom(false);
+            }}
             testID={`add-account-color-${i}`}
             haptic="selection"
             accessibilityRole="radio"
-            accessibilityState={{ selected: i === colorIdx }}
+            accessibilityState={{ selected: !useCustom && i === colorIdx }}
             accessibilityLabel={`Cor ${i + 1}`}
-            style={{ padding: 3, borderRadius: 20, borderWidth: 2, borderColor: i === colorIdx ? colors.text : 'transparent' }}
+            style={{ padding: 3, borderRadius: 20, borderWidth: 2, borderColor: !useCustom && i === colorIdx ? colors.text : 'transparent' }}
           >
             <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c }} />
           </Pressable>
         ))}
+        <CustomColorSwatch color={customColor} selected={useCustom} size={30} onPress={() => setPickerOpen(true)} testID="add-account-color-custom" />
+        <ColorPickerModal
+          visible={pickerOpen}
+          initialColor={customColor ?? accountColors[colorIdx] ?? accountColors[0]}
+          title="Cor da conta"
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={(hex) => {
+            setCustomColor(hex);
+            setUseCustom(true);
+            setPickerOpen(false);
+          }}
+          testID="account-color-picker"
+        />
       </View>
     </BottomSheet>
   );

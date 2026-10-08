@@ -13,6 +13,7 @@ export * from './ErrorState';
 export * from './IconButton';
 export * from './Input';
 export * from './MoneyInput';
+export * from './ColorPickerModal';
 export * from './Keypad';
 export * from './ListRow';
 export * from './PageHeader';

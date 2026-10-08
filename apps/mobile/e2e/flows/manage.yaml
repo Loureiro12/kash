@@ -6,6 +6,11 @@ name: Gerenciar — editar e excluir conta, cartão, conta fixa e meta; estados 
 # Conta: tocar edita; renomear e excluir
 - tapOn:
     id: "tab-accounts"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "accounts-screen"
+    timeout: 10000
 - tapOn:
     id: "account-a0000000-0000-4000-8000-000000000003"
 - assertVisible: "Editar conta"

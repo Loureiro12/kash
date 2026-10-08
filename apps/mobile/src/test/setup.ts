@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- mocks do Jest precisam de require() dentro das factories */
 
+// Gesture handler: mocks oficiais do pacote (GestureHandlerRootView etc.).
+require('react-native-gesture-handler/jestSetup');
+
 // Reanimated: usa o mock oficial em testes.
 jest.mock('react-native-reanimated', () => {
   const Reanimated = require('react-native-reanimated/mock');
@@ -79,6 +82,14 @@ jest.mock('expo-file-system', () => {
   return { File, Paths: { cache: { uri: 'file:///cache' } }, __written: written };
 });
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => undefined) }));
+
+// Seletor de cor: depende de gestos nativos; nos testes vira contêineres simples (a escolha é testada pelo campo hex).
+jest.mock('reanimated-color-picker', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const Box = ({ children }: { children?: React.ReactNode }) => React.createElement(View, null, children);
+  return { __esModule: true, default: Box, Panel1: Box, HueSlider: Box, Swatches: Box, Preview: Box };
+});
 
 jest.mock('@/data/queryClient', () => ({
   queryClient: { clear: jest.fn(), refetchQueries: jest.fn(), invalidateQueries: jest.fn(async () => undefined) },

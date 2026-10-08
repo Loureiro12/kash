@@ -117,6 +117,7 @@ export type Database = {
       cards: {
         Row: {
           closing_day: number;
+          color: string | null;
           created_at: string;
           credit_limit: number;
           due_day: number;
@@ -131,6 +132,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           closing_day: number;
+          color?: string | null;
           created_at?: string;
           credit_limit: number;
           due_day: number;
@@ -144,6 +146,7 @@ export type Database = {
         };
         Update: {
           closing_day?: number;
+          color?: string | null;
           created_at?: string;
           credit_limit?: number;
           due_day?: number;

@@ -1,3 +1,4 @@
+import { normalizeHexColor } from '../categories';
 import { seedData } from '../fixtures/seed';
 import { budgetStatus } from '../selectors/budget';
 import { activePlans, cardDates, cardUsage, installmentPreview } from '../selectors/cards';
@@ -184,5 +185,18 @@ describe('lançamentos', () => {
     const opts = sourceOptions(seed.cards, seed.accounts);
     expect(opts[0]).toEqual({ id: 'card1', label: 'Cartão principal •••• 4821', isCard: true });
     expect(opts.at(-1)).toEqual({ id: 'acc3', label: 'Carteira', isCard: false });
+  });
+});
+
+describe('normalizeHexColor', () => {
+  it('aceita com ou sem #, curto ou longo, e devolve #RRGGBB maiúsculo', () => {
+    expect(normalizeHexColor('#ff5733')).toBe('#FF5733');
+    expect(normalizeHexColor('ff5733')).toBe('#FF5733');
+    expect(normalizeHexColor(' #abc ')).toBe('#AABBCC');
+  });
+  it('recusa o que não é cor', () => {
+    expect(normalizeHexColor('vermelho')).toBeNull();
+    expect(normalizeHexColor('#12345')).toBeNull();
+    expect(normalizeHexColor('')).toBeNull();
   });
 });

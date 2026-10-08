@@ -1,0 +1,79 @@
+appId: ${APP_ID}
+name: Cores personalizadas — cartão novo e conta existente
+---
+- runFlow: ../subflows/login.yaml
+
+# Cartão novo com cor própria (escolhida pelo código)
+- tapOn:
+    id: "tab-cards"
+- swipe:
+    direction: LEFT
+    from:
+      id: "card-c0000000-0000-4000-8000-000000000001"
+- swipe:
+    direction: LEFT
+    from:
+      id: "card-c0000000-0000-4000-8000-000000000002"
+- tapOn:
+    id: "card-add"
+- tapOn:
+    id: "add-card-color-custom"
+- assertVisible:
+    id: "card-color-picker"
+- assertVisible: "Cor do cartão"
+- tapOn:
+    id: "card-color-picker-hex"
+- eraseText: 10
+- inputText: "#1A237E"
+- assertVisible:
+    id: "card-color-picker-preview"
+# "retorno" do teclado confirma o código
+- pressKey: Enter
+- assertNotVisible:
+    id: "card-color-picker"
+- assertVisible:
+    id: "add-card-color-custom"
+    selected: true
+- tapOn:
+    id: "add-card-name"
+- inputText: "Cartão azul-marinho"
+- pressKey: Enter
+- inputText: "4321"
+- inputText: "200000"
+- tapOn:
+    id: "add-card-save"
+- assertVisible: "Cartão “Cartão azul-marinho” adicionado"
+# reabrindo para editar, a cor personalizada continua marcada
+- tapOn:
+    id: "card-edit"
+- assertVisible:
+    id: "add-card-color-custom"
+    selected: true
+- tapOn:
+    id: "sheet-add-card-close"
+
+# Conta existente: troca para uma cor personalizada
+- tapOn:
+    id: "tab-accounts"
+- tapOn:
+    id: "account-a0000000-0000-4000-8000-000000000001"
+- assertVisible: "Editar conta"
+- tapOn:
+    id: "add-account-color-custom"
+- assertVisible: "Cor da conta"
+- tapOn:
+    id: "account-color-picker-hex"
+- eraseText: 10
+- inputText: "#FF8A3D"
+# fechando o teclado, o botão "Usar cor" fica à vista
+- hideKeyboard
+- tapOn:
+    id: "account-color-picker-confirm"
+- tapOn:
+    id: "add-account-save"
+- assertVisible: "Conta atualizada"
+- tapOn:
+    id: "account-a0000000-0000-4000-8000-000000000001"
+- assertVisible:
+    id: "add-account-color-custom"
+    selected: true

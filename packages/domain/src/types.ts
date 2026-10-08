@@ -26,6 +26,8 @@ export interface Card {
   /** dia do vencimento da fatura (1..31) */
   dueDay: number;
   gradientId: CardGradientId;
+  /** cor personalizada (#RRGGBB); quando existe, substitui o gradiente pronto */
+  color?: string;
 }
 
 export type TxKind = 'expense' | 'income';

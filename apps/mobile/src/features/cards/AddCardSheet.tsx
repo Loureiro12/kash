@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
 import { Alert, View, type TextInput } from 'react-native';
-import { BottomSheet, Button, cardGradients, CreditCardFace, Input, MoneyInput, Pressable, useTheme } from '@/design-system';
+import { BottomSheet, Button, cardAppearance, cardGradients, ColorPickerModal, CreditCardFace, CustomColorSwatch, Input, MoneyInput, Pressable, useTheme } from '@/design-system';
 import { formatBRL } from '@kash/domain';
 import { useKashStore } from '@/store';
 
@@ -37,15 +37,20 @@ function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editin
   const [closing, setClosing] = useState(editing ? String(editing.closingDay) : '');
   const [due, setDue] = useState(editing ? String(editing.dueDay) : '');
   const [colorIdx, setColorIdx] = useState(editing ? Math.max(0, cardGradients.findIndex((g) => g.id === editing.gradientId)) : 0);
+  /** cor personalizada; `useCustom` diz se ela está selecionada no lugar de um gradiente pronto */
+  const [customColor, setCustomColor] = useState<string | null>(editing?.color ?? null);
+  const [useCustom, setUseCustom] = useState(!!editing?.color);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const last4Ref = useRef<TextInput>(null);
   const limitRef = useRef<TextInput>(null);
 
-  const gradient = cardGradients[colorIdx] ?? cardGradients[0]!;
+  const preset = cardGradients[colorIdx] ?? cardGradients[0]!;
+  const gradient = cardAppearance({ gradientId: preset.id, color: useCustom && customColor ? customColor : undefined });
   const canSave = name.trim().length > 0 && last4.length === 4 && limitN > 0;
 
   const onSave = () => {
     if (!canSave) return;
-    const input = { name, last4, limit: limitN, closingDay: dayOrNull(closing), dueDay: dayOrNull(due), gradientId: gradient.id };
+    const input = { name, last4, limit: limitN, closingDay: dayOrNull(closing), dueDay: dayOrNull(due), gradientId: preset.id, color: useCustom ? customColor : null };
     if (editing) {
       updateCard(editing.id, input);
       showToast('Cartão atualizado');
@@ -92,17 +97,33 @@ function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editin
         {cardGradients.map((g, i) => (
           <Pressable
             key={g.id}
-            onPress={() => setColorIdx(i)}
+            onPress={() => {
+              setColorIdx(i);
+              setUseCustom(false);
+            }}
             testID={`add-card-color-${g.id}`}
             haptic="selection"
             accessibilityRole="radio"
-            accessibilityState={{ selected: i === colorIdx }}
+            accessibilityState={{ selected: !useCustom && i === colorIdx }}
             accessibilityLabel={`Cor ${g.id}`}
-            style={{ padding: 3, borderRadius: 22, borderWidth: 2, borderColor: i === colorIdx ? colors.text : 'transparent' }}
+            style={{ padding: 3, borderRadius: 22, borderWidth: 2, borderColor: !useCustom && i === colorIdx ? colors.text : 'transparent' }}
           >
             <LinearGradient colors={[...g.colors]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 34, height: 34, borderRadius: 17 }} />
           </Pressable>
         ))}
+        <CustomColorSwatch color={customColor} selected={useCustom} onPress={() => setPickerOpen(true)} testID="add-card-color-custom" />
+        <ColorPickerModal
+          visible={pickerOpen}
+          initialColor={customColor ?? preset.colors[1]}
+          title="Cor do cartão"
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={(hex) => {
+            setCustomColor(hex);
+            setUseCustom(true);
+            setPickerOpen(false);
+          }}
+          testID="card-color-picker"
+        />
       </View>
       <Input placeholder="Nome do cartão (ex.: Cartão da faculdade)" value={name} onChangeText={setName} testID="add-card-name" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => last4Ref.current?.focus()} />
       <View style={{ flexDirection: 'row', gap: 10 }}>

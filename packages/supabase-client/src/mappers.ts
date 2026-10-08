@@ -44,7 +44,7 @@ export function toAccount(row: AccountRow): Account {
 export const accountKindToEnum = (kind: AccountKind): Enums['account_kind'] => ACCOUNT_KIND_ENUM[kind];
 
 export function toCard(row: CardRow): Card {
-  return { id: row.id, name: row.name, last4: row.last4, limit: num(row.credit_limit), closingDay: row.closing_day, dueDay: row.due_day, gradientId: row.gradient };
+  return { id: row.id, name: row.name, last4: row.last4, limit: num(row.credit_limit), closingDay: row.closing_day, dueDay: row.due_day, gradientId: row.gradient, ...(row.color ? { color: row.color } : {}) };
 }
 
 export function toTx(row: TxRow): Tx {

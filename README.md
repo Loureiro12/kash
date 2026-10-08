@@ -73,6 +73,7 @@
 - Sessão criptografada no aparelho.
 - Tema escuro e claro, lembretes por notificação local, relatório por categoria.
 - Exportar todos os dados em JSON e excluir a conta pelo próprio app.
+- Cor de cartão e conta escolhida pelo usuário, com seletor de cor completo.
 
 ## Stack
 
@@ -213,6 +214,7 @@ Todo elemento interativo tem `testID` em kebab-case (`tab-add`, `chip-cat-Comida
 - **Temas escuro (padrão) e claro**, trocados em Perfil.
 - **`Text` só aceita variantes da escala** tipográfica Sora.
 - **Acessibilidade:** alvos de toque de 44 px ou mais, rótulos e estados em todos os controles, campos de senha com botão de mostrar e ocultar.
+- **Cores personalizadas** em cartões e contas: além das cores prontas, a bolinha "Personalizar" abre o `ColorPickerModal` (área de saturação e brilho, barra de matiz, sugestões e código hex; a tecla retorno confirma). Para cartões, `cardAppearance` gera o gradiente a partir da cor e escolhe o texto claro ou escuro pelo contraste WCAG. A cor do cartão fica em `cards.color` (nula = gradiente pronto) e a da conta em `accounts.color`, ambas validadas como `#RRGGBB` no banco.
 - **Valores em dinheiro** usam `MoneyInput`: o usuário digita só números, que entram pelos centavos, e o campo mostra o valor já formatado (`R$ 1.234,56`). Com `allowNegative`, um botão ± troca o sinal, usado no saldo da conta. O lançamento de gasto tem teclado próprio com a mesma lógica.
 - **Movimento:** sheets em 300 ms, barras e anéis em 400 ms, haptics leves em ações.
 - **Ícone e splash** em `apps/mobile/assets/brand`. A splash animada fica em `src/features/splash/AnimatedSplash.tsx`.

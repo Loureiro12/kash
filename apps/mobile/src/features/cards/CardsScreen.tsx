@@ -12,7 +12,7 @@ import {
   ScreenTitle,
   SectionHeader,
   Text,
-  cardGradients,
+  cardAppearance,
   motion,
   radii,
   useTheme,
@@ -22,7 +22,8 @@ import { useCardsOverview, useKashStore, useMoney } from '@/store';
 import { DataGate } from '../navigation/DataGate';
 import { TxRow } from '../transactions/TxRow';
 
-export const gradientFor = (card: CardModel) => cardGradients.find((g) => g.id === card.gradientId) ?? cardGradients[0]!;
+/** Aparência do cartão (cor personalizada ou gradiente pronto). */
+export const gradientFor = (card: CardModel) => cardAppearance(card);
 
 /** Tela 4 — Cartões. */
 export function CardsScreen() {

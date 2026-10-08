@@ -72,6 +72,8 @@ export interface NewCard {
   closingDay: number | null;
   dueDay: number | null;
   gradientId: CardGradient['id'];
+  /** cor personalizada (#RRGGBB); null volta para o gradiente pronto */
+  color?: string | null;
 }
 
 export interface NewAccount {
@@ -538,15 +540,15 @@ export const useKashStore = create<KashState>((set, get) => ({
       return { txs: restored, accounts: last.accounts, bills: last.bills, invoices: last.invoices, plans, ui: { ...s.ui, lastDeleted: null, toast: null, toastAction: null } };
     }),
 
-  addCard: ({ name, last4, limit, closingDay, dueDay, gradientId }) => {
+  addCard: ({ name, last4, limit, closingDay, dueDay, gradientId, color }) => {
     const id = createId('card');
-    const card: Card = { id, name: name.trim(), last4, limit, closingDay: closingDay ?? 1, dueDay: dueDay ?? 10, gradientId };
+    const card: Card = { id, name: name.trim(), last4, limit, closingDay: closingDay ?? 1, dueDay: dueDay ?? 10, gradientId, ...(color ? { color } : {}) };
     set((s) => ({ cards: [...s.cards, card], ui: { ...s.ui, sheet: null, selectedCardId: id } }));
   },
 
-  updateCard: (id, { name, last4, limit, closingDay, dueDay, gradientId }) =>
+  updateCard: (id, { name, last4, limit, closingDay, dueDay, gradientId, color }) =>
     set((s) => ({
-      cards: s.cards.map((c) => (c.id === id ? { ...c, name: name.trim() || c.name, last4: last4 || c.last4, limit: limit > 0 ? limit : c.limit, closingDay: closingDay ?? c.closingDay, dueDay: dueDay ?? c.dueDay, gradientId } : c)),
+      cards: s.cards.map((c) => (c.id === id ? { ...c, name: name.trim() || c.name, last4: last4 || c.last4, limit: limit > 0 ? limit : c.limit, closingDay: closingDay ?? c.closingDay, dueDay: dueDay ?? c.dueDay, gradientId, color: color ?? undefined } : c)),
       ui: { ...s.ui, sheet: null, editing: null },
     })),
 
