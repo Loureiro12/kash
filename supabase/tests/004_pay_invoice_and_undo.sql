@@ -21,10 +21,10 @@ select is((select balance from public.account_balances where account_id = '11111
 select is(public.undo_delete_transaction(:'grp'), 1, 'undo restaura 1 lançamento');
 select is((select deleted_at from public.transactions where id = :'tx'), null, 'lançamento ativo de novo');
 
--- excluir plano inteiro zera o plano e desfazer recalcula
+-- excluir o parcelamento inteiro marca o plano como excluído (o desfazer limpa a marca)
 select public.add_installment_purchase('TV', 'Outros', '22222222-2222-4222-8222-000000000020', 600, 3) as plan \gset
 select public.soft_delete_transaction((select id from public.transactions where plan_id = :'plan' limit 1), 'plan') as grp2 \gset
-select is((select current from public.plans where id = :'plan'), 0, 'plano zerado ao excluir todas as parcelas');
+select isnt((select deleted_at from public.plans where id = :'plan'), null, 'parcelamento marcado como excluído ao excluir todas as parcelas');
 
 select * from finish();
 rollback;

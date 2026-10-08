@@ -183,6 +183,8 @@ app (rotas) → features (telas) → store / data → design-system
 
 **Compras parceladas antigas.** Ao parcelar no cartão, o lançamento tem "1ª parcela em" (até 23 meses atrás) e "Valor digitado: Total ou Parcela". Com a 1ª parcela no passado, `installmentSchedule` calcula qual parcela cai neste mês. As anteriores contam como pagas e **não** viram lançamento, nem entram em fatura ou relatório. Só a parcela do mês é lançada, e a virada segue com as próximas. Uma compra já quitada não pode ser salva. O mês informado é o da fatura em que a parcela veio, então não depende do dia de fechamento do cartão.
 
+**Excluir e mover parcelamentos.** Excluir "todas as parcelas" marca o parcelamento como excluído (`plans.deleted_at`): ele some de "Parcelas em aberto", a virada de mês não o relança e o "Desfazer" o restaura com o mesmo contador. Excluir "só esta parcela" não mexe no contador, e a próxima segue a numeração. Trocar o cartão de uma parcela move o parcelamento inteiro e as parcelas já lançadas (RPC `move_plan_to_card`); na edição de uma parcela, só cartões aparecem como origem.
+
 **Lembretes.** `planReminders` monta a lista de notificações locais: contas fixas e faturas 2 dias antes do vencimento às 9h, dia de depósito das metas e "faturas fecharam" no dia 1º. O app reagenda sempre que os dados mudam e só com a permissão concedida no switch "Lembrete de contas".
 
 **Recuperação de senha.** O e-mail traz um código (6 dígitos no local, 8 no projeto hospedado) que o usuário digita na tela "Esqueci a senha". O código vira uma sessão de recuperação, em que só a tela de nova senha existe. O mesmo e-mail mantém um deep link `kash://reset-password` como atalho.
@@ -195,7 +197,7 @@ app (rotas) → features (telas) → store / data → design-system
 
 - **Schema** em `supabase/migrations`: RLS por `auth.uid()` em todas as tabelas, `user_id` preenchido por padrão.
 - **Saldos como views.** Saldo de conta é abertura mais lançamentos; uso do cartão é o mês corrente.
-- **Escritas de várias linhas como RPCs:** `add_installment_purchase`, `pay_bill`, `pay_invoice`, `record_goal_deposit`, `soft_delete_transaction` e `undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`, `export_my_data`, `update_category`, `delete_category`.
+- **Escritas de várias linhas como RPCs:** `add_installment_purchase`, `pay_bill`, `pay_invoice`, `record_goal_deposit`, `soft_delete_transaction` e `undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`, `export_my_data`, `update_category`, `delete_category`, `move_plan_to_card`.
 - **Seed local** com a usuária Lara e ids fixos, usados pelos testes E2E.
 - **Fuso único** America/Sao_Paulo para "hoje" e virada de mês.
 
@@ -208,7 +210,7 @@ app (rotas) → features (telas) → store / data → design-system
 | Banco: RLS, RPCs, virada de mês | pgTAP | `supabase/tests` |
 | Client contra o banco real | Vitest | `packages/supabase-client/tests` |
 | Edge Function | `deno test` | `supabase/functions` |
-| Ponta a ponta no app | Maestro (17 fluxos) | `apps/mobile/e2e/flows` |
+| Ponta a ponta no app | Maestro (18 fluxos) | `apps/mobile/e2e/flows` |
 
 Os fluxos E2E cobrem onboarding e login, Início, lançar gasto à vista e parcelado, parcelamento antigo, cartões e fatura, contas, metas, páginas internas, editar e excluir, perfil e configurações, exportar dados, esqueci a senha com código, cores personalizadas, categorias e exclusão de conta. O runner reseta o banco antes de cada fluxo; detalhes em [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md).
 

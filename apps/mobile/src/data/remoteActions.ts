@@ -81,9 +81,12 @@ export function installRemoteActions() {
     }
     return api.createTransaction(db, { title, category: input.category, amount, date: input.date ?? today(), sourceType, sourceId: input.sourceId });
   });
-  wrap('updateTransaction', ([id], _before, after) => {
+  wrap('updateTransaction', async ([id], before, after) => {
     const tx = after.txs.find((t) => t.id === id);
     if (!tx) return undefined;
+    // parcela que mudou de cartão: move o parcelamento inteiro antes de salvar o resto
+    const old = before.txs.find((t) => t.id === id);
+    if (tx.planId && old && old.sourceId !== tx.sourceId) await api.movePlanToCard(db, tx.planId, tx.sourceId);
     const category: Category | 'Entrada' | undefined = tx.category === 'Fatura' ? undefined : tx.category;
     return api.updateTransaction(db, id, { title: tx.title, amount: Math.abs(tx.amount), date: tx.date, sourceType: sourceTypeOf(after, tx.sourceId), sourceId: tx.sourceId, ...(category ? { category } : {}) });
   });

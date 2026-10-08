@@ -212,16 +212,31 @@ describe('editar e excluir lançamento', () => {
     expect(s.accounts[0]?.balance).toBe(2340.5);
     expect(s.ui.lastDeleted).toBeNull();
   });
-  it('excluir parcela única decrementa o plano; excluir plano remove tudo', () => {
+  it('excluir uma parcela mantém o parcelamento e o contador; excluir o parcelamento remove tudo', () => {
     act(() => useKashStore.getState().deleteTransaction('tx11', 'single'));
     let s = useKashStore.getState();
-    expect(s.plans.find((p) => p.id === 'plan1')?.current).toBe(4);
+    // a próxima parcela segue a numeração: o contador não volta
+    expect(s.plans.find((p) => p.id === 'plan1')?.current).toBe(5);
+    expect(s.txs.find((t) => t.id === 'tx11')).toBeUndefined();
     act(() => useKashStore.getState().undoDelete());
-    expect(useKashStore.getState().plans.find((p) => p.id === 'plan1')?.current).toBe(5);
+    expect(useKashStore.getState().txs.find((t) => t.id === 'tx11')).toBeDefined();
     act(() => useKashStore.getState().deleteTransaction('tx11', 'plan'));
     s = useKashStore.getState();
     expect(s.plans.find((p) => p.id === 'plan1')).toBeUndefined();
     expect(s.txs.find((t) => t.planId === 'plan1')).toBeUndefined();
+    act(() => useKashStore.getState().undoDelete());
+    expect(useKashStore.getState().plans.find((p) => p.id === 'plan1')?.current).toBe(5);
+  });
+  it('trocar o cartão de uma parcela leva o parcelamento inteiro; conta bancária é ignorada', () => {
+    act(() => useKashStore.getState().updateTransaction('tx11', { sourceId: 'card2' }));
+    let s = useKashStore.getState();
+    expect(s.plans.find((p) => p.id === 'plan1')?.cardId).toBe('card2');
+    expect(s.txs.filter((t) => t.planId === 'plan1').every((t) => t.sourceId === 'card2')).toBe(true);
+    const balanceBefore = s.accounts.find((a) => a.id === 'acc1')!.balance;
+    act(() => useKashStore.getState().updateTransaction('tx11', { sourceId: 'acc1' }));
+    s = useKashStore.getState();
+    expect(s.txs.find((t) => t.id === 'tx11')?.sourceId).toBe('card2');
+    expect(s.accounts.find((a) => a.id === 'acc1')!.balance).toBe(balanceBefore);
   });
   it('excluir o lançamento de uma conta fixa paga desmarca a conta', () => {
     act(() => useKashStore.getState().toggleBillPaid('bill4'));

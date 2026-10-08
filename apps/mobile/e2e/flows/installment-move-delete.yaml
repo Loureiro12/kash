@@ -1,0 +1,85 @@
+appId: ${APP_ID}
+name: Parcelamento — trocar de cartão leva o plano; excluir todas as parcelas não volta após sincronizar
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "tab-cards"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "plan-b0000000-0000-4000-8000-000000000001"
+    timeout: 10000
+
+# Troca a parcela do "Celular novo" para o Cartão universitário
+- scrollUntilVisible:
+    element:
+      id: "card-tx-f0000000-0000-4000-8000-000000000011"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "card-tx-f0000000-0000-4000-8000-000000000011"
+- assertVisible:
+    id: "expense-plan-note"
+# parcela só pode ir para cartão
+- assertNotVisible:
+    id: "chip-src-a0000000-0000-4000-8000-000000000001"
+- tapOn:
+    id: "chip-src-c0000000-0000-4000-8000-000000000002"
+- tapOn:
+    id: "expense-save"
+- assertVisible: "Lançamento atualizado"
+# espera a sincronização com o servidor e confere que saiu do cartão principal
+- waitForAnimationToEnd:
+    timeout: 3000
+- scrollUntilVisible:
+    element:
+      id: "card-c0000000-0000-4000-8000-000000000001"
+    direction: UP
+- assertNotVisible:
+    id: "plan-b0000000-0000-4000-8000-000000000001"
+# e aparece no universitário
+- swipe:
+    direction: LEFT
+    from:
+      id: "card-c0000000-0000-4000-8000-000000000001"
+- tapOn:
+    id: "card-c0000000-0000-4000-8000-000000000002"
+- scrollUntilVisible:
+    element:
+      id: "plan-b0000000-0000-4000-8000-000000000001"
+    direction: DOWN
+    centerElement: true
+
+# Exclui todas as parcelas
+- scrollUntilVisible:
+    element:
+      id: "card-tx-f0000000-0000-4000-8000-000000000011"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "card-tx-f0000000-0000-4000-8000-000000000011"
+- scrollUntilVisible:
+    element:
+      id: "expense-delete"
+    direction: DOWN
+- tapOn:
+    id: "expense-delete"
+- tapOn: "Todas as parcelas"
+- assertVisible: "Parcelamento excluído"
+# depois de sincronizar, continua fora de "Parcelas em aberto"
+- waitForAnimationToEnd:
+    timeout: 4000
+- tapOn:
+    id: "tab-home"
+- tapOn:
+    id: "tab-cards"
+- swipe:
+    direction: LEFT
+    from:
+      id: "card-c0000000-0000-4000-8000-000000000001"
+- tapOn:
+    id: "card-c0000000-0000-4000-8000-000000000002"
+- assertNotVisible:
+    id: "plan-b0000000-0000-4000-8000-000000000001"
+- assertNotVisible:
+    id: "card-tx-f0000000-0000-4000-8000-000000000011"

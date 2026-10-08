@@ -173,7 +173,7 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
-        {(isIncome ? accountSources : sources).map((s) => (
+        {(isIncome ? accountSources : editing && plan ? sources.filter((src) => src.isCard) : sources).map((s) => (
           <Chip key={s.id} label={s.label} tone="soft" shape="rounded" height={34} selected={effectiveSource === s.id} onPress={() => setSourceId(s.id)} testID={`chip-src-${s.id}`} />
         ))}
       </ScrollView>
@@ -262,7 +262,7 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
 
       {editing && plan ? (
         <Text variant="meta" color="muted" testID="expense-plan-note">
-          Parcela {plan.current} de {plan.installments} de “{plan.title}”. Alterar o valor muda só esta parcela.
+          Parcela de “{plan.title}” ({plan.installments}x). Alterar o valor muda só esta parcela; trocar o cartão leva o parcelamento inteiro.
         </Text>
       ) : null}
 

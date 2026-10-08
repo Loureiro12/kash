@@ -69,6 +69,8 @@ describe('cartões, parcelas, contas fixas e faturas', () => {
     expect(oldTxs[0]).toMatchObject({ title: 'Celular (9/12)', amount: -100 });
     expect((await listPlans(u.db)).find((p) => p.id === oldPlan)).toMatchObject({ current: 9, installments: 12 });
     await softDeleteTransaction(u.db, oldTxs[0]!.id, 'plan');
+    // excluído inteiro: some da lista de parcelamentos (não volta como "parcela 0")
+    expect((await listPlans(u.db)).some((p) => p.id === oldPlan)).toBe(false);
     const txs = await listTransactions(u.db);
     expect(txs.find((t) => t.planId === planId)).toMatchObject({ title: 'Notebook (1/6)', amount: -200, sourceType: 'card' });
     expect((await getCardUsage(u.db))[card.id]).toBe(200);

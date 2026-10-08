@@ -48,6 +48,18 @@ describe('ações remotas', () => {
     await flush();
     expect(mocked.addInstallmentPurchase).not.toHaveBeenCalled();
   });
+  it('parcela trocada de cartão move o parcelamento antes de salvar o lançamento', async () => {
+    useKashStore.getState().updateTransaction('tx11', { sourceId: 'card2' });
+    await flush();
+    expect(mocked.movePlanToCard).toHaveBeenCalledWith(expect.anything(), 'plan1', 'card2');
+    expect(mocked.updateTransaction).toHaveBeenCalledWith(expect.anything(), 'tx11', expect.objectContaining({ sourceType: 'card', sourceId: 'card2' }));
+    expect(mocked.movePlanToCard.mock.invocationCallOrder[0]!).toBeLessThan(mocked.updateTransaction.mock.invocationCallOrder[0]!);
+  });
+  it('editar parcela sem trocar o cartão não move o parcelamento', async () => {
+    useKashStore.getState().updateTransaction('tx11', { title: 'Celular' });
+    await flush();
+    expect(mocked.movePlanToCard).not.toHaveBeenCalled();
+  });
   it('entrada vai como Entrada numa conta', async () => {
     useKashStore.getState().addTransaction({ kind: 'income', amountCents: 50000, category: 'Outros', sourceId: 'acc1', note: '', installments: 1 });
     await flush();

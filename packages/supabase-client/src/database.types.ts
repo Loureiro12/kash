@@ -321,6 +321,8 @@ export type Database = {
           category: string;
           created_at: string;
           current: number;
+          deleted_at: string | null;
+          deleted_group: string | null;
           id: string;
           installments: number;
           per_installment: number;
@@ -333,6 +335,8 @@ export type Database = {
           category: string;
           created_at?: string;
           current?: number;
+          deleted_at?: string | null;
+          deleted_group?: string | null;
           id?: string;
           installments: number;
           per_installment: number;
@@ -344,6 +348,8 @@ export type Database = {
           category?: string;
           created_at?: string;
           current?: number;
+          deleted_at?: string | null;
+          deleted_group?: string | null;
           id?: string;
           installments?: number;
           per_installment?: number;
@@ -528,6 +534,7 @@ export type Database = {
       export_my_data: { Args: Record<PropertyKey, never>; Returns: Json };
       kash_today: { Args: Record<PropertyKey, never>; Returns: string };
       month_key: { Args: { d: string }; Returns: string };
+      move_plan_to_card: { Args: { p_card_id: string; p_plan_id: string }; Returns: undefined };
       pay_bill: { Args: { p_bill_id: string; p_date?: string }; Returns: string };
       pay_invoice: {
         Args: { p_account_id: string; p_date?: string; p_invoice_id: string };

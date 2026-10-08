@@ -502,13 +502,19 @@ export const useKashStore = create<KashState>((set, get) => ({
         date: patch.date ?? tx.date,
         sourceId: patch.sourceId ?? tx.sourceId,
       };
+      // parcela trocada de cartão: o parcelamento inteiro (e as outras parcelas) vai junto
+      const plan = tx.planId ? s.plans.find((p) => p.id === tx.planId) : undefined;
+      const movesPlan = !!plan && next.sourceId !== tx.sourceId && s.cards.some((c) => c.id === next.sourceId);
+      if (plan && !movesPlan) next.sourceId = tx.sourceId; // parcela não vai para conta bancária
       const accounts = s.accounts.map((a) => {
         let balance = a.balance;
         if (a.id === tx.sourceId) balance -= tx.amount;
         if (a.id === next.sourceId) balance += next.amount;
         return balance === a.balance ? a : { ...a, balance: round2(balance) };
       });
-      return { txs: s.txs.map((t) => (t.id === id ? next : t)), accounts, ui: { ...s.ui, sheet: null } };
+      const txs = s.txs.map((t) => (t.id === id ? next : movesPlan && t.planId === plan!.id ? { ...t, sourceId: next.sourceId } : t));
+      const plans = movesPlan ? s.plans.map((p) => (p.id === plan!.id ? { ...p, cardId: next.sourceId } : p)) : s.plans;
+      return { txs, plans, accounts, ui: { ...s.ui, sheet: null } };
     }),
 
   /**
@@ -528,14 +534,9 @@ export const useKashStore = create<KashState>((set, get) => ({
       });
       const bills = s.bills.map((b) => (b.paidTxId && removedIds.has(b.paidTxId) ? { ...b, paid: false, paidTxId: undefined } : b));
       const invoices = s.invoices.map((i) => (i.paidTxId && removedIds.has(i.paidTxId) ? { ...i, paid: false, paidTxId: undefined, paidAt: undefined } : i));
-      let plans = s.plans;
-      if (plan) {
-        if (scope === 'plan') plans = s.plans.filter((p) => p.id !== plan.id);
-        else {
-          const current = plan.current - 1;
-          plans = current <= 0 ? s.plans.filter((p) => p.id !== plan.id) : s.plans.map((p) => (p.id === plan.id ? { ...p, current } : p));
-        }
-      }
+      // excluir o parcelamento tira o plano; excluir uma parcela não mexe no contador
+      // (a próxima segue a numeração), igual ao servidor
+      const plans = plan && scope === 'plan' ? s.plans.filter((p) => p.id !== plan.id) : s.plans;
       return {
         txs: s.txs.filter((t) => !removedIds.has(t.id)),
         accounts,

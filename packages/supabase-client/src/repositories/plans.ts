@@ -12,5 +12,10 @@ export function toPlan(row: PlanRow): Plan {
 
 /** Parcelamentos (todos; a UI filtra os em aberto por cartão). */
 export async function listPlans(db: KashClient): Promise<Plan[]> {
-  return unwrap(await db.from('plans').select('*').order('created_at')).map(toPlan);
+  return unwrap(await db.from('plans').select('*').is('deleted_at', null).order('created_at')).map(toPlan);
+}
+
+/** Leva o parcelamento inteiro (e as parcelas já lançadas) para outro cartão. */
+export async function movePlanToCard(db: KashClient, planId: string, cardId: string): Promise<void> {
+  unwrap(await db.rpc('move_plan_to_card', { p_plan_id: planId, p_card_id: cardId }));
 }
