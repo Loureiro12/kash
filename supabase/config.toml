@@ -246,7 +246,7 @@ otp_expiry = 3600
 
 # Recuperação de senha: deep link direto pro app (ver apps/mobile/src/features/auth/useAuthLinks.ts)
 [auth.email.template.recovery]
-subject = "Kash — crie uma nova senha"
+subject = "Kash — seu código pra criar uma nova senha"
 content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize email template

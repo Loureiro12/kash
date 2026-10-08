@@ -1,4 +1,5 @@
-<h2>Crie uma nova senha</h2>
-<p>Recebemos um pedido pra redefinir a senha da sua conta no Kash. Toque no botão abaixo no celular com o app instalado:</p>
-<p><a href="kash://reset-password?token_hash={{ .TokenHash }}&type=recovery">Criar nova senha</a></p>
-<p>O link vale por 30 minutos e só funciona uma vez. Se não foi você, pode ignorar este e-mail.</p>
+<h2>Seu código do Kash</h2>
+<p>Recebemos um pedido pra redefinir a senha da sua conta. Digite este código no app:</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:24px 0">{{ .Token }}</p>
+<p>Ele vale por 1 hora e só funciona uma vez. Se não foi você, pode ignorar este e-mail — sua senha continua a mesma.</p>
+<p style="color:#888;font-size:13px">Está no celular com o app instalado? <a href="kash://reset-password?token_hash={{ .TokenHash }}&type=recovery">Toque aqui</a> pra abrir direto.</p>

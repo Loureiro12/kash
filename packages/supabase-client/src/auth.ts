@@ -67,6 +67,28 @@ export async function changePassword(db: KashClient, { currentPassword, newPassw
   }
 }
 
+/** Código de recuperação: 6 dígitos no local, 8 no projeto hospedado (`auth.email.otp_length`). */
+export const RECOVERY_CODE_PATTERN = /^\d{6,8}$/;
+
+/**
+ * Troca o código de recuperação enviado por e-mail por uma sessão (tipo `recovery`), que permite
+ * definir a nova senha com `updatePassword`. Código errado, expirado ou já usado → KashApiError(validation).
+ */
+export async function verifyRecoveryCode(db: KashClient, email: string, code: string): Promise<Session> {
+  const token = code.replace(/\D/g, '');
+  if (!RECOVERY_CODE_PATTERN.test(token)) throw new KashApiError('validation', 'Digite o código que chegou no seu e-mail.');
+  try {
+    const { data, error } = await db.auth.verifyOtp({ email: email.trim(), token, type: 'recovery' });
+    if (error || !data.session) {
+      if (error && /fetch|network/i.test(error.message)) throw fromAuthError(error);
+      throw new KashApiError('validation', 'Código inválido ou expirado. Confira ou peça um novo.', error);
+    }
+    return data.session;
+  } catch (err) {
+    throw toKashError(err);
+  }
+}
+
 /** Caminho do deep link de recuperação (`<scheme>://reset-password`). */
 export const RECOVERY_PATH = 'reset-password';
 

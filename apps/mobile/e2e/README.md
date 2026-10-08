@@ -23,7 +23,7 @@ maestro test e2e/flows/expense.yaml --env APP_ID=com.andreloureiro.kash   # sem 
 - Rodar: `maestro --device emulator-5554 test e2e/flows/<fluxo>.yaml --env APP_ID=com.andreloureiro.kash`. Pendência: `inputText` do Maestro é muito lento no emulador com build de debug (chegou a travar); a suíte completa está validada só no iOS.
 
 ## E-mails (recuperação de senha)
-- O fluxo `reset-password.yaml` lê o e-mail no Mailpit do Supabase local (`http://127.0.0.1:54324/api/v1`) via `runScript` (`scripts/recovery-link.js`) e abre o deep link com `openLink`. O iOS pergunta "Abrir com Kash?"; o fluxo toca em Abrir. Alertas que sobrem de uma execução interrompida são dispensados no `launch-fresh.yaml`.
+- O fluxo `reset-password.yaml` lê o e-mail no Mailpit do Supabase local (`http://127.0.0.1:54324/api/v1`) via `runScript` (`scripts/recovery-code.js`) e digita o código na tela de esqueci a senha. Alertas que sobrem de uma execução interrompida são dispensados no `launch-fresh.yaml`.
 
 ## Convenções
 - Todo elemento interativo tem `testID` em kebab-case (`tab-add`, `chip-cat-Comida`, `bill-bill2`).

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, type KashSnapshot, RECOVERY_PATH, recoverSessionFromUrl, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
+import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, type KashSnapshot, RECOVERY_PATH, recoverSessionFromUrl, verifyRecoveryCode as apiVerifyRecoveryCode, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
 import { onboardingFlag } from '@/services/onboarding';
 import { supabase } from '@/services/supabase';
 import { queryClient } from '@/data/queryClient';
@@ -148,6 +148,8 @@ export interface KashState {
   signIn: (input: Credentials) => Promise<boolean>;
   signUp: (input: SignUpInput) => Promise<boolean>;
   requestPasswordReset: (email: string) => Promise<boolean>;
+  /** código de recuperação digitado; true se válido (vai pra tela de nova senha) */
+  verifyRecoveryCode: (email: string, code: string) => Promise<boolean>;
   /** deep link recebido pelo app; true se era um link de recuperação válido (vai pra tela de nova senha) */
   handleAuthUrl: (url: string) => Promise<boolean>;
   /** define a nova senha na sessão de recuperação e entra no app */
@@ -288,6 +290,17 @@ export const useKashStore = create<KashState>((set, get) => ({
     try {
       await apiRequestPasswordReset(supabase, email, `${APP_SCHEME}://${RECOVERY_PATH}`);
       set({ authRequest: { status: 'success', error: null } });
+      return true;
+    } catch (err) {
+      set({ authRequest: { status: 'error', error: toKashError(err).message } });
+      return false;
+    }
+  },
+  verifyRecoveryCode: async (email, code) => {
+    set({ authRequest: { status: 'loading', error: null } });
+    try {
+      const session = await apiVerifyRecoveryCode(supabase, email, code);
+      set({ auth: 'recovery', userId: session.user.id, authRequest: { status: 'idle', error: null } });
       return true;
     } catch (err) {
       set({ authRequest: { status: 'error', error: toKashError(err).message } });

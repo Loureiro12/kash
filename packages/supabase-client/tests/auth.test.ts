@@ -1,4 +1,4 @@
-import { changePassword, KashApiError, parseRecoveryUrl, recoverSessionFromUrl, requestPasswordReset, signIn, signOut, signUp, updatePassword } from '../src';
+import { RECOVERY_CODE_PATTERN, verifyRecoveryCode, changePassword, KashApiError, parseRecoveryUrl, recoverSessionFromUrl, requestPasswordReset, signIn, signOut, signUp, updatePassword } from '../src';
 import { admin, anonClient, createTestUser, deleteTestUser } from './helpers';
 
 describe('auth', () => {
@@ -59,6 +59,25 @@ describe('auth', () => {
     await expect(recoverSessionFromUrl(anonClient(), url)).rejects.toMatchObject({ code: 'validation' });
     const again = await signIn(anonClient(), { email: user.email, password: 'recuperada-1' });
     expect(again.user.id).toBe(user.id);
+    await deleteTestUser(user);
+  });
+
+it('código de recuperação abre sessão uma vez só; código errado é validation', async () => {
+    const user = await createTestUser('code');
+    const { data, error } = await admin().auth.admin.generateLink({ type: 'recovery', email: user.email });
+    expect(error).toBeNull();
+    const code = data.properties!.email_otp;
+    expect(code).toMatch(RECOVERY_CODE_PATTERN);
+
+    await expect(verifyRecoveryCode(anonClient(), user.email, '000000')).rejects.toMatchObject({ code: 'validation' });
+    await expect(verifyRecoveryCode(anonClient(), user.email, '12')).rejects.toMatchObject({ code: 'validation' });
+
+    const db = anonClient();
+    const session = await verifyRecoveryCode(db, ` ${user.email} `, code.split('').join(' '));
+    expect(session.user.id).toBe(user.id);
+    await updatePassword(db, 'por-codigo-1');
+    await expect(verifyRecoveryCode(anonClient(), user.email, code)).rejects.toMatchObject({ code: 'validation' });
+    expect((await signIn(anonClient(), { email: user.email, password: 'por-codigo-1' })).user.id).toBe(user.id);
     await deleteTestUser(user);
   });
 });
