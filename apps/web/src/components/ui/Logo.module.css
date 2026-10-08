@@ -1,0 +1,42 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+.logo:hover {
+  color: var(--text);
+}
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 800;
+}
+.word {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.md .mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 18px;
+}
+.md .word {
+  font-size: 20px;
+}
+.sm {
+  gap: 8px;
+}
+.sm .mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.sm .word {
+  font-size: 16px;
+}

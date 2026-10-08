@@ -1,0 +1,55 @@
+.hero {
+  display: grid;
+  gap: 48px;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 32px;
+}
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.badge {
+  align-self: flex-start;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: clamp(12px, 3.6vw, 13px);
+  font-weight: 600;
+  max-width: 100%;
+}
+.title {
+  font-weight: 800;
+  font-size: var(--fs-h1);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+.lead {
+  font-size: var(--fs-lead);
+  line-height: 1.55;
+  color: var(--text-soft);
+  max-width: 520px;
+}
+.download {
+  margin-top: 8px;
+  scroll-margin-top: calc(var(--header-h) + 24px);
+}
+.web {
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+.web a {
+  font-weight: 600;
+}
+@media (min-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr 1fr;
+    padding-top: 72px;
+    padding-bottom: 40px;
+  }
+  .copy {
+    gap: 24px;
+  }
+}

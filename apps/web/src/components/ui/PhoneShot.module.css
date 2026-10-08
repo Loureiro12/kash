@@ -1,0 +1,38 @@
+.wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 402 / 874;
+  overflow: hidden;
+  background: var(--surface);
+}
+.hero .frame {
+  max-width: min(330px, 82vw);
+  border-radius: 40px;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+}
+.feature .frame {
+  max-width: min(300px, 76vw);
+  border-radius: 36px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+.img {
+  object-fit: cover;
+  object-position: top;
+}
+.glow {
+  position: absolute;
+  width: min(420px, 100%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.18;
+  filter: blur(90px);
+  top: 18%;
+  pointer-events: none;
+}

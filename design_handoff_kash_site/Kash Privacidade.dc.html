@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0B0C0E}
+body{font-family:'Sora',system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#F3F4F0}
+a{color:#C6F432;text-decoration:none}a:hover{color:#F3F4F0}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#0B0C0E;color:#F3F4F0;font-family:'Sora',system-ui,sans-serif">
+  <div style="border-bottom:1px solid rgba(255,255,255,.08)">
+    <div style="max-width:1100px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:16px">
+      <a href="Kash Landing.dc.html" style="display:flex;align-items:center;gap:10px;color:#F3F4F0" style-hover="color:#F3F4F0">
+        <div style="width:34px;height:34px;border-radius:10px;background:#C6F432;color:#0B0C0E;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">K</div>
+        <div style="font-weight:800;font-size:20px;letter-spacing:-0.03em">Kash</div>
+      </a>
+      <a href="Kash Landing.dc.html" style="margin-left:auto;font-size:14px;font-weight:600">← Voltar ao site</a>
+    </div>
+  </div>
+
+  <div style="max-width:1100px;margin:0 auto;padding:64px 24px 96px;display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+    <!-- ÍNDICE -->
+    <div style="flex:0 1 240px;position:sticky;top:24px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#8B9099;margin-bottom:10px">Nesta página</div>
+      <sc-for list="{{ sections }}" as="s" hint-placeholder-count="10">
+        <a href="#{{ s.id }}" style="font-size:14px;color:#8B9099;padding:6px 0;line-height:1.35" style-hover="color:#F3F4F0">{{ s.n }}. {{ s.h }}</a>
+      </sc-for>
+    </div>
+
+    <!-- CONTEÚDO -->
+    <div style="flex:1 1 480px;max-width:680px;display:flex;flex-direction:column;gap:40px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <h1 style="margin:0;font-weight:800;font-size:clamp(38px,5vw,56px);letter-spacing:-0.045em;line-height:1">Política de privacidade</h1>
+        <div style="font-size:14px;color:#8B9099">Última atualização: 1 de outubro de 2026</div>
+        <div style="margin-top:10px;padding:22px 24px;border-radius:20px;background:#C6F432;color:#0B0C0E;display:flex;flex-direction:column;gap:8px">
+          <div style="font-weight:700;font-size:15px">Resumo rápido</div>
+          <div style="font-size:15px;line-height:1.6">Coletamos só o necessário pra o Kash funcionar. Não pedimos senha de banco, não vendemos seus dados e você pode apagar tudo quando quiser.</div>
+        </div>
+      </div>
+
+      <sc-for list="{{ sections }}" as="s" hint-placeholder-count="10">
+        <div id="{{ s.id }}" style="display:flex;flex-direction:column;gap:12px;scroll-margin-top:24px">
+          <h2 style="margin:0;font-weight:700;font-size:22px;letter-spacing:-0.02em">{{ s.n }}. {{ s.h }}</h2>
+          <sc-for list="{{ s.ps }}" as="p" hint-placeholder-count="1">
+            <p style="margin:0;font-size:15px;line-height:1.7;color:#B4B8BF;text-wrap:pretty">{{ p }}</p>
+          </sc-for>
+          <sc-if value="{{ s.hasList }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:8px;padding-left:4px">
+              <sc-for list="{{ s.list }}" as="li" hint-placeholder-count="3">
+                <div style="display:flex;gap:12px;font-size:15px;line-height:1.6;color:#B4B8BF"><span style="width:6px;height:6px;border-radius:50%;background:#C6F432;flex:none;margin-top:10px"></span><span>{{ li }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      <div style="padding:24px;border-radius:20px;background:#16181C;border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px">
+        <div style="font-weight:700;font-size:16px">Ficou com dúvida?</div>
+        <div style="font-size:15px;line-height:1.6;color:#B4B8BF">Fale com nosso encarregado de dados em <a href="mailto:privacidade@kash.app" style="font-weight:600">privacidade@kash.app</a>. Respondemos em até 15 dias.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid rgba(255,255,255,.08)">
+    <div style="max-width:1100px;margin:0 auto;padding:28px 24px;display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:#8B9099">
+      <div>© 2026 Kash</div>
+      <a href="Kash Landing.dc.html" style="margin-left:auto;color:#8B9099" style-hover="color:#F3F4F0">Site</a>
+      <a href="#" style="color:#8B9099" style-hover="color:#F3F4F0">Termos de uso</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const S = [
+      ['quem-somos', 'Quem somos', ['O Kash é um aplicativo de organização financeira pessoal, disponível para iPhone, Android e navegador. Esta política explica quais dados pessoais tratamos, por que, e quais são os seus direitos, de acordo com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD).']],
+      ['dados', 'Quais dados coletamos', ['Coletamos apenas o necessário para o Kash funcionar:'],
+        ['Dados de cadastro: nome, e-mail e, se você informar, número de celular.', 'Dados financeiros que você mesmo lança: gastos, entradas, cartões (apelido, últimos 4 dígitos, limite e datas), contas bancárias (apelido e saldo), contas fixas e metas.', 'Dados técnicos: tipo de aparelho, sistema operacional, versão do app e registros de erro, para manter o serviço estável.']],
+      ['nao-coletamos', 'O que não coletamos', [],
+        ['Senhas de banco ou acesso às suas contas bancárias.', 'Número completo do cartão, CVV ou data de validade.', 'Sua localização.', 'Contatos, fotos ou arquivos do seu aparelho.']],
+      ['uso', 'Como usamos seus dados', ['Usamos seus dados para:'],
+        ['Mostrar seu saldo, faturas, parcelas, previsões, relatórios e metas.', 'Enviar lembretes de contas, se você ativar essa opção.', 'Sincronizar suas informações entre celular e navegador.', 'Garantir a segurança da sua conta e corrigir problemas técnicos.', 'Cumprir obrigações legais.']],
+      ['bases', 'Bases legais', ['Tratamos seus dados com base na execução do contrato (para prestar o serviço que você pediu), no seu consentimento (por exemplo, para lembretes), no legítimo interesse (segurança e melhoria do app) e no cumprimento de obrigação legal, conforme o artigo 7º da LGPD.']],
+      ['compartilhamento', 'Compartilhamento', ['Não vendemos seus dados e não usamos seus gastos para mostrar anúncios. Compartilhamos dados apenas com fornecedores que nos ajudam a operar o Kash, como hospedagem em nuvem e envio de e-mails, sempre sob contrato e com o mínimo necessário. Também podemos compartilhar dados se houver ordem judicial ou exigência legal.']],
+      ['seguranca', 'Armazenamento e segurança', ['Seus dados ficam em servidores localizados no Brasil, com criptografia em trânsito e em repouso. O acesso interno é restrito a pessoas que precisam dele para manter o serviço.']],
+      ['retencao', 'Por quanto tempo guardamos', ['Guardamos seus dados enquanto sua conta estiver ativa. Quando você exclui a conta, apagamos seus dados em até 30 dias, exceto o que a lei nos obrigar a manter por mais tempo.']],
+      ['direitos', 'Seus direitos', ['Você pode, a qualquer momento:'],
+        ['Confirmar se tratamos seus dados e acessá-los.', 'Corrigir dados incompletos ou desatualizados.', 'Exportar seus dados.', 'Revogar consentimentos, como os lembretes.', 'Excluir sua conta e todos os seus dados, direto em Perfil → Excluir conta.']],
+      ['menores', 'Menores de idade', ['O Kash pode ser usado por pessoas a partir de 15 anos. Se você tem menos de 18 anos, recomendamos usar o app com o conhecimento de um responsável. Não coletamos dados além dos descritos aqui, independentemente da idade.']],
+      ['alteracoes', 'Alterações nesta política', ['Podemos atualizar esta política. Quando a mudança for relevante, avisaremos pelo app ou por e-mail antes de ela entrar em vigor.']],
+    ];
+    const sections = S.map(([id, h, ps, list], i) => ({id, h, n: i + 1, ps, list: list || [], hasList: !!(list && list.length)}));
+    return {sections};
+  }
+}
+</script>
+</body>
+</html>

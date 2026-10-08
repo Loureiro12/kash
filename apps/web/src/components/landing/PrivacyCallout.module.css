@@ -1,0 +1,66 @@
+.section {
+  padding-top: var(--section-gap);
+}
+.card {
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: clamp(28px, 6vw, 64px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 32px;
+  align-items: center;
+}
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.title {
+  font-weight: 800;
+  font-size: var(--fs-h2);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+.text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+.link {
+  font-weight: 600;
+  font-size: var(--fs-body);
+  margin-top: 4px;
+  align-self: flex-start;
+  padding-block: 6px;
+}
+.points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.point {
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+@media (min-width: 640px) {
+  .card {
+    gap: 40px;
+  }
+}

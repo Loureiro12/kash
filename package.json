@@ -23,7 +23,10 @@
     "functions:deploy": "supabase functions deploy delete-account --project-ref \"$SUPABASE_PROJECT_REF\"",
     "deploy:backend": "pnpm db:push && pnpm functions:deploy && pnpm config:push",
     "test:all": "pnpm test && pnpm test:backend",
-    "dev:prod": "pnpm --filter mobile start:prod"
+    "dev:prod": "pnpm --filter mobile start:prod",
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "e2e:web": "pnpm --filter web test:e2e"
   },
   "devDependencies": {
     "prettier": "^3.9.9",

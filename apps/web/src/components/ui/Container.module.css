@@ -1,0 +1,14 @@
+.container {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.default {
+  max-width: var(--container);
+}
+.narrow {
+  max-width: var(--container-narrow);
+}
+.doc {
+  max-width: var(--container-doc);
+}

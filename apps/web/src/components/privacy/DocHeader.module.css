@@ -1,0 +1,15 @@
+.header {
+  border-bottom: 1px solid var(--line);
+}
+.inner {
+  min-height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.back {
+  margin-left: auto;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  padding-block: 8px;
+}

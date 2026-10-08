@@ -1,0 +1,49 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+  padding-top: 72px;
+}
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  align-items: center;
+}
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 520px;
+}
+.title {
+  font-weight: 800;
+  font-size: var(--fs-h2-feature);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+.text {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+@media (min-width: 900px) {
+  .list {
+    gap: 96px;
+    padding-top: 80px;
+  }
+  .row {
+    flex-direction: row;
+    gap: 56px;
+  }
+  .row > * {
+    flex: 1 1 0;
+  }
+  .reverse {
+    flex-direction: row-reverse;
+  }
+  .copy {
+    gap: 18px;
+  }
+}

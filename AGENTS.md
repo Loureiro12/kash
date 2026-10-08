@@ -1,6 +1,6 @@
 # Kash — guia para agentes
 
-Monorepo pnpm + Turborepo. App Expo SDK 57 em `apps/mobile`; regras puras em `packages/domain` (`@kash/domain`). Leia `README.md` para a arquitetura e `docs/plano-integracao-supabase.md` para as fases de integração.
+Monorepo pnpm + Turborepo. App Expo SDK 57 em `apps/mobile`; site Next.js 16 em `apps/web` (leia `apps/web/README.md` e os docs do Next em `node_modules/next/dist/docs` antes de mexer: a API mudou); regras puras em `packages/domain` (`@kash/domain`). Leia `README.md` para a arquitetura e `docs/plano-integracao-supabase.md` para as fases de integração.
 
 - Use `npx expo install <pkg>` para dependências (resolve versões compatíveis com o SDK).
 - No app: rotas em `apps/mobile/app/`; código em `apps/mobile/src/` com alias `@/`. Telas em `src/features/<area>`.
