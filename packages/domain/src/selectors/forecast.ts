@@ -62,3 +62,34 @@ export function forecastHeights(months: ForecastMonth[], min = 8): number[] {
   const max = Math.max(...months.map((m) => m.total), 1);
   return months.map((m) => Math.max(min, Math.round((m.total / max) * 100)));
 }
+
+export interface ForecastSelection {
+  month: ForecastMonth;
+  /** soma do próximo mês até o selecionado (inclusive) */
+  cumulative: number;
+  /** quantos meses entram no acumulado */
+  monthsCounted: number;
+  /** % do limite mensal comprometido no mês selecionado (0 se não há limite) */
+  pctOfBudget: number;
+  /** limite − total do mês: positivo = sobra, negativo = passa do limite */
+  leftover: number;
+}
+
+/**
+ * Resumo do mês tocado na previsão: total do mês, acumulado desde o próximo mês e comparação com o
+ * limite mensal. Offset fora da lista cai no primeiro mês.
+ */
+export function forecastSelection(months: ForecastMonth[], offset: number, budget: number): ForecastSelection | null {
+  const idx = Math.max(0, months.findIndex((m) => m.offset === offset));
+  const month = months[idx];
+  if (!month) return null;
+  const counted = months.slice(0, idx + 1);
+  const cumulative = round2(counted.reduce((sum, m) => sum + m.total, 0));
+  return {
+    month,
+    cumulative,
+    monthsCounted: counted.length,
+    pctOfBudget: budget > 0 ? Math.round((month.total / budget) * 100) : 0,
+    leftover: round2(budget - month.total),
+  };
+}

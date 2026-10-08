@@ -24,11 +24,17 @@ name: Relatório, Previsão, Termos e Privacidade
     id: "home-forecast-card"
 - assertVisible:
     id: "forecast-screen"
-- assertVisible: "Contas fixas"
-- assertVisible: "Parcelas"
+- assertVisible: "Contas fixas R\\$ .*"
+- assertVisible: "Parcelas R\\$ .*"
 - assertVisible: "Celular novo (6/12)"
+- assertVisible: "Acumulado em .*"
 - tapOn:
     id: "forecast-month-4"
+- assertVisible:
+    id: "forecast-month-4"
+    selected: true
+# o cartão de cima passa a mostrar o mês tocado e soma os meses até ele
+- assertVisible: "Acumulado de .* a .*"
 - assertVisible: "Celular novo (9/12)"
 - assertNotVisible: "Tênis de corrida"
 - tapOn:

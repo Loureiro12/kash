@@ -62,7 +62,7 @@
 **Contas e compromissos**
 - Contas bancárias, poupança e carteira com saldo calculado.
 - Contas fixas (aluguel, internet, assinaturas) cobradas em conta ou cartão; marcar como paga gera o lançamento.
-- Previsão dos próximos meses com o que já está comprometido em contas fixas e parcelas.
+- Previsão dos próximos 6 meses com o que já está comprometido em contas fixas e parcelas: tocar num mês mostra o total dele, a divisão, quanto sobra do limite e o acumulado até ali.
 
 **Metas**
 - Progresso em anel, aporte mensal, dia do depósito e conta onde o dinheiro fica guardado.

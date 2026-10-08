@@ -5,7 +5,7 @@ import { activePlans, cardDates, cardUsage, installmentPreview } from '../select
 import { billSourceName, billsSummary, cardBills, upcomingBills } from '../selectors/bills';
 import { addToGoal, depositLabel, depositStatus, goalProgress, recordDeposit, totalSaved } from '../selectors/goals';
 import { categoryBreakdown, monthDelta, monthlyHistory, topCategoryTip } from '../selectors/report';
-import { forecast, forecastHeights } from '../selectors/forecast';
+import { forecast, forecastHeights, forecastSelection } from '../selectors/forecast';
 import { monthIncome, monthSpent, totalBalance } from '../selectors/balance';
 import { filterTxs, groupTxsByDay, monthTitle, sourceOptions, txTotals, txView, txsOfMonth } from '../selectors/transactions';
 
@@ -159,6 +159,22 @@ describe('previsão', () => {
   it('alturas relativas', () => {
     const f = forecast(seed.plans, seed.bills, seed.cards, now);
     expect(forecastHeights(f)[0]).toBe(100);
+  });
+  it('mês selecionado: total, acumulado desde o próximo mês e comparação com o limite', () => {
+    const f = forecast(seed.plans, seed.bills, seed.cards, now);
+    const first = forecastSelection(f, 1, 1800)!;
+    expect(first).toMatchObject({ cumulative: 1214.4, monthsCounted: 1, pctOfBudget: 67, leftover: 585.6 });
+    expect(first.month.name).toBe('novembro');
+    const fourth = forecastSelection(f, 4, 1800)!;
+    const expected = f.slice(0, 4).reduce((a, m) => a + m.total, 0);
+    expect(fourth.cumulative).toBeCloseTo(expected, 2);
+    expect(fourth.monthsCounted).toBe(4);
+    expect(fourth.month.total).toBeCloseTo(924.6 + 199.9, 2);
+    // limite menor que o comprometido: leftover negativo
+    expect(forecastSelection(f, 1, 1000)!.leftover).toBeCloseTo(-214.4, 2);
+    // sem limite e offset inválido
+    expect(forecastSelection(f, 99, 0)).toMatchObject({ pctOfBudget: 0, monthsCounted: 1 });
+    expect(forecastSelection([], 1, 1800)).toBeNull();
   });
 });
 
