@@ -92,10 +92,10 @@ describe('contas fixas', () => {
 
 describe('metas', () => {
   it('progresso e ETA', () => {
-    expect(goalProgress(seed.goals[0]!)).toMatchObject({ pct: 41, monthsLeft: 6, eta: 'Faltam ~6 meses nesse ritmo', done: false });
+    expect(goalProgress(seed.goals[0]!)).toMatchObject({ pct: 41, monthsLeft: 6, eta: 'Faltam 6 meses nesse ritmo', done: false });
   });
   it('singular de mês', () => {
-    expect(goalProgress({ id: 'g', name: 'x', target: 100, saved: 50, color: '#fff', monthly: 60 }).eta).toBe('Faltam ~1 mês nesse ritmo');
+    expect(goalProgress({ id: 'g', name: 'x', target: 100, saved: 50, color: '#fff', monthly: 60 }).eta).toBe('Faltam 1 mês nesse ritmo');
   });
   it('meta batida', () => {
     expect(goalProgress({ id: 'g', name: 'x', target: 100, saved: 100, color: '#fff', monthly: 10 })).toMatchObject({ pct: 100, eta: 'Meta batida!', done: true });

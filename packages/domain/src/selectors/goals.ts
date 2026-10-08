@@ -14,7 +14,7 @@ export function goalProgress(goal: Goal): GoalProgress {
   const pct = goal.target > 0 ? Math.min(100, Math.round((goal.saved / goal.target) * 100)) : 0;
   const monthsLeft = goal.monthly > 0 ? Math.max(0, Math.ceil((goal.target - goal.saved) / goal.monthly)) : 0;
   const done = goal.saved >= goal.target;
-  const eta = done ? 'Meta batida!' : `Faltam ~${monthsLeft} ${monthsLeft === 1 ? 'mês' : 'meses'} nesse ritmo`;
+  const eta = done ? 'Meta batida!' : `Faltam ${monthsLeft} ${monthsLeft === 1 ? 'mês' : 'meses'} nesse ritmo`;
   return { pct, monthsLeft, eta, done };
 }
 

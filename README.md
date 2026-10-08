@@ -1,163 +1,251 @@
-# Kash — app de finanças pessoais (mobile)
+# Kash
 
-App mobile de finanças pessoais para 15–30 anos com lançamento manual. Esta fase cobre **toda a camada visual** com dados de demonstração; integrações (auth real, persistência, API) vêm na próxima fase.
+**Sua grana, sem mistério.** App de finanças pessoais para quem tem entre 15 e 30 anos: cartões, contas e boletos num lugar só, lançamento de gasto em 3 toques e uma resposta clara para "quanto sobra até o fim do mês".
 
-Stack: **React Native + Expo SDK 57 · TypeScript · Expo Router · Zustand · Reanimated 4 · Jest/RNTL · Maestro**.
+[![CI](https://github.com/Loureiro12/kash/actions/workflows/ci.yml/badge.svg)](https://github.com/Loureiro12/kash/actions/workflows/ci.yml)
+![Expo SDK 57](https://img.shields.io/badge/Expo-SDK%2057-000020?logo=expo)
+![React Native 0.86](https://img.shields.io/badge/React%20Native-0.86-61DAFB?logo=react)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth-3FCF8E?logo=supabase)
+![iOS e Android](https://img.shields.io/badge/plataformas-iOS%20%7C%20Android-lightgrey)
 
-## Monorepo
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home.png" width="200" alt="Início"><br><sub>Início</sub></td>
+    <td align="center"><img src="docs/screenshots/sheet.png" width="200" alt="Lançar gasto"><br><sub>Lançar gasto</sub></td>
+    <td align="center"><img src="docs/screenshots/cards.png" width="200" alt="Cartões"><br><sub>Cartões e fatura</sub></td>
+    <td align="center"><img src="docs/screenshots/goals.png" width="200" alt="Metas"><br><sub>Metas</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/accounts.png" width="200" alt="Contas"><br><sub>Contas</sub></td>
+    <td align="center"><img src="docs/screenshots/report.png" width="200" alt="Relatório"><br><sub>Relatório</sub></td>
+    <td align="center"><img src="docs/screenshots/forecast.png" width="200" alt="Previsão"><br><sub>Previsão</sub></td>
+    <td align="center"><img src="docs/screenshots/profile.png" width="200" alt="Perfil"><br><sub>Perfil</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/onboarding.png" width="200" alt="Onboarding"><br><sub>Onboarding</sub></td>
+    <td align="center"><img src="docs/screenshots/login.png" width="200" alt="Login"><br><sub>Login</sub></td>
+    <td align="center"><img src="docs/screenshots/home-light.png" width="200" alt="Tema claro"><br><sub>Tema claro</sub></td>
+    <td></td>
+  </tr>
+</table>
 
-```
-apps/mobile/          app Expo (design system, telas, store, e2e Maestro)
-packages/domain/      @kash/domain — regras puras (tipos, dinheiro, datas, seletores, virada de mês) + seed de dev
-packages/config/      tsconfig base compartilhado
-supabase/             (Fase 1) migrações, seed, funções e testes do backend
-docs/                 plano de integração
-```
+---
 
-pnpm workspaces + Turborepo. Comandos na raiz:
+## Sumário
+
+- [Funcionalidades](#funcionalidades)
+- [Stack](#stack)
+- [Começando](#começando)
+- [Comandos](#comandos)
+- [Estrutura do monorepo](#estrutura-do-monorepo)
+- [Arquitetura](#arquitetura)
+- [Regras de negócio](#regras-de-negócio)
+- [Backend (Supabase)](#backend-supabase)
+- [Testes](#testes)
+- [Design system](#design-system)
+- [Produção e release](#produção-e-release)
+- [Documentação complementar](#documentação-complementar)
+
+## Funcionalidades
+
+**Dinheiro do dia a dia**
+- Saldo total, entradas e saídas do mês, com opção de esconder os valores.
+- Limite mensal de gastos com barra de progresso e "quanto sobra pra fechar o mês no verde".
+- Lançamento de gasto ou entrada pelo botão central: teclado numérico próprio, categoria, origem (cartão ou conta), descrição e data.
+- Lista completa de lançamentos por mês, com filtros, edição e exclusão com "Desfazer".
+
+**Cartões de crédito**
+- Fatura atual, limite usado e disponível, datas de fechamento e vencimento.
+- Compras parceladas, inclusive **compras antigas**: informe o mês da 1ª parcela e o app calcula quais já foram pagas e lança só as que faltam.
+- Virada de mês automática: fecha a fatura, avisa e permite "Pagar fatura" debitando uma conta.
+
+**Contas e compromissos**
+- Contas bancárias, poupança e carteira com saldo calculado.
+- Contas fixas (aluguel, internet, assinaturas) cobradas em conta ou cartão; marcar como paga gera o lançamento.
+- Previsão dos próximos meses com o que já está comprometido em contas fixas e parcelas.
+
+**Metas**
+- Progresso em anel, aporte mensal, dia do depósito e conta onde o dinheiro fica guardado.
+- Lembrete quando o depósito do mês está pendente.
+
+**Conta e privacidade**
+- Cadastro, login, alterar senha e **recuperação de senha por código** enviado por e-mail.
+- Sessão criptografada no aparelho.
+- Tema escuro e claro, lembretes por notificação local, relatório por categoria.
+- Exportar todos os dados em JSON e excluir a conta pelo próprio app.
+
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| App | React Native 0.86 · Expo SDK 57 · TypeScript · Expo Router |
+| Estado | Zustand (cache normalizada) · TanStack Query (snapshot do servidor, persistido) |
+| UI | Design system próprio · Reanimated 4 · react-native-svg · Lucide · fonte Sora |
+| Backend | Supabase: Postgres com RLS, Auth, RPCs em SQL, Edge Function (Deno), `pg_cron` |
+| Testes | Vitest · Jest + Testing Library · pgTAP · Deno test · Maestro (E2E) |
+| Monorepo | pnpm workspaces · Turborepo |
+| Entrega | EAS Build, EAS Submit e EAS Update · GitHub Actions |
+
+## Começando
+
+**Pré-requisitos**
+- Node 20+ e pnpm 10 (`corepack enable`).
+- Xcode com simulador iOS e/ou Android Studio com emulador.
+- Docker Desktop aberto, para o Supabase local.
+- [Supabase CLI](https://supabase.com/docs/guides/cli) e, para E2E, o [Maestro](https://docs.maestro.dev/getting-started/installing-maestro).
+
+**Primeira vez**
 
 ```bash
 pnpm install
-pnpm ios          # build nativo (dev client) + simulador iOS
-pnpm dev          # Metro do app (depois do primeiro build)
-
-pnpm typecheck    # todos os pacotes (turbo)
-pnpm test         # unitários: domínio (Vitest) e app (Jest)
-pnpm test:backend # pgTAP + integração do client (exige Supabase local)
-pnpm test:all     # os dois
-pnpm lint
-pnpm test         # Jest no app + Vitest no domínio
-pnpm e2e:ios      # ponta a ponta (Maestro) — ver apps/mobile/e2e/README.md
+pnpm db:start                                  # sobe o Supabase local (Docker)
+cp apps/mobile/.env.example apps/mobile/.env   # preencha com `supabase status -o env`
+pnpm ios                                       # gera o dev client e abre no simulador
 ```
 
-Dentro de `apps/mobile` os scripts `start`, `ios`, `test`, `lint`, `typecheck` continuam funcionando.
+Depois do primeiro build, basta `pnpm dev` para subir o Metro. Entre com a usuária de demonstração **`lara@email.com` / `123456`**, criada pelo seed do banco local.
 
-> O app usa módulos nativos (Reanimated, SVG, gradientes), então precisa de **dev build** (`pnpm ios`), não do Expo Go.
+> O app usa módulos nativos (Reanimated, SVG, notificações, compartilhamento), então roda em **dev build**, não no Expo Go. Mudou dependência nativa ou plugin no `app.json`? Rode `npx expo prebuild --clean` e `pnpm ios` de novo.
+
+**Variáveis de ambiente** (`apps/mobile/.env`, fora do git)
+
+| Variável | Para que serve |
+|---|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | URL do Supabase (local: `http://127.0.0.1:54321`) |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | chave pública do projeto |
+| `EXPO_PUBLIC_DATA_SOURCE` | `seed` roda só com dados de demonstração em memória, sem backend |
+| `EXPO_PUBLIC_LOG_REQUESTS` | `1` imprime cada requisição ao Supabase no terminal do Metro |
+
+## Comandos
+
+Todos na raiz do repositório.
+
+| Comando | O que faz |
+|---|---|
+| `pnpm ios` / `pnpm dev` | build nativo no simulador / só o Metro |
+| `pnpm dev:prod` | Metro apontando para a **produção**, com log de requisições (lê `apps/mobile/.env.prod`) |
+| `pnpm typecheck` · `pnpm lint` | TypeScript e ESLint em todos os pacotes |
+| `pnpm test` | testes unitários: domínio (Vitest) e app (Jest) |
+| `pnpm test:backend` | pgTAP + integração do client contra o Supabase local |
+| `pnpm test:all` | os dois acima |
+| `pnpm e2e:ios` | fluxos Maestro no simulador, com o banco resetado antes de cada um |
+| `pnpm db:start` · `db:stop` · `db:reset` | ciclo de vida do Supabase local |
+| `pnpm db:test` | só pgTAP |
+| `pnpm db:types` | regenera os tipos do banco (a CI falha se houver diferença) |
+| `pnpm deploy:backend` | migrações, Edge Function e config de auth no projeto de produção |
+
+Antes de abrir PR: `pnpm typecheck && pnpm lint && pnpm test`, e `pnpm test:backend` se mexeu no banco.
+
+## Estrutura do monorepo
+
+```
+apps/mobile/              app Expo
+  app/                    rotas (Expo Router): (auth) e (app) protegidas por estado de auth
+  src/design-system/      tokens, tema e ~30 componentes; não conhece o domínio
+  src/features/<área>/    telas e sheets: home, cards, accounts, goals, transactions, profile, auth…
+  src/store/              Zustand (estado + ações) e hooks derivados consumidos pelas telas
+  src/data/               TanStack Query, sincronização com o servidor e escritas otimistas
+  src/services/           Supabase (sessão segura), notificações, log de requisições
+  e2e/                    fluxos Maestro e runner com reset do banco
+packages/domain/          @kash/domain: regras de negócio puras (sem React), testadas com Vitest
+packages/supabase-client/ @kash/supabase-client: cliente tipado, repositórios, RPCs, erros, mappers
+packages/config/          tsconfig base
+supabase/                 migrações, seed, testes pgTAP, Edge Functions, templates de e-mail
+docs/                     plano de integração, guia de release, screenshots
+scripts/                  utilitários de deploy
+```
 
 ## Arquitetura
 
-Camadas com dependência em uma direção só: `app → features → store → design-system → @kash/domain`. O design system importa do domínio apenas as cores de categoria.
-
-Caminhos abaixo são relativos a `apps/mobile`, exceto `packages/domain`.
+As dependências apontam para um lado só:
 
 ```
-app/                    Rotas (Expo Router). Arquivos finos: só montam a tela da feature.
-  _layout.tsx           Fonts, ThemeProvider, guards de auth (Stack.Protected), ToastHost
-  (auth)/               onboarding, login
-  (app)/_layout.tsx     Stack logado + FloatingTabBar + SheetsHost
-  (app)/(tabs)/         index (Início), cards, accounts, goals
-  (app)/report|forecast|transactions|terms|privacy   páginas internas (push)
-  (app)/profile/                                 index, personal, security, budget, currency, help
-
-src/design-system/      Design system — nada aqui conhece o domínio
-  tokens/               cores (dark/light), tipografia Sora, spacing, radii, shadows, motion
-  theme/                ThemeProvider + useTheme (o modo vem de fora)
-  components/           26 primitivos: Text, Button, Card, Chip, Input, Switch, ProgressBar,
-                        ProgressRing, BottomSheet, Toast, Keypad, SegmentedControl, ListRow…
-  icons/                wrapper do Lucide (stroke 2.2)
-
-packages/domain/src/    @kash/domain — regras de negócio puras (sem React), testadas com Vitest
-  types.ts              Account, Card, Tx, Bill, Goal, Plan, Invoice, Settings
-  categories.ts         cores de categoria e ids de gradiente (compartilhados com o backend)
-  money.ts dates.ts     formatação BRL determinística, datas relativas, nomes de mês
-  selectors/            orçamento, fatura/parcelas, contas fixas, metas, relatório, previsão, rollover
-  fixtures/seed.ts      dados de demonstração
-
-src/store/              Zustand: estado + ações; seed mock; hooks derivados (useHomeSummary…)
-src/features/           Uma pasta por área: telas e sheets que compõem DS + store
-src/lib/                clock injetável (testes), ids
-e2e/                    Fluxos Maestro
+app (rotas) → features (telas) → store / data → design-system
+                                     ↓
+                     @kash/supabase-client → @kash/domain
 ```
 
-Decisões:
-- **Tab bar flutuante fora dos navegadores** (`(app)/_layout`): continua visível em páginas internas sem aba ativa, como no protótipo, e as páginas internas usam push/swipe-back nativo.
-- **Sheets globais** montados uma vez (`SheetsHost`) e controlados pelo store (`ui.sheet`). Cada formulário é remontado por `key = ui.sheetNonce`, então abre sempre limpo sem efeitos de reset.
-- **CTA fixo no rodapé dos sheets** (`BottomSheet footer`): o botão principal fica sempre visível, mesmo com o teclado aberto ou o conteúdo rolando; o sheet encolhe para o espaço restante abaixo da status bar.
-- **Editar e excluir tudo**: cartões (botão "Editar" no limite), contas (toque na linha), contas fixas e metas (toque longo) reabrem o sheet de cadastro em modo edição, com exclusão confirmada e regras de cascata (cartão/conta apagam seus lançamentos; conta fixa e meta não mexem em lançamentos).
-- **Estados vazio, carregando e erro**: `EmptyState`, `ScreenSkeleton` e `ErrorState` no design system; `DataGate` lê `ui.dataStatus` (sempre "ready" nesta fase) para a integração plugar carregamento e retry sem tocar nas telas.
-- **Lançamentos completos**: o sheet registra gasto ou entrada, com data (sem datas futuras); tocar numa linha abre para editar ou excluir (com desfazer no toast, e escolha entre uma parcela ou o plano inteiro). A tela "Lançamentos" lista por mês com filtros de tipo e categoria.
-- **Contas fixas cobradas em cartão ou conta** (`bill.sourceId`): marcar como paga gera o lançamento (entra na fatura do cartão ou debita a conta); desmarcar remove. O cartão lista suas cobranças recorrentes.
-- **Metas com depósito mensal**: cada meta pode ter conta onde o dinheiro fica guardado e dia do depósito. Quando o dia chega sem registro no mês, o card entra em "pendente" e o botão vira "Depositar" (sheet com valor sugerido = aporte mensal). O depósito é um registro na meta, não movimenta o saldo da conta.
-- **Regras de cálculo no domínio**, nunca nas telas; hooks em `src/store/hooks.ts` fazem a ponte. Trocar o seed por API depois não toca em componentes.
-- **Dinheiro** formatado por função própria (`formatBRL`) para evitar diferenças de `Intl` entre plataformas; agregados arredondados a 2 casas.
-- **Relógio injetável** (`src/lib/clock.ts`) para congelar "hoje" em testes.
+- **Regras no domínio.** Saldo, fatura, parcelas, orçamento, previsão, virada de mês e lembretes são funções puras em `packages/domain`. As telas só leem hooks de `src/store/hooks.ts`.
+- **Servidor é a verdade, store é a cache.** Uma query carrega o snapshot do usuário e hidrata o Zustand. A cache da query é persistida, então o app abre com os últimos dados mesmo sem rede.
+- **Escritas otimistas.** Cada ação aplica a mudança na hora e chama o repositório ou a RPC correspondente (`src/data/remoteActions.ts`). Dando certo ou não, o snapshot é refeito; erro vira toast e o estado volta ao do servidor.
+- **Sheets globais** montados uma vez e controlados pelo store, com o botão principal fixo no rodapé, visível mesmo com o teclado aberto.
+- **Relógio injetável** (`src/lib/clock.ts`) para congelar "hoje" nos testes.
+- **Dinheiro** formatado por função própria (`formatBRL`), sem depender de `Intl`, e agregados arredondados a 2 casas.
 
-## Design system
+## Regras de negócio
 
-Tokens vêm do handoff (`design_handoff_kash/README.md`) e são a única fonte de cor/tipo/espaço:
+**Virada de mês.** Ao abrir o app, ao voltar ao primeiro plano e diariamente pelo `pg_cron`, a RPC `ensure_rollover` fecha a fatura do mês anterior de cada cartão, volta as contas fixas para "a pagar" e lança a próxima parcela de cada compra parcelada. O pagamento da fatura tem categoria `Fatura` e não conta como gasto, porque as compras já foram contadas ao entrar no cartão.
 
-- Temas escuro (padrão) e claro — `settings.theme` → `ThemeProvider`.
-- `Text` só aceita `variant` da escala tipográfica (`display`, `screenTitle`, `balance`, `section`, `body`, `meta`, `chip`…).
-- Componentes recebem `testID` e semântica de acessibilidade (`accessibilityRole/State/Label`); alvos ≥ 44px.
-- Animações: sheets 300ms `cubic-bezier(.2,.8,.2,1)`, barras/anéis 400ms, switch 200ms, cartão selecionado scale .96→1.
-- Haptics leves em toques de ação (`Pressable haptic`).
+**Compras parceladas antigas.** Ao parcelar no cartão, o lançamento tem "1ª parcela em" (até 23 meses atrás) e "Valor digitado: Total ou Parcela". Com a 1ª parcela no passado, `installmentSchedule` calcula qual parcela cai neste mês. As anteriores contam como pagas e **não** viram lançamento, nem entram em fatura ou relatório. Só a parcela do mês é lançada, e a virada segue com as próximas. Uma compra já quitada não pode ser salva. O mês informado é o da fatura em que a parcela veio, então não depende do dia de fechamento do cartão.
 
-## Ícone e splash
+**Lembretes.** `planReminders` monta a lista de notificações locais: contas fixas e faturas 2 dias antes do vencimento às 9h, dia de depósito das metas e "faturas fecharam" no dia 1º. O app reagenda sempre que os dados mudam e só com a permissão concedida no switch "Lembrete de contas".
 
-Assets em `assets/brand/` (ver `assets/brand/README.md`). O `app.json` aponta:
-- iOS: ícone claro/escuro (`ios.icon.light/dark`), Android: adaptive icon (foreground + fundo `#C6F432` + monocromático gerado).
-- Splash nativa (`expo-splash-screen`): logo isolado centralizado sobre `#C6F432`.
-- Splash animada em código (`src/features/splash/AnimatedSplash.tsx`): segue a spec do handoff (ícone com overshoot, ponto, wordmark, tagline, barra, saída com fade/scale, ~2,8 s) e pode ser pulada com um toque.
+**Recuperação de senha.** O e-mail traz um código (6 dígitos no local, 8 no projeto hospedado) que o usuário digita na tela "Esqueci a senha". O código vira uma sessão de recuperação, em que só a tela de nova senha existe. O mesmo e-mail mantém um deep link `kash://reset-password` como atalho.
 
-Mudou ícone ou splash? Regere o projeto nativo: `npx expo prebuild --clean` e depois `pnpm ios`.
-
-## Testes
-
-- **Unitários** (`src/**/__tests__`): seletores de domínio, store (fluxos de auth, lançar gasto, parcelas, metas), componentes do DS e o sheet de gasto.
-- **E2E** (`e2e/flows`): onboarding → login, Início, lançar gasto (à vista e parcelado), cartões, contas (bancárias/fixas), metas, páginas internas, perfil/exclusão de conta. Rodam no app real via Maestro.
-
-Convenção de `testID`: kebab-case por área: `tab-add`, `chip-cat-Comida`, `bill-bill2`, `sheet-expense-close`, `report-back`.
+**Exportar e excluir.** "Exportar meus dados" chama a RPC `export_my_data` e abre a folha de compartilhamento com um JSON versionado (`kash-export/1`). "Excluir conta" chama a Edge Function `delete-account`, que apaga o usuário e todos os dados em cascata.
 
 ## Backend (Supabase)
 
-Schema, RLS, views e RPCs em `supabase/migrations`; seed local com a usuária Lara (`lara@email.com` / `123456`) e helpers de teste em `supabase/seed.sql`; testes pgTAP em `supabase/tests`. O pacote `@kash/supabase-client` expõe o cliente tipado, repositórios e mappers para o domínio, com testes de integração (Vitest) contra o banco local.
+- **Schema** em `supabase/migrations`: RLS por `auth.uid()` em todas as tabelas, `user_id` preenchido por padrão.
+- **Saldos como views.** Saldo de conta é abertura mais lançamentos; uso do cartão é o mês corrente.
+- **Escritas de várias linhas como RPCs:** `add_installment_purchase`, `pay_bill`, `pay_invoice`, `record_goal_deposit`, `soft_delete_transaction` e `undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`, `export_my_data`.
+- **Seed local** com a usuária Lara e ids fixos, usados pelos testes E2E.
+- **Fuso único** America/Sao_Paulo para "hoje" e virada de mês.
+
+## Testes
+
+| Camada | Ferramenta | Onde |
+|---|---|---|
+| Regras de negócio | Vitest | `packages/domain/src/__tests__` |
+| Componentes, telas, store, sincronização | Jest + Testing Library | `apps/mobile/src/**/__tests__` |
+| Banco: RLS, RPCs, virada de mês | pgTAP | `supabase/tests` |
+| Client contra o banco real | Vitest | `packages/supabase-client/tests` |
+| Edge Function | `deno test` | `supabase/functions` |
+| Ponta a ponta no app | Maestro (15 fluxos) | `apps/mobile/e2e/flows` |
+
+Os fluxos E2E cobrem onboarding e login, Início, lançar gasto à vista e parcelado, parcelamento antigo, cartões e fatura, contas, metas, páginas internas, editar e excluir, perfil e configurações, exportar dados, esqueci a senha com código e exclusão de conta. O runner reseta o banco antes de cada fluxo; detalhes em [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md).
+
+Todo elemento interativo tem `testID` em kebab-case (`tab-add`, `chip-cat-Comida`, `expense-first-month-prev`) e props de acessibilidade.
+
+## Design system
+
+- **Tokens são a única fonte** de cor, tipografia, espaço, raio, sombra e movimento (`src/design-system/tokens`). Telas nunca usam hex solto.
+- **Temas escuro (padrão) e claro**, trocados em Perfil.
+- **`Text` só aceita variantes da escala** tipográfica Sora.
+- **Acessibilidade:** alvos de toque de 44 px ou mais, rótulos e estados em todos os controles, campos de senha com botão de mostrar e ocultar.
+- **Movimento:** sheets em 300 ms, barras e anéis em 400 ms, haptics leves em ações.
+- **Ícone e splash** em `apps/mobile/assets/brand`. A splash animada fica em `src/features/splash/AnimatedSplash.tsx`.
+
+## Produção e release
+
+| | |
+|---|---|
+| Identificador | `com.andreloureiro.kash` (iOS e Android) |
+| Supabase | projeto `kash`, migrações aplicadas pela CI em todo push na `main` que mude `supabase/**` |
+| Builds | EAS Build, perfis `development`, `preview` e `production` em `apps/mobile/eas.json` |
+| Distribuição | TestFlight (App Store Connect) e Google Play, via EAS Submit |
+| Atualizações | EAS Update no canal `production`, `runtimeVersion` igual à versão do app |
+
+**Só JS mudou?** Publique um update:
 
 ```bash
-pnpm db:start        # sobe o stack local (Docker)
-pnpm db:reset        # reaplica migrações + seed
-pnpm db:test         # pgTAP
-pnpm test:backend    # pgTAP + integração
-pnpm db:types        # regenera packages/supabase-client/src/database.types.ts (o CI falha se houver drift)
-(cd supabase/functions && deno test)   # Edge Functions
+cd apps/mobile
+eas update --branch production --environment production --message "o que mudou"
 ```
 
-O app lê `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY` de `apps/mobile/.env` (ver `.env.example`; valores do `supabase status -o env`).
+**Mudou algo nativo?** Gere e envie um build novo:
 
-Decisões (ver `docs/plano-integracao-supabase.md`): saldo de conta é uma view (abertura + lançamentos), escritas multi-linha são RPCs (`pay_bill`, `pay_invoice`, `add_installment_purchase`, `soft_delete_transaction`/`undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`), e a virada de mês roda por RPC ao abrir o app e por `pg_cron` diariamente.
+```bash
+eas build -p ios --profile production --non-interactive --no-wait
+eas submit -p ios --latest --non-interactive
+```
 
-## Dados do servidor (TanStack Query)
+Se a mudança inclui migração de banco, ela precisa estar em produção **antes** do update do app. O passo a passo completo está em [`docs/release.md`](docs/release.md).
 
-`apps/mobile/src/data/`: uma query carrega o snapshot do usuário (`loadSnapshot` do `@kash/supabase-client`, leituras em paralelo) e hidrata o Zustand, que continua sendo a cache normalizada consumida pelas telas; a cache da query é persistida no AsyncStorage, então o app abre com os últimos dados mesmo sem rede e refaz a leitura ao voltar ao primeiro plano. `DataGate` lê `ui.dataStatus` (esqueleto enquanto não há dados, erro com "tentar de novo" que refaz a query). `EXPO_PUBLIC_DATA_SOURCE=seed` mantém os dados de demonstração em memória (útil sem backend).
+## Documentação complementar
 
-Escritas (`apps/mobile/src/data/remoteActions.ts`): cada ação do store continua aplicando a mudança localmente (otimista) e ganha um "depois" que chama o repositório ou a RPC correspondente via `persist`; dando certo ou não, o snapshot é refeito, então o servidor é a verdade (ids reais substituem os temporários, erro vira toast e o estado volta ao do servidor). Excluir lançamento usa soft delete no servidor e "Desfazer" chama a RPC de undo. A virada de mês no modo remoto é a RPC `ensure_rollover`.
-
-## Auth e virada de mês
-
-- Login, cadastro e "esqueci a senha" usam o Supabase Auth via `@kash/supabase-client`; a sessão fica criptografada no aparelho (chave AES no SecureStore, payload no AsyncStorage) e o app abre direto na Início quando há sessão. Excluir conta chama a Edge Function `delete-account`. No local, a usuária do seed é `lara@email.com` / `123456`.
-- Alterar senha (Perfil › Segurança) re-autentica com a senha atual e grava a nova (`changePassword` no client; erros: senha atual incorreta, nova igual à atual).
-- Recuperar senha: o e-mail (template em `supabase/templates/recovery.html`) traz um **código** (6 dígitos local, 8 no projeto hospedado) que o usuário digita na própria tela de esqueci a senha (`verifyRecoveryCode` → sessão `recovery` → tela de nova senha). O mesmo e-mail mantém, como atalho, o deep link `kash://reset-password?token_hash=…`; o app (`src/features/auth/useAuthLinks.ts`) troca o token por sessão (`recoverSessionFromUrl`), entra no estado `recovery`, em que só a tela de nova senha existe, e ao salvar cai na Início. Links expirados viram toast. Em produção, prefira um universal link (https) que redirecione para o esquema, porque alguns clientes de e-mail não tornam `kash://` clicável — fica para a Fase 6.
-- Virada de mês (`src/domain/selectors/rollover.ts`, acionada ao abrir o app e ao voltar ao primeiro plano): fecha a fatura de cada cartão com o total do mês anterior, zera "paga" das contas fixas e lança a parcela do mês de cada parcelamento. A fatura fechada aparece na Início e no cartão, com "Pagar fatura" debitando uma conta; o pagamento tem categoria `Fatura` e não entra como gasto no relatório (os gastos já foram contados ao serem lançados no cartão).
-
-## Compras parceladas antigas
-
-Ao parcelar no cartão, o lançamento mostra "1ª parcela em" (mês, até 23 meses atrás) e "Valor digitado: Total | Parcela". Com a 1ª parcela no passado, `installmentSchedule` (`@kash/domain`) calcula qual parcela cai no mês atual: as anteriores contam como pagas e **não** viram lançamento nem entram em fatura/relatório; só a parcela do mês é lançada (datada no mês atual) e a virada de mês segue com as próximas. Uma compra cujas parcelas já passaram todas não pode ser salva. No servidor, `add_installment_purchase` recebe `p_current` (migração `20261008000000_installment_start.sql`, pgTAP `007`). O mês é o da fatura em que a parcela veio, por isso não depende do dia de fechamento.
-
-## Exportar dados (privacidade)
-
-- Perfil › "Exportar meus dados" chama a RPC `export_my_data` (SQL puro sob RLS; devolve perfil, configurações e todas as coleções, inclusive lançamentos excluídos com `deleted_at`, num JSON versionado `kash-export/1`), grava `kash-export-<data>.json` no cache (`expo-file-system`) e abre a folha de compartilhamento (`expo-sharing`). No modo `seed` o JSON vem do store. Hook em `src/features/profile/useExportData.ts`; testes em pgTAP (`006_export.sql`), Vitest (`tests/export.test.ts`) e Jest.
-
-## Rodar local contra a produção
-
-`pnpm dev:prod` sobe o Metro com as variáveis de `apps/mobile/.env.prod` (gitignored: URL e anon key de produção, `EXPO_PUBLIC_LOG_REQUESTS=1`) e cache limpo, porque as variáveis `EXPO_PUBLIC_*` são embutidas no bundle. O dev client instalado no simulador/aparelho é o mesmo. Com o log ligado, cada chamada ao Supabase aparece no terminal como `[http] → POST /auth/v1/token?grant_type=password 200 312ms`; respostas de erro mostram o corpo (sem cabeçalhos nem credenciais). Implementação em `src/services/requestLogger.ts`, injetada como `global.fetch` do supabase-js. Para ver cabeçalhos e payloads completos, use o painel Network do React Native DevTools (tecla `j` no Metro). Volte ao local com `pnpm dev`.
-
-## Lembretes (notificações locais)
-
-- `planReminders` (`@kash/domain`) é pura: a partir de contas fixas, faturas em aberto, metas e `settings.billReminder` devolve a lista de lembretes (2 dias antes do vencimento de contas e faturas às 9h, dia do depósito das metas, aviso "faturas fecharam" no dia 1º). Testada em `packages/domain/src/__tests__/reminders.test.ts`.
-- `src/services/notifications.ts` embrulha o `expo-notifications` (permissão, canal Android, agendar/cancelar serializado). `src/features/notifications/useReminders.ts`: `useReminderSync` reagenda sempre que o plano muda ou o app volta ao primeiro plano; `useNotificationRouting` abre a rota guardada na notificação; `useToggleBillReminder` pede a permissão ao ligar o switch (negada → toast com atalho pros Ajustes).
-- Em dev o Metro loga `[kash] lembretes agendados: N`. No Jest o módulo é mockado em `src/test/setup.ts`.
-
-## Próxima fase (integrações)
-
-Pontos de encaixe já previstos:
-- Fase 6: produção. Ver `docs/release.md` (Supabase de produção via `pnpm deploy:backend` (migrações, Edge Function e `scripts/config-push.sh`, que omite templates de e-mail até existir SMTP próprio) e workflow `deploy-backend.yml`; app via EAS Build/Update, perfis em `apps/mobile/eas.json`, workflow manual `release-app.yml`). `expo-updates` com `runtimeVersion` = versão do app.
-- Moeda: só Real (R$) nesta fase; outras aparecem como "em breve".
+- [`docs/release.md`](docs/release.md): checklist de produção, Supabase, EAS e lojas.
+- [`docs/plano-integracao-supabase.md`](docs/plano-integracao-supabase.md): decisões e fases da integração com o backend.
+- [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md): como rodar os E2E no iOS e no Android.
+- [`apps/mobile/assets/brand/README.md`](apps/mobile/assets/brand/README.md): ícones e splash.
+- [`AGENTS.md`](AGENTS.md): convenções para agentes de código.

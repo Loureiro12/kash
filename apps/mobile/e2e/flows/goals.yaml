@@ -8,7 +8,7 @@ name: Metas — guardar R$ 50
     id: "goals-screen"
 - assertVisible: '.*R\$ 3\.960,00.*'
 - assertVisible: "Viagem pra praia"
-- assertVisible: "Faltam ~6 meses nesse ritmo"
+- assertVisible: "Faltam 6 meses nesse ritmo"
 - tapOn:
     id: "goal-9f000000-0000-4000-8000-000000000001-add"
 - assertVisible: "R$ 50,00 guardados em “Viagem pra praia”"
@@ -41,7 +41,7 @@ name: Metas — guardar R$ 50
 - tapOn:
     id: "add-goal-monthly"
 - inputText: "500"
-- assertVisible: "Faltam ~6 meses nesse ritmo"
+- assertVisible: "Faltam 6 meses nesse ritmo"
 - tapOn:
     id: "add-goal-day"
 - inputText: "15"
