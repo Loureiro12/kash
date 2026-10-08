@@ -16,6 +16,9 @@ export function SiteFooter({ size = 'default' }: { size?: 'default' | 'doc' }) {
           <li>
             <Link href="/privacidade">Política de privacidade</Link>
           </li>
+          <li>
+            <Link href="/excluir-conta">Excluir conta</Link>
+          </li>
           {site.termsUrl ? (
             <li>
               <Link href={site.termsUrl}>Termos de uso</Link>

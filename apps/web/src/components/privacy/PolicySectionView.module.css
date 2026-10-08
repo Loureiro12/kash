@@ -42,3 +42,9 @@
     font-size: 22px;
   }
 }
+/* links no meio do texto: sublinhados (não dependem só da cor; WCAG 1.4.1) */
+.li a,
+.p a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

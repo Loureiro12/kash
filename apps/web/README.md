@@ -15,12 +15,14 @@ pnpm e2e:web          # Playwright no celular (iPhone 13) e no desktop, com axe
 src/
   app/
     layout.tsx              raiz: fonte Sora (next/font), metadados, skip link
-    (marketing)/            site institucional: / e /privacidade
+    (marketing)/            site institucional: /, /privacidade e /excluir-conta
     sitemap.ts robots.ts opengraph-image.tsx icon.png apple-icon.png not-found.tsx
   content/                  TEXTO E CONFIGURAÇÃO (sem JSX)
     site.ts                 URL, e-mails, links das lojas, versão web, termos
     landing.ts              hero, pilares, recursos, extras, privacidade, FAQ, CTA
     privacy.ts              as 11 seções da política
+  features/account-deletion/ fluxo de excluir conta (único trecho com JavaScript no navegador)
+  lib/supabase.ts           cliente do Supabase só em memória (sem sessão salva)
   components/
     ui/                     peças reaproveitáveis: Container, Logo, Eyebrow, CheckList, PhoneShot, StoreBadges
     landing/                seções da home
@@ -37,6 +39,14 @@ tests/unit · tests/e2e
 - CSS do celular para cima: breakpoints em 640, 720 e 900 px; nada de rolagem horizontal (testado).
 - Imagens com `next/image` (AVIF/WebP, `preload` só no hero, `lazy` no resto).
 - `site.ts` liga e desliga o que ainda não existe: com `stores.*.available = false`, os botões das lojas mostram "Em breve"; com `webApp = null`, somem os links "Usar no navegador" e os textos que prometem a versão web; com `termsUrl = null`, o link de termos não aparece.
+
+## Excluir conta (`/excluir-conta`)
+
+Exigência do Google Play: a pessoa pede a exclusão sem precisar do app. Fluxo em dois passos: entrar com e-mail e senha (só para provar que a conta é dela; a sessão fica na memória da aba, sem cookie nem storage) e confirmar com o aceite "é permanente". A exclusão chama a mesma Edge Function `delete-account` do app, que apaga o usuário e todos os dados em cascata. Para quem não consegue entrar, a página oferece o pedido por e-mail ao encarregado. A lógica é uma máquina de estados pura em `features/account-deletion/flow.ts` (Vitest); o Playwright exclui uma conta de verdade quando o Supabase local está de pé.
+
+Variáveis: `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` (ver `.env.example`). Sem elas, a página mostra só a alternativa por e-mail.
+
+No Google Play Console (Segurança dos dados › Exclusão de conta), informe `https://<seu domínio>/excluir-conta`.
 
 ## Antes de publicar
 

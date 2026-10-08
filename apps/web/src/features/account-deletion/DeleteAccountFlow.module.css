@@ -1,0 +1,156 @@
+.card {
+  border-radius: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.stepLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stepTitle {
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  outline: none;
+}
+.text {
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+.text strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.input {
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* 16px evita o zoom automático do iOS ao focar */
+}
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+.input:disabled {
+  opacity: 0.6;
+}
+.ack {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--danger-soft);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.ack input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--danger);
+}
+.error {
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--danger);
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.primary,
+.danger,
+.ghost,
+.secondary {
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--fs-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 0;
+  transition: filter var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.danger {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+.danger:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+}
+.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  align-self: flex-start;
+}
+.secondary:hover {
+  color: var(--text);
+  background: #262a30;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.doneIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 800;
+}
+@media (min-width: 640px) {
+  .card {
+    padding: 28px;
+  }
+  .actions {
+    flex-direction: row;
+  }
+}

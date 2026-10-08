@@ -66,6 +66,8 @@
 .contactText a {
   font-weight: 600;
   overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 @media (min-width: 900px) {
   .layout {

@@ -91,7 +91,7 @@ export const privacySections: PolicySection[] = [
       'Corrigir dados incompletos ou desatualizados.',
       'Exportar seus dados.',
       'Revogar consentimentos, como os lembretes.',
-      'Excluir sua conta e todos os seus dados, direto em Perfil → Excluir conta.',
+      'Excluir sua conta e todos os seus dados, direto em Perfil → Excluir conta ou na página Excluir conta deste site.',
     ],
   },
   {

@@ -17,6 +17,8 @@
   --accent: #c6f432;
   --accent-soft: rgba(198, 244, 50, 0.14);
   --on-accent: #0b0c0e;
+  --danger: #ff7a6b;
+  --danger-soft: rgba(255, 122, 107, 0.14);
   --store-bg: #f3f4f0;
   --store-bg-hover: #ffffff;
 
