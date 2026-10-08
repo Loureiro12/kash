@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Keyboard, ScrollView, View } from 'react-native';
 import { BottomSheet, Button, Chip, DateStepper, Input, Keypad, Pressable, SegmentedControl, Text, categoryColors, useTheme, type KeypadKey } from '@/design-system';
-import { addDays, applyKeypadKey, CATEGORIES, digitsToAmount, formatBRL, installmentPreview, parseISODate, relativeDayLabel, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
+import { addDays, applyKeypadKey, CATEGORIES, digitsToAmount, formatBRL, installmentSchedule, monthKey, monthKeyToDate, parseISODate, relativeDayLabel, round2, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useKashStore, useSourceOptions } from '@/store';
 
@@ -41,14 +41,32 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   const [note, setNote] = useState(editing?.title ?? '');
   const [installments, setInstallments] = useState(1);
   const [date, setDate] = useState(editing?.date ?? todayISO);
+  /** parcelado: mês da 1ª parcela (pode ser no passado) e se o valor digitado é o total ou o da parcela */
+  const [firstMonth, setFirstMonth] = useState(monthKey(today));
+  const [valueMode, setValueMode] = useState<'total' | 'parcela'>('total');
 
   const isIncome = kind === 'income';
-  const amount = digitsToAmount(digits);
+  const typed = digitsToAmount(digits);
   const srcIsCard = sources.find((s) => s.id === sourceId)?.isCard ?? false;
   const effectiveSource = isIncome && srcIsCard ? (accountSources[0]?.id ?? '') : sourceId;
   const n = !editing && !isIncome && srcIsCard ? installments : 1;
-  const preview = useMemo(() => installmentPreview(amount, n, today), [amount, n, today]);
-  const canSave = amount > 0 && effectiveSource.length > 0 && (!isIncome || accountSources.some((s) => s.id === effectiveSource));
+  // no modo "parcela", o total é parcela × n
+  const amount = n > 1 && valueMode === 'parcela' ? round2(typed * n) : typed;
+  const preview = useMemo(() => installmentSchedule(amount, n, firstMonth, today), [amount, n, firstMonth, today]);
+  const pastStart = n > 1 && preview.paid > 0;
+  const canSave = amount > 0 && effectiveSource.length > 0 && (!isIncome || accountSources.some((s) => s.id === effectiveSource)) && !(n > 1 && preview.finished);
+  const shiftMonth = (delta: number) =>
+    setFirstMonth((m) => {
+      const d = monthKeyToDate(m);
+      d.setMonth(d.getMonth() + delta);
+      const next = monthKey(d);
+      const oldest = monthKey(new Date(today.getFullYear(), today.getMonth() - (MAX_INSTALLMENTS - 1), 1));
+      return next > monthKey(today) ? monthKey(today) : next < oldest ? oldest : next;
+    });
+  const monthLabel = (key: string) => {
+    const d = monthKeyToDate(key);
+    return key === monthKey(today) ? 'Este mês' : `${d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}/${String(d.getFullYear()).slice(2)}`;
+  };
   const isToday = date === todayISO;
 
   const onKey = (key: KeypadKey) => {
@@ -68,8 +86,16 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
       showToast('Lançamento atualizado');
       return;
     }
-    addTransaction({ kind, amountCents: Math.round(amount * 100), category, sourceId: effectiveSource, note, installments: n, date });
-    showToast(isIncome ? `${formatBRL(amount)} de entrada registrados` : n > 1 ? `${n}x de ${formatBRL(preview.per)} no cartão` : `${formatBRL(amount)} lançado em ${category}`);
+    addTransaction({ kind, amountCents: Math.round(amount * 100), category, sourceId: effectiveSource, note, installments: n, date, ...(n > 1 ? { firstInstallmentMonth: firstMonth } : {}) });
+    showToast(
+      isIncome
+        ? `${formatBRL(amount)} de entrada registrados`
+        : pastStart
+          ? `Parcela ${preview.current}/${n} lançada · ${preview.paid} já pagas`
+          : n > 1
+            ? `${n}x de ${formatBRL(preview.per)} no cartão`
+            : `${formatBRL(amount)} lançado em ${category}`,
+    );
   };
 
   const doDelete = (scope: 'single' | 'plan') => {
@@ -175,7 +201,7 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
               {n === 1 ? 'À vista' : `${n}x de ${formatBRL(preview.per)}`}
             </Text>
             <Text variant="micro" color="muted" numberOfLines={1}>
-              {n === 1 ? 'Toque em + para parcelar' : `Última parcela em ${preview.lastMonth} · total ${formatBRL(amount)}`}
+              {n === 1 ? 'Toque em + para parcelar' : `até ${preview.lastMonth} · total ${formatBRL(amount)}`}
             </Text>
           </View>
           <StepButton label="−" onPress={() => setInstallments((v) => Math.max(1, v - 1))} testID="expense-inst-dec" accessibilityLabel="Menos parcelas" />
@@ -183,6 +209,52 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
             {n}x
           </Text>
           <StepButton label="+" onPress={() => setInstallments((v) => Math.min(MAX_INSTALLMENTS, v + 1))} testID="expense-inst-inc" accessibilityLabel="Mais parcelas" />
+        </View>
+      ) : null}
+
+      {!editing && !isIncome && srcIsCard && n > 1 ? (
+        <View style={{ gap: 8 }} testID="expense-plan-start">
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text variant="microMedium" color="muted" style={{ paddingLeft: 4 }}>
+                1ª parcela em
+              </Text>
+              <DateStepper
+                label={monthLabel(firstMonth)}
+                isToday={firstMonth === monthKey(today)}
+                onPrev={() => shiftMonth(-1)}
+                onNext={() => shiftMonth(1)}
+                nextDisabled={firstMonth === monthKey(today)}
+                prevLabel="Mês anterior"
+                nextLabel="Próximo mês"
+                testID="expense-first-month"
+              />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text variant="microMedium" color="muted" style={{ paddingLeft: 4 }}>
+                Valor digitado
+              </Text>
+              <SegmentedControl
+                value={valueMode}
+                onChange={setValueMode}
+                options={[
+                  { value: 'total', label: 'Total', testID: 'expense-value-mode-total' },
+                  { value: 'parcela', label: 'Parcela', testID: 'expense-value-mode-parcela' },
+                ]}
+                testID="expense-value-mode"
+              />
+            </View>
+          </View>
+          {preview.finished ? (
+            <Text variant="meta" color="neg" testID="expense-plan-summary">
+              Essa compra já foi toda paga: a última parcela caiu em {monthLabel(monthKey(new Date(monthKeyToDate(firstMonth).getFullYear(), monthKeyToDate(firstMonth).getMonth() + n - 1, 1)))}.
+            </Text>
+          ) : pastStart ? (
+            <Text variant="meta" color="muted" testID="expense-plan-summary">
+              {preview.paid === 1 ? '1 parcela já paga' : `${preview.paid} parcelas já pagas`} ({monthLabel(firstMonth)}
+              {preview.paid > 1 ? ` a ${monthLabel(monthKey(new Date(today.getFullYear(), today.getMonth() - 1, 1)))}` : ''}) fica{preview.paid > 1 ? 'm' : ''} fora. Lança a {preview.current}/{n} agora; {preview.remaining === 1 ? 'é a última' : `faltam ${preview.remaining} até ${preview.lastMonth}`}: {formatBRL(preview.remainingAmount)}.
+            </Text>
+          ) : null}
         </View>
       ) : null}
 

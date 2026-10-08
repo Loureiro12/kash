@@ -63,7 +63,7 @@ export function installRemoteActions() {
   const db = supabase;
 
   // lançamentos
-  wrap('addTransaction', ([input], before) => {
+  wrap('addTransaction', ([input], before, after) => {
     const amount = input.amountCents / 100;
     if (amount <= 0) return undefined;
     const sourceType = sourceTypeOf(before, input.sourceId);
@@ -73,7 +73,11 @@ export function installRemoteActions() {
     }
     const title = input.note.trim() || input.category;
     if (sourceType === 'card' && input.installments > 1) {
-      return api.addInstallmentPurchase(db, { title, category: input.category, cardId: input.sourceId, total: amount, installments: input.installments, date: input.date });
+      // o store já calculou qual parcela cai neste mês (e a data dela); o servidor recebe o mesmo
+      const plan = after.plans.find((p) => !before.plans.some((b) => b.id === p.id));
+      if (!plan) return undefined; // compra já quitada: nada a lançar
+      const tx = after.txs.find((t) => t.planId === plan.id);
+      return api.addInstallmentPurchase(db, { title, category: input.category, cardId: input.sourceId, total: amount, installments: input.installments, date: tx?.date ?? input.date, current: plan.current });
     }
     return api.createTransaction(db, { title, category: input.category, amount, date: input.date ?? today(), sourceType, sourceId: input.sourceId });
   });

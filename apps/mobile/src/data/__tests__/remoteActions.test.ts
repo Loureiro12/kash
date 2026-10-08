@@ -37,6 +37,17 @@ describe('ações remotas', () => {
     expect(mocked.addInstallmentPurchase).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ title: 'Notebook', cardId: 'card1', total: 1200, installments: 6 }));
     expect(mocked.createTransaction).not.toHaveBeenCalled();
   });
+  it('parcelado com a 1ª parcela no passado manda a parcela do mês e a data dela', async () => {
+    // relógio em 15 out 2026; 1ª parcela em fev/26 → 9ª agora, datada no próprio mês
+    useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 120000, category: 'Outros', sourceId: 'card1', note: 'Celular', installments: 12, firstInstallmentMonth: '2026-02', date: '2026-09-20' });
+    await flush();
+    expect(mocked.addInstallmentPurchase).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ title: 'Celular', total: 1200, installments: 12, current: 9, date: '2026-10-01' }));
+  });
+  it('parcelado já quitado não chama o servidor', async () => {
+    useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 30000, category: 'Outros', sourceId: 'card1', note: 'Fone', installments: 3, firstInstallmentMonth: '2026-01' });
+    await flush();
+    expect(mocked.addInstallmentPurchase).not.toHaveBeenCalled();
+  });
   it('entrada vai como Entrada numa conta', async () => {
     useKashStore.getState().addTransaction({ kind: 'income', amountCents: 50000, category: 'Outros', sourceId: 'acc1', note: '', installments: 1 });
     await flush();

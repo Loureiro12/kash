@@ -49,7 +49,8 @@ export async function updateTransaction(db: KashClient, id: string, input: Parti
 }
 
 /** Gasto parcelado no cartão: cria o plano e a 1ª parcela. Devolve o id do plano. */
-export async function addInstallmentPurchase(db: KashClient, input: { title: string; category: Category; cardId: string; total: number; installments: number; date?: string }): Promise<string> {
+/** Compra parcelada. `current` (padrão 1) é a parcela que cai no mês atual; as anteriores contam como pagas e não são lançadas. */
+export async function addInstallmentPurchase(db: KashClient, input: { title: string; category: Category; cardId: string; total: number; installments: number; date?: string; current?: number }): Promise<string> {
   return unwrap(
     await db.rpc('add_installment_purchase', {
       p_title: input.title.trim(),
@@ -58,6 +59,7 @@ export async function addInstallmentPurchase(db: KashClient, input: { title: str
       p_total: input.total,
       p_installments: input.installments,
       ...(input.date ? { p_date: input.date } : {}),
+      ...(input.current && input.current > 1 ? { p_current: input.current } : {}),
     }),
   );
 }

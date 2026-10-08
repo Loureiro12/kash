@@ -1,0 +1,61 @@
+appId: ${APP_ID}
+name: Parcelado antigo — 1ª parcela há 8 meses lança só a parcela do mês
+---
+- runFlow: ../subflows/login.yaml
+
+- tapOn:
+    id: "tab-add"
+- assertVisible:
+    id: "sheet-expense"
+# R$ 1.200,00 no cartão principal (origem padrão)
+- tapOn:
+    id: "key-1"
+- tapOn:
+    id: "key-2"
+- tapOn:
+    id: "key-00"
+- tapOn:
+    id: "key-00"
+- assertVisible: "R$ 1.200,00"
+- tapOn:
+    id: "expense-note"
+- inputText: "Celular antigo"
+- pressKey: Enter
+- hideKeyboard
+
+# 12x
+- repeat:
+    times: 11
+    commands:
+      - tapOn:
+          id: "expense-inst-inc"
+- assertVisible: "12x de R$ 100,00"
+
+# 1ª parcela 8 meses atrás
+- scrollUntilVisible:
+    element:
+      id: "expense-first-month"
+    direction: DOWN
+- repeat:
+    times: 8
+    commands:
+      - tapOn:
+          id: "expense-first-month-prev"
+- assertVisible:
+    id: "expense-plan-summary"
+- assertVisible: "8 parcelas já pagas.*Lança a 9/12 agora; faltam 4.*R\\$ 400,00\\."
+
+- tapOn:
+    id: "expense-save"
+- assertVisible: "Parcela 9/12 lançada · 8 já pagas"
+
+# no cartão: parcela 9 de 12, faltam 3 depois desta
+- tapOn:
+    id: "tab-cards"
+- scrollUntilVisible:
+    element:
+      text: "Celular antigo"
+    direction: DOWN
+    centerElement: true
+- assertVisible: "parcela 9 de 12"
+- assertVisible: "faltam 3 · R\\$ 300,00 até .*"

@@ -153,11 +153,11 @@ export function CardsScreen() {
                     </View>
                     <ProgressBar pct={p.pct} height={6} />
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text variant="micro" color="muted">
-                        {p.current} de {p.installments} pagas
+                      <Text variant="micro" color="muted" testID={`plan-${p.id}-progress`}>
+                        parcela {p.current} de {p.installments}
                       </Text>
                       <Text variant="micro" color="muted">
-                        termina em {p.endsIn} · falta {formatBRL(p.remaining)}
+                        {p.installments - p.current === 1 ? 'falta 1' : `faltam ${p.installments - p.current}`} · {formatBRL(p.remaining)} até {p.endsIn}
                       </Text>
                     </View>
                   </Card>

@@ -4,7 +4,7 @@ import { onboardingFlag } from '@/services/onboarding';
 import { supabase } from '@/services/supabase';
 import { queryClient } from '@/data/queryClient';
 import type { CardGradient } from '@/design-system/tokens/colors';
-import { addToGoal, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
+import { addToGoal, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 
@@ -36,6 +36,8 @@ export interface NewTransaction {
   installments: number;
   /** ISO date; default hoje */
   date?: string;
+  /** compra parcelada: mês ("yyyy-mm") da 1ª parcela; no passado, as parcelas anteriores contam como pagas */
+  firstInstallmentMonth?: string;
 }
 
 export interface TxPatch {
@@ -434,7 +436,7 @@ export const useKashStore = create<KashState>((set, get) => ({
   selectCard: (id) => set((s) => ({ ui: { ...s.ui, selectedCardId: id } })),
   setAccountsSegment: (segment) => set((s) => ({ ui: { ...s.ui, accountsSegment: segment } })),
 
-  addTransaction: ({ kind, amountCents, category, sourceId, note, installments, date }) => {
+  addTransaction: ({ kind, amountCents, category, sourceId, note, installments, date, firstInstallmentMonth }) => {
     const amount = amountCents / 100;
     if (amount <= 0) return;
     const isAccount = get().accounts.some((a) => a.id === sourceId);
@@ -451,12 +453,17 @@ export const useKashStore = create<KashState>((set, get) => ({
       return;
     }
     const n = isAccount ? 1 : Math.max(1, installments);
-    const per = round2(amount / n);
     const title = note.trim() || category;
+    // parcelado com a 1ª parcela no passado: lança só a parcela do mês atual (as anteriores já foram pagas)
+    const schedule = installmentSchedule(amount, n, firstInstallmentMonth ?? monthKey(now()), now());
+    if (n > 1 && schedule.finished) return;
+    const per = n > 1 ? schedule.per : amount;
+    const current = n > 1 ? schedule.current : 1;
+    const txDate = current > 1 && !isSameMonth(when, now()) ? toISODate(new Date(now().getFullYear(), now().getMonth(), 1)) : when;
     const planId = n > 1 ? createId('plan') : undefined;
     set((s) => ({
-      txs: [{ id: createId('tx'), title: n > 1 ? `${title} (1/${n})` : title, category, amount: -per, date: when, sourceId, planId }, ...s.txs],
-      plans: planId ? [...s.plans, { id: planId, title, category, cardId: sourceId, installments: n, current: 1, perInstallment: per }] : s.plans,
+      txs: [{ id: createId('tx'), title: n > 1 ? `${title} (${current}/${n})` : title, category, amount: -per, date: txDate, sourceId, planId }, ...s.txs],
+      plans: planId ? [...s.plans, { id: planId, title, category, cardId: sourceId, installments: n, current, perInstallment: per }] : s.plans,
       accounts: isAccount ? s.accounts.map((a) => (a.id === sourceId ? { ...a, balance: round2(a.balance - amount) } : a)) : s.accounts,
       ui: { ...s.ui, sheet: null },
     }));

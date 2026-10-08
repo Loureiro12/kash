@@ -1,6 +1,6 @@
 import {
   addInstallmentPurchase, createAccount, createBill, createCard, createGoal, createTransaction, deleteAccount, deleteCard,
-  ensureRollover, getCardUsage, getProfile, listAccounts, listBills, listCards, listGoals, listInvoices, listTransactions,
+  ensureRollover, getCardUsage, getProfile, listAccounts, listPlans, listBills, listCards, listGoals, listInvoices, listTransactions,
   payBill, payInvoice, recordGoalDeposit, softDeleteTransaction, undoDeleteTransaction, unpayBill, updateAccount, updateSettings, updateTransaction, updateUser,
 } from '../src';
 import { admin, createTestUser, deleteTestUser, today, type TestUser } from './helpers';
@@ -58,6 +58,13 @@ describe('cartões, parcelas, contas fixas e faturas', () => {
     const card = await createCard(u.db, { name: 'Principal', last4: '4821', limit: 2500, closingDay: 28, dueDay: 5, gradientId: 'green' });
     expect(card).toMatchObject({ last4: '4821', limit: 2500, gradientId: 'green' });
     const planId = await addInstallmentPurchase(u.db, { title: 'Notebook', category: 'Outros', cardId: card.id, total: 1200, installments: 6 });
+    // compra antiga: entra direto na parcela do mês, sem lançar as anteriores
+    const oldPlan = await addInstallmentPurchase(u.db, { title: 'Celular', category: 'Outros', cardId: card.id, total: 1200, installments: 12, current: 9 });
+    const oldTxs = (await listTransactions(u.db)).filter((t) => t.planId === oldPlan);
+    expect(oldTxs).toHaveLength(1);
+    expect(oldTxs[0]).toMatchObject({ title: 'Celular (9/12)', amount: -100 });
+    expect((await listPlans(u.db)).find((p) => p.id === oldPlan)).toMatchObject({ current: 9, installments: 12 });
+    await softDeleteTransaction(u.db, oldTxs[0]!.id, 'plan');
     const txs = await listTransactions(u.db);
     expect(txs.find((t) => t.planId === planId)).toMatchObject({ title: 'Notebook (1/6)', amount: -200, sourceType: 'card' });
     expect((await getCardUsage(u.db))[card.id]).toBe(200);
@@ -106,3 +113,4 @@ describe('erros', () => {
     await expect(createCard(u.db, { name: 'x', last4: '12', limit: 100, closingDay: 1, dueDay: 1, gradientId: 'blue' })).rejects.toMatchObject({ code: 'validation' });
   });
 });
+

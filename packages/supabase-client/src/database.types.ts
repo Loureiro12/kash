@@ -479,6 +479,7 @@ export type Database = {
         Args: {
           p_card_id: string;
           p_category: unknown;
+          p_current?: number;
           p_date?: string;
           p_installments: number;
           p_title: string;

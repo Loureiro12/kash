@@ -20,14 +20,17 @@ export interface DateStepperProps {
   testID?: string;
   /** versão estreita para dividir a linha com outro campo */
   compact?: boolean;
+  /** rótulos de acessibilidade das setas (padrão: dia anterior/seguinte) */
+  prevLabel?: string;
+  nextLabel?: string;
 }
 
 /** Seletor de data compacto: ‹ data › com atalho "Hoje". Não permite datas futuras. */
-export function DateStepper({ label, onPrev, onNext, nextDisabled, onToday, isToday, testID = 'date-stepper', compact }: DateStepperProps) {
+export function DateStepper({ label, onPrev, onNext, nextDisabled, onToday, isToday, testID = 'date-stepper', compact, prevLabel = 'Dia anterior', nextLabel = 'Próximo dia' }: DateStepperProps) {
   const { colors } = useTheme();
   return (
     <View testID={testID} style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? 2 : 8, height: 46, paddingHorizontal: compact ? 2 : 6, borderRadius: radii.input, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}>
-      <Pressable onPress={onPrev} testID={`${testID}-prev`} haptic="selection" accessibilityRole="button" accessibilityLabel="Dia anterior" style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+      <Pressable onPress={onPrev} testID={`${testID}-prev`} haptic="selection" accessibilityRole="button" accessibilityLabel={prevLabel} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
         <Icon name="arrow-left" size={16} color={colors.text} strokeWidth={2.4} />
       </Pressable>
       <Text variant="bodySemibold" style={compact ? { minWidth: 52 } : { flex: 1 }} align="center" numberOfLines={1} testID={`${testID}-label`}>
@@ -40,7 +43,7 @@ export function DateStepper({ label, onPrev, onNext, nextDisabled, onToday, isTo
         testID={`${testID}-next`}
         haptic="selection"
         accessibilityRole="button"
-        accessibilityLabel="Próximo dia"
+        accessibilityLabel={nextLabel}
         accessibilityState={{ disabled: !!nextDisabled }}
         style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center', opacity: nextDisabled ? 0.3 : 1 }}
       >
