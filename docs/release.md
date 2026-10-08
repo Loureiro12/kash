@@ -52,7 +52,7 @@ Crie o environment **production** no repositório e, nele:
 | variable | `SUPABASE_PROJECT_REF` | ref do projeto |
 | secret | `EXPO_TOKEN` | token em https://expo.dev/accounts/<conta>/settings/access-tokens |
 
-- `deploy-backend.yml` roda a cada push em `main` que mude `supabase/**` (migrações, functions, templates, config) e aplica em produção. Enquanto `SUPABASE_PROJECT_REF` não existir, o job é pulado.
+- `deploy-backend.yml` roda a cada push em `main` que mude `supabase/**` (migrações, functions, templates, config) e aplica em produção. Se faltar a variável ou algum secret no environment, o primeiro passo falha com a mensagem do que configurar.
 - `release-app.yml` é manual (Actions → "Release do app (EAS)"): marque *build* para gerar binários de loja e/ou *update* para publicar o JS no canal `production`.
 - `ci.yml` continua testando tudo contra um Supabase local (pgTAP, Vitest, Jest, drift dos tipos).
 

@@ -1,7 +1,8 @@
 name: Deploy backend (produção)
 
 # Aplica migrações, Edge Functions e config de auth no projeto Supabase de produção.
-# Só roda quando os secrets/variáveis existem (ver docs/release.md); a CI de testes continua em ci.yml.
+# Exige o environment `production` com SUPABASE_PROJECT_REF (variável) e os secrets SUPABASE_ACCESS_TOKEN
+# e SUPABASE_DB_PASSWORD (ver docs/release.md). A CI de testes continua em ci.yml.
 on:
   workflow_dispatch:
   push:
@@ -18,7 +19,9 @@ concurrency:
 
 jobs:
   deploy:
-    if: vars.SUPABASE_PROJECT_REF != ''
+    # Sem condição no job: o `if` de job é avaliado antes de o job entrar no environment, então
+    # variáveis do environment `production` chegam vazias ali e o job era sempre pulado.
+    # A checagem fica no primeiro passo, que falha com uma mensagem clara se faltar configuração.
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -26,6 +29,12 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
     steps:
+      - name: Configuração do environment
+        run: |
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "::error::Faltam SUPABASE_PROJECT_REF (variável) ou SUPABASE_ACCESS_TOKEN / SUPABASE_DB_PASSWORD (secrets) no environment production. Ver docs/release.md."
+            exit 1
+          fi
       - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
         with:
