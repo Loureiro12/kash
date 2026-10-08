@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { Alert, ScrollView, View, type TextInput } from 'react-native';
-import { BottomSheet, Button, categoryColors, Chip, Input, MoneyInput, Text } from '@/design-system';
-import { CATEGORIES, type Category } from '@kash/domain';
-import { useKashStore, useSourceOptions } from '@/store';
+import { BottomSheet, Button, Chip, Input, MoneyInput, Text } from '@/design-system';
+import { type Category } from '@kash/domain';
+import { useCategories, useKashStore, useSourceOptions } from '@/store';
 
 /** Sheet — Nova conta fixa: nome, valor, dia, categoria e onde é cobrada (cartão ou conta). */
 export function AddBillSheet() {
@@ -24,7 +24,8 @@ function AddBillForm({ visible, editingId, onClose }: { visible: boolean; editin
   const [name, setName] = useState(editing?.name ?? '');
   const [amountN, setAmount] = useState(editing?.amount ?? 0);
   const [day, setDay] = useState(editing ? String(editing.dueDay) : '');
-  const [category, setCategory] = useState<Category>(editing?.category ?? 'Assinaturas');
+  const { names: categoryNames, colors: categoryColorsMap } = useCategories();
+  const [category, setCategory] = useState<Category>(editing?.category ?? (categoryNames.includes('Assinaturas') ? 'Assinaturas' : (categoryNames[0] ?? 'Outros')));
   const [sourceId, setSourceId] = useState(editing?.sourceId ?? sources[0]?.id ?? '');
   const amountRef = useRef<TextInput>(null);
   const dayRef = useRef<TextInput>(null);
@@ -78,8 +79,8 @@ function AddBillForm({ visible, editingId, onClose }: { visible: boolean; editin
         Categoria
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
-        {CATEGORIES.map((c) => (
-          <Chip key={c} label={c} dotColor={categoryColors[c]} selected={category === c} onPress={() => setCategory(c)} testID={`add-bill-cat-${c}`} />
+        {categoryNames.map((c) => (
+          <Chip key={c} label={c} dotColor={categoryColorsMap[c]} selected={category === c} onPress={() => setCategory(c)} testID={`add-bill-cat-${c}`} />
         ))}
       </ScrollView>
       <Input

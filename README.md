@@ -68,6 +68,10 @@
 - Progresso em anel, aporte mensal, dia do depósito e conta onde o dinheiro fica guardado.
 - Lembrete quando o depósito do mês está pendente.
 
+**Categorias**
+- Cada usuário tem a própria lista: cria, renomeia, troca a cor e exclui em Perfil › Categorias.
+- Renomear atualiza lançamentos, contas fixas e parcelamentos; excluir uma categoria em uso pede para onde mover os registros.
+
 **Conta e privacidade**
 - Cadastro, login, alterar senha e **recuperação de senha por código** enviado por e-mail.
 - Sessão criptografada no aparelho.
@@ -183,13 +187,15 @@ app (rotas) → features (telas) → store / data → design-system
 
 **Recuperação de senha.** O e-mail traz um código (6 dígitos no local, 8 no projeto hospedado) que o usuário digita na tela "Esqueci a senha". O código vira uma sessão de recuperação, em que só a tela de nova senha existe. O mesmo e-mail mantém um deep link `kash://reset-password` como atalho.
 
+**Categorias do usuário.** Ficam na tabela `categories` (nome único por usuário sem diferenciar maiúsculas, cor `#RRGGBB`, ordem). Todo usuário começa com as 6 padrão, criadas no cadastro. Lançamentos, contas fixas e parcelamentos guardam o nome; as RPCs `update_category` e `delete_category` renomeiam e movem os registros na mesma transação. "Entrada" e "Fatura" são reservadas ao sistema. A última categoria não pode ser excluída. No app, `useCategories` entrega a lista e o mapa de cores para chips, listas e relatório.
+
 **Exportar e excluir.** "Exportar meus dados" chama a RPC `export_my_data` e abre a folha de compartilhamento com um JSON versionado (`kash-export/1`). "Excluir conta" chama a Edge Function `delete-account`, que apaga o usuário e todos os dados em cascata.
 
 ## Backend (Supabase)
 
 - **Schema** em `supabase/migrations`: RLS por `auth.uid()` em todas as tabelas, `user_id` preenchido por padrão.
 - **Saldos como views.** Saldo de conta é abertura mais lançamentos; uso do cartão é o mês corrente.
-- **Escritas de várias linhas como RPCs:** `add_installment_purchase`, `pay_bill`, `pay_invoice`, `record_goal_deposit`, `soft_delete_transaction` e `undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`, `export_my_data`.
+- **Escritas de várias linhas como RPCs:** `add_installment_purchase`, `pay_bill`, `pay_invoice`, `record_goal_deposit`, `soft_delete_transaction` e `undo_delete_transaction`, `delete_card`, `delete_account`, `ensure_rollover`, `export_my_data`, `update_category`, `delete_category`.
 - **Seed local** com a usuária Lara e ids fixos, usados pelos testes E2E.
 - **Fuso único** America/Sao_Paulo para "hoje" e virada de mês.
 
@@ -202,9 +208,9 @@ app (rotas) → features (telas) → store / data → design-system
 | Banco: RLS, RPCs, virada de mês | pgTAP | `supabase/tests` |
 | Client contra o banco real | Vitest | `packages/supabase-client/tests` |
 | Edge Function | `deno test` | `supabase/functions` |
-| Ponta a ponta no app | Maestro (15 fluxos) | `apps/mobile/e2e/flows` |
+| Ponta a ponta no app | Maestro (17 fluxos) | `apps/mobile/e2e/flows` |
 
-Os fluxos E2E cobrem onboarding e login, Início, lançar gasto à vista e parcelado, parcelamento antigo, cartões e fatura, contas, metas, páginas internas, editar e excluir, perfil e configurações, exportar dados, esqueci a senha com código e exclusão de conta. O runner reseta o banco antes de cada fluxo; detalhes em [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md).
+Os fluxos E2E cobrem onboarding e login, Início, lançar gasto à vista e parcelado, parcelamento antigo, cartões e fatura, contas, metas, páginas internas, editar e excluir, perfil e configurações, exportar dados, esqueci a senha com código, cores personalizadas, categorias e exclusão de conta. O runner reseta o banco antes de cada fluxo; detalhes em [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md).
 
 Todo elemento interativo tem `testID` em kebab-case (`tab-add`, `chip-cat-Comida`, `expense-first-month-prev`) e props de acessibilidade.
 

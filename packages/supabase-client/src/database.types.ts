@@ -160,6 +160,37 @@ export type Database = {
         };
         Relationships: [];
       };
+      categories: {
+        Row: {
+          color: string;
+          created_at: string;
+          id: string;
+          name: string;
+          position: number;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          color: string;
+          created_at?: string;
+          id?: string;
+          name: string;
+          position?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          color?: string;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          position?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       goals: {
         Row: {
           account_id: string | null;
@@ -492,6 +523,7 @@ export type Database = {
       };
       delete_account: { Args: { p_account_id: string }; Returns: undefined };
       delete_card: { Args: { p_card_id: string }; Returns: undefined };
+      delete_category: { Args: { p_id: string; p_move_to?: string }; Returns: undefined };
       ensure_rollover: { Args: Record<PropertyKey, never>; Returns: number };
       export_my_data: { Args: Record<PropertyKey, never>; Returns: Json };
       kash_today: { Args: Record<PropertyKey, never>; Returns: string };
@@ -506,9 +538,14 @@ export type Database = {
         Returns: undefined;
       };
       rollover_all: { Args: Record<PropertyKey, never>; Returns: number };
+      seed_default_categories: { Args: { p_uid: string }; Returns: undefined };
       soft_delete_transaction: { Args: { p_scope?: string; p_tx_id: string }; Returns: string };
       undo_delete_transaction: { Args: { p_group: string }; Returns: number };
       unpay_bill: { Args: { p_bill_id: string }; Returns: undefined };
+      update_category: {
+        Args: { p_color: string; p_id: string; p_name: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       account_kind: 'corrente' | 'poupanca' | 'carteira' | 'investimento';

@@ -127,6 +127,11 @@ export function installRemoteActions() {
   wrap('addGoal', ([input]) => api.createGoal(db, { name: input.name, target: input.target, saved: input.saved, monthly: input.monthly, color: input.color, accountId: input.accountId, depositDay: input.depositDay ?? null }));
   wrap('updateGoal', ([id, input]) => api.updateGoal(db, id, { name: input.name, target: input.target, saved: input.saved, monthly: input.monthly, color: input.color, accountId: input.accountId, depositDay: input.depositDay ?? null }));
   wrap('removeGoal', ([id]) => api.deleteGoal(db, id));
+
+  // categorias (renomear/excluir em cascata acontece na RPC; o snapshot traz o resultado)
+  wrap('addCategory', ([input]) => api.createCategory(db, input));
+  wrap('updateCategory', ([id, input]) => api.updateCategory(db, id, input));
+  wrap('removeCategory', ([id, moveTo]) => api.deleteCategory(db, id, moveTo));
   wrap('contributeToGoal', ([id, amount]) => api.recordGoalDeposit(db, { goalId: id, amount }));
   wrap('recordDeposit', ([input]) => api.recordGoalDeposit(db, { goalId: input.goalId, amount: input.amountCents / 100, accountId: input.accountId }));
 

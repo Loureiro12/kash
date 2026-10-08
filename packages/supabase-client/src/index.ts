@@ -7,6 +7,7 @@ export * from './mappers';
 export * from './repositories/accounts';
 export * from './repositories/bills';
 export * from './repositories/cards';
+export * from './repositories/categories';
 export * from './repositories/goals';
 export * from './repositories/invoices';
 export * from './repositories/plans';

@@ -1,4 +1,4 @@
-import { CATEGORY_COLORS as categoryColors } from '../categories';
+import { CATEGORY_COLORS, UNKNOWN_CATEGORY_COLOR } from '../categories';
 import type { Category, Tx } from '../types';
 import { monthName } from '../dates';
 import { round2 } from '../money';
@@ -13,7 +13,7 @@ export interface CategorySlice {
 }
 
 /** Saídas do mês agrupadas por categoria, ordenadas desc. */
-export function categoryBreakdown(txs: Tx[], now: Date): CategorySlice[] {
+export function categoryBreakdown(txs: Tx[], now: Date, colors: Readonly<Record<string, string>> = CATEGORY_COLORS): CategorySlice[] {
   const byCat = new Map<Category, number>();
   for (const t of monthTxs(txs, now)) {
     if (t.amount >= 0 || t.category === 'Entrada' || t.category === 'Fatura') continue;
@@ -22,7 +22,7 @@ export function categoryBreakdown(txs: Tx[], now: Date): CategorySlice[] {
   const total = [...byCat.values()].reduce((a, b) => a + b, 0);
   return [...byCat.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map(([name, amount]) => ({ name, color: categoryColors[name], amount: round2(amount), pct: total > 0 ? Math.round((amount / total) * 100) : 0 }));
+    .map(([name, amount]) => ({ name, color: colors[name] ?? UNKNOWN_CATEGORY_COLOR, amount: round2(amount), pct: total > 0 ? Math.round((amount / total) * 100) : 0 }));
 }
 
 export interface MonthBar {

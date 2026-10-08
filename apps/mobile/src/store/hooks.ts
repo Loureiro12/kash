@@ -4,9 +4,21 @@
  */
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { activePlans, billSourceName, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, openInvoices, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, upcomingBills, type TxFilters } from '@kash/domain';
+import { activePlans, billSourceName, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, openInvoices, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, upcomingBills, type TxFilters } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useKashStore } from './useKashStore';
+
+/** Categorias do usuário e o mapa nome → cor (para chips, listas e relatório). */
+export function useCategories() {
+  const categories = useKashStore((s) => s.categories);
+  return useMemo(() => ({ categories, colors: categoryColorMap(categories), names: categories.map((c) => c.name) }), [categories]);
+}
+
+/** Categorias com a contagem de uso (tela de gerenciar). */
+export function useCategoriesWithUsage() {
+  const { categories, txs, bills, plans } = useKashStore(useShallow((s) => ({ categories: s.categories, txs: s.txs, bills: s.bills, plans: s.plans })));
+  return useMemo(() => categories.map((c) => ({ ...c, usage: categoryUsage(c.name, { txs, bills, plans }) })), [categories, txs, bills, plans]);
+}
 
 /** Formata dinheiro respeitando "ocultar valores". */
 export function useMoney() {
@@ -31,10 +43,11 @@ export function useHomeSummary() {
 
 export function useRecentTxs(limit = 6) {
   const { txs, accounts, cards } = useKashStore(useShallow((s) => ({ txs: s.txs, accounts: s.accounts, cards: s.cards })));
+  const { colors } = useCategories();
   return useMemo(() => {
     const today = now();
-    return txs.slice(0, limit).map((t) => txView(t, accounts, cards, today));
-  }, [txs, accounts, cards, limit]);
+    return txs.slice(0, limit).map((t) => txView(t, accounts, cards, today, colors));
+  }, [txs, accounts, cards, limit, colors]);
 }
 
 export function useUpcomingBills() {
@@ -68,16 +81,17 @@ export function useCardsOverview() {
   const { cards, txs, plans, bills, invoices, accounts, selectedCardId } = useKashStore(
     useShallow((s) => ({ cards: s.cards, txs: s.txs, plans: s.plans, bills: s.bills, invoices: s.invoices, accounts: s.accounts, selectedCardId: s.ui.selectedCardId })),
   );
+  const { colors } = useCategories();
   return useMemo(() => {
     const today = now();
     const list = cards.map((card) => ({ card, usage: cardUsage(card, txs, today), dates: cardDates(card, today) }));
     const selected = list.find((c) => c.card.id === selectedCardId) ?? list[0] ?? null;
-    const selectedTxs = selected ? txs.filter((t) => t.sourceId === selected.card.id).map((t) => txView(t, accounts, cards, today)) : [];
+    const selectedTxs = selected ? txs.filter((t) => t.sourceId === selected.card.id).map((t) => txView(t, accounts, cards, today, colors)) : [];
     const selectedPlans = selected ? activePlans(plans, selected.card.id, today) : [];
     const selectedBills = selected ? cardBills(bills, selected.card.id) : [];
     const selectedInvoices = selected ? cardInvoices(invoices, selected.card.id).map((i) => invoiceView(i, cards)) : [];
     return { list, selected, selectedTxs, selectedPlans, selectedBills, selectedInvoices };
-  }, [cards, txs, plans, bills, invoices, accounts, selectedCardId]);
+  }, [cards, txs, plans, bills, invoices, accounts, selectedCardId, colors]);
 }
 
 export function useGoalsOverview() {
@@ -103,20 +117,22 @@ export function useGoalsOverview() {
 
 export function useReport() {
   const txs = useKashStore((s) => s.txs);
+  const { colors } = useCategories();
   return useMemo(() => {
     const today = now();
-    return { spent: monthSpent(txs, today), history: monthlyHistory(txs, today), delta: monthDelta(txs, today), categories: categoryBreakdown(txs, today) };
-  }, [txs]);
+    return { spent: monthSpent(txs, today), history: monthlyHistory(txs, today), delta: monthDelta(txs, today), categories: categoryBreakdown(txs, today, colors) };
+  }, [txs, colors]);
 }
 
 /** Lista completa de lançamentos de um mês, filtrada e agrupada por dia. */
 export function useTransactionsList(filters: TxFilters) {
   const { txs, accounts, cards } = useKashStore(useShallow((s) => ({ txs: s.txs, accounts: s.accounts, cards: s.cards })));
+  const { colors } = useCategories();
   return useMemo(() => {
     const today = now();
     const list = filterTxs(txs, filters, today);
-    return { groups: groupTxsByDay(list, accounts, cards, today), totals: txTotals(list), title: monthTitle(filters.monthOffset, today) };
-  }, [txs, accounts, cards, filters]);
+    return { groups: groupTxsByDay(list, accounts, cards, today, colors), totals: txTotals(list), title: monthTitle(filters.monthOffset, today) };
+  }, [txs, accounts, cards, filters, colors]);
 }
 
 export function useSourceOptions() {

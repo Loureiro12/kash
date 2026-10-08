@@ -30,6 +30,7 @@ export default function AppLayout() {
         <Stack.Screen name="profile/security" />
         <Stack.Screen name="profile/budget" />
         <Stack.Screen name="profile/currency" />
+        <Stack.Screen name="profile/categories" />
         <Stack.Screen name="profile/help" />
         <Stack.Screen name="terms" />
         <Stack.Screen name="privacy" />

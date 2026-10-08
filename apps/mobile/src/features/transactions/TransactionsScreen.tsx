@@ -1,15 +1,16 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { Chip, Icon, PageHeader, Pressable, Screen, SegmentedControl, Text, categoryColors, useTheme } from '@/design-system';
-import { CATEGORIES, DEFAULT_TX_FILTERS, formatBRL, type TxFilters, type TxKindFilter } from '@kash/domain';
-import { useTransactionsList } from '@/store';
+import { Chip, Icon, PageHeader, Pressable, Screen, SegmentedControl, Text, useTheme } from '@/design-system';
+import { DEFAULT_TX_FILTERS, formatBRL, type TxFilters, type TxKindFilter } from '@kash/domain';
+import { useCategories, useTransactionsList } from '@/store';
 import { TxRow } from './TxRow';
 
 const MIN_MONTH_OFFSET = -11;
 
 /** Lançamentos — lista completa por mês com filtros de tipo e categoria. */
 export function TransactionsScreen() {
+  const { names: categoryNames, colors: categoryColorsMap } = useCategories();
   const router = useRouter();
   const { colors } = useTheme();
   const [filters, setFilters] = useState<TxFilters>(DEFAULT_TX_FILTERS);
@@ -42,8 +43,8 @@ export function TransactionsScreen() {
       {filters.kind !== 'income' ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
           <Chip label="Todas" selected={filters.category === null} onPress={() => set({ category: null })} testID="tx-cat-all" />
-          {CATEGORIES.map((c) => (
-            <Chip key={c} label={c} dotColor={categoryColors[c]} selected={filters.category === c} onPress={() => set({ category: filters.category === c ? null : c })} testID={`tx-cat-${c}`} />
+          {categoryNames.map((c) => (
+            <Chip key={c} label={c} dotColor={categoryColorsMap[c]} selected={filters.category === c} onPress={() => set({ category: filters.category === c ? null : c })} testID={`tx-cat-${c}`} />
           ))}
         </ScrollView>
       ) : null}

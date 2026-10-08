@@ -99,8 +99,10 @@ describe('hidratação do servidor', () => {
       bills: [],
       goals: [],
       invoices: [],
+      categories: [{ id: 'c-1', name: 'Pets', color: '#FF8A3D' }],
     };
     act(() => useKashStore.getState().hydrateFromServer(snap));
+    expect(useKashStore.getState().categories).toEqual(snap.categories);
     const s = useKashStore.getState();
     expect(s.accounts).toEqual(snap.accounts);
     expect(s.settings.monthlyBudget).toBe(2500);
@@ -404,5 +406,39 @@ describe('contas fixas, metas, ui', () => {
       s.toggleBiometrics();
     });
     expect(useKashStore.getState().settings).toMatchObject({ theme: 'light', hideValues: true, billReminder: false, biometrics: false });
+  });
+});
+
+describe('categorias no store', () => {
+  beforeEach(() => useKashStore.getState().reset());
+
+  it('cria no fim; renomear leva lançamentos, contas fixas, parcelamentos e títulos iguais ao nome', () => {
+    const st = () => useKashStore.getState();
+    act(() => st().addCategory({ name: ' Pets ', color: '#FF8A3D' }));
+    expect(st().categories.at(-1)).toMatchObject({ name: 'Pets', color: '#FF8A3D' });
+    const assin = st().categories.find((c) => c.name === 'Assinaturas')!;
+    const before = st().txs.filter((t) => t.category === 'Assinaturas').length;
+    act(() => st().updateCategory(assin.id, { name: 'Streaming', color: '#3D8BFF' }));
+    expect(st().txs.filter((t) => t.category === 'Streaming')).toHaveLength(before);
+    expect(st().txs.some((t) => t.category === 'Assinaturas')).toBe(false);
+    expect(st().bills.some((b) => b.category === 'Assinaturas')).toBe(false);
+    expect(st().categories.find((c) => c.id === assin.id)).toMatchObject({ name: 'Streaming', color: '#3D8BFF' });
+  });
+
+  it('excluir em uso sem destino não faz nada; com destino move e remove; nunca a última', () => {
+    const st = () => useKashStore.getState();
+    const comida = st().categories.find((c) => c.name === 'Comida')!;
+    const used = st().txs.filter((t) => t.category === 'Comida').length;
+    expect(used).toBeGreaterThan(0);
+    act(() => st().removeCategory(comida.id));
+    expect(st().categories.some((c) => c.id === comida.id)).toBe(true);
+    const outrosBefore = st().txs.filter((t) => t.category === 'Outros').length;
+    act(() => st().removeCategory(comida.id, 'Outros'));
+    expect(st().categories.some((c) => c.id === comida.id)).toBe(false);
+    expect(st().txs.filter((t) => t.category === 'Outros')).toHaveLength(outrosBefore + used);
+
+    useKashStore.setState({ categories: [{ id: 'only', name: 'Única', color: '#000000' }] });
+    act(() => st().removeCategory('only'));
+    expect(st().categories).toHaveLength(1);
   });
 });

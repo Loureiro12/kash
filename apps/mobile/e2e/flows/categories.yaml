@@ -1,0 +1,102 @@
+appId: ${APP_ID}
+name: Categorias — criar, usar num gasto, renomear e excluir movendo os lançamentos
+---
+- runFlow: ../subflows/login.yaml
+
+# Perfil › Categorias › Nova
+- tapOn:
+    id: "home-avatar"
+- tapOn:
+    id: "profile-categories"
+- extendedWaitUntil:
+    visible:
+      id: "categories-screen"
+    timeout: 10000
+- assertVisible:
+    id: "category-Comida"
+- scrollUntilVisible:
+    element:
+      id: "categories-add"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "categories-add"
+- assertVisible: "Nova categoria"
+# nome repetido é recusado
+# cor antes do nome: com o teclado aberto, o Enter já salva
+- tapOn:
+    id: "category-color-3D8BFF"
+- tapOn:
+    id: "category-name"
+- inputText: "comida"
+- assertVisible: "Já existe uma categoria com esse nome."
+- eraseText: 10
+- inputText: "Pets"
+- pressKey: Enter
+- assertVisible: "Categoria “Pets” criada"
+- scrollUntilVisible:
+    element:
+      id: "category-Pets"
+    direction: DOWN
+    centerElement: true
+# o texto da linha fica dentro do botão acessível: confere pelo rótulo dele
+- assertVisible: "Pets\\. sem uso\\..*"
+
+# Usa a categoria nova num gasto
+- tapOn:
+    id: "tab-add"
+# R$ 50,00 = 5 · 0 · 00 (centavos)
+- tapOn:
+    id: "key-5"
+- tapOn:
+    id: "key-0"
+- tapOn:
+    id: "key-00"
+- assertVisible: "R$ 50,00"
+# categorias novas ficam no fim da fileira rolável
+- swipe:
+    direction: LEFT
+    from:
+      id: "chip-cat-Transporte"
+- swipe:
+    direction: LEFT
+    from:
+      id: "chip-cat-Mercado"
+- tapOn:
+    id: "chip-cat-Pets"
+- tapOn:
+    id: "expense-note"
+- inputText: "Ração"
+- pressKey: Enter
+- tapOn:
+    id: "expense-save"
+- assertVisible: "R$ 50,00 lançado em Pets"
+
+# Renomeia: o lançamento acompanha
+- tapOn:
+    id: "category-Pets"
+- assertVisible: "Editar categoria"
+- assertVisible: "Em uso: 1 lançamento. Renomear atualiza todos."
+- tapOn:
+    id: "category-name"
+- eraseText: 10
+- inputText: "Bichos"
+- pressKey: Enter
+- assertVisible: "Categoria renomeada · 1 lançamento atualizados"
+- assertVisible:
+    id: "category-Bichos"
+
+# Exclui movendo o lançamento para Outros
+- tapOn:
+    id: "category-Bichos"
+- tapOn:
+    id: "category-delete"
+- assertVisible: "Excluir “Bichos”"
+- assertVisible:
+    id: "category-move-Outros"
+    selected: true
+- tapOn:
+    id: "category-delete-confirm"
+- assertVisible: "“Bichos” excluída · 1 lançamento foram para Outros"
+- assertNotVisible:
+    id: "category-Bichos"

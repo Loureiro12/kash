@@ -3,9 +3,19 @@ import type { CardGradientId, CategoryName } from './categories';
 export type ID = string;
 
 /** Categoria de gasto. "Entrada" é usada apenas em lançamentos positivos. */
+/** Nome de uma categoria do usuário (ver `CategoryDef`). */
 export type Category = CategoryName;
 /** 'Fatura' = pagamento de fatura (saída da conta que não conta como gasto no relatório) */
-export type TxCategory = Category | 'Entrada' | 'Fatura';
+/** Categoria de um lançamento: do usuário ou de sistema ('Entrada', 'Fatura'). */
+export type TxCategory = string;
+
+/** Categoria cadastrada pelo usuário. A ordem da lista é a ordem de exibição. */
+export interface CategoryDef {
+  id: ID;
+  name: string;
+  /** #RRGGBB */
+  color: string;
+}
 
 export interface Account {
   id: ID;
@@ -133,6 +143,7 @@ export interface User {
 export type AccountKind = 'Conta corrente' | 'Poupança' | 'Carteira' | 'Investimento';
 export const ACCOUNT_KINDS: AccountKind[] = ['Conta corrente', 'Poupança', 'Carteira', 'Investimento'];
 
+/** Nomes das categorias padrão. */
 export const CATEGORIES: Category[] = ['Comida', 'Transporte', 'Lazer', 'Mercado', 'Assinaturas', 'Outros'];
 
 export const isCardId = (id: ID) => id.startsWith('card');

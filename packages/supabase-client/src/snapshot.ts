@@ -1,8 +1,9 @@
-import type { Account, Bill, Card, Goal, Invoice, Plan, Settings, Tx, User } from '@kash/domain';
+import type { Account, Bill, Card, CategoryDef, Goal, Invoice, Plan, Settings, Tx, User } from '@kash/domain';
 import type { KashClient } from './client';
 import { listAccounts } from './repositories/accounts';
 import { listBills } from './repositories/bills';
 import { getCardUsage, listCards } from './repositories/cards';
+import { listCategories } from './repositories/categories';
 import { listGoals } from './repositories/goals';
 import { listInvoices } from './repositories/invoices';
 import { listPlans } from './repositories/plans';
@@ -14,6 +15,8 @@ export interface KashSnapshot {
   user: User;
   settings: Settings;
   lastRolloverMonth: string;
+  /** categorias do usuário, na ordem de exibição */
+  categories: CategoryDef[];
   accounts: Account[];
   cards: Card[];
   /** fatura atual por cartão (id → valor) */
@@ -37,8 +40,9 @@ export async function loadSnapshot(db: KashClient, options: SnapshotOptions = {}
   const now = new Date();
   const from = options.txRange?.from ?? isoDate(new Date(now.getFullYear(), now.getMonth() - 11, 1));
   const to = options.txRange?.to ?? isoDate(new Date(now.getFullYear(), now.getMonth() + 2, 0));
-  const [profile, accounts, cards, cardUsage, txs, plans, bills, goals, invoices] = await Promise.all([
+  const [profile, categories, accounts, cards, cardUsage, txs, plans, bills, goals, invoices] = await Promise.all([
     getProfile(db),
+    listCategories(db),
     listAccounts(db),
     listCards(db),
     getCardUsage(db),
@@ -48,5 +52,5 @@ export async function loadSnapshot(db: KashClient, options: SnapshotOptions = {}
     listGoals(db),
     listInvoices(db),
   ]);
-  return { user: profile.user, settings: profile.settings, lastRolloverMonth: profile.lastRolloverMonth, accounts, cards, cardUsage, txs, plans, bills, goals, invoices };
+  return { user: profile.user, settings: profile.settings, lastRolloverMonth: profile.lastRolloverMonth, categories, accounts, cards, cardUsage, txs, plans, bills, goals, invoices };
 }

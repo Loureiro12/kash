@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Keyboard, ScrollView, View } from 'react-native';
-import { BottomSheet, Button, Chip, DateStepper, Input, Keypad, Pressable, SegmentedControl, Text, categoryColors, useTheme, type KeypadKey } from '@/design-system';
-import { addDays, applyKeypadKey, CATEGORIES, digitsToAmount, formatBRL, installmentSchedule, monthKey, monthKeyToDate, parseISODate, relativeDayLabel, round2, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
+import { BottomSheet, Button, Chip, DateStepper, Input, Keypad, Pressable, SegmentedControl, Text, useTheme, type KeypadKey } from '@/design-system';
+import { addDays, applyKeypadKey, digitsToAmount, formatBRL, installmentSchedule, monthKey, monthKeyToDate, parseISODate, relativeDayLabel, round2, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
 import { now } from '@/lib/clock';
-import { useKashStore, useSourceOptions } from '@/store';
+import { useCategories, useKashStore, useSourceOptions } from '@/store';
 
 const MAX_INSTALLMENTS = 24;
 
@@ -36,7 +36,9 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   const [kind, setKind] = useState<TxKind>(editing ? (editing.amount < 0 ? 'expense' : 'income') : 'expense');
   const [digits, setDigits] = useState(editing ? String(Math.round(Math.abs(editing.amount) * 100)) : '');
   const isInvoicePayment = editing?.category === 'Fatura';
-  const [category, setCategory] = useState<Category>(editing && editing.category !== 'Entrada' && editing.category !== 'Fatura' ? editing.category : 'Comida');
+  const { names: categoryNames, colors: categoryColorsMap } = useCategories();
+  const defaultCategory = categoryNames.includes('Comida') ? 'Comida' : (categoryNames[0] ?? 'Outros');
+  const [category, setCategory] = useState<Category>(editing && editing.category !== 'Entrada' && editing.category !== 'Fatura' ? editing.category : defaultCategory);
   const [sourceId, setSourceId] = useState(editing?.sourceId ?? sources[0]?.id ?? '');
   const [note, setNote] = useState(editing?.title ?? '');
   const [installments, setInstallments] = useState(1);
@@ -164,8 +166,8 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
 
       {!isIncome && !isInvoicePayment ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
-          {CATEGORIES.map((c) => (
-            <Chip key={c} label={c} dotColor={categoryColors[c]} selected={category === c} onPress={() => setCategory(c)} testID={`chip-cat-${c}`} />
+          {categoryNames.map((c) => (
+            <Chip key={c} label={c} dotColor={categoryColorsMap[c]} selected={category === c} onPress={() => setCategory(c)} testID={`chip-cat-${c}`} />
           ))}
         </ScrollView>
       ) : null}

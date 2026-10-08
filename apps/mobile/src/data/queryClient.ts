@@ -18,7 +18,7 @@ export const queryClient = new QueryClient({
 export const queryPersister = createAsyncStoragePersister({ storage: AsyncStorage, key: 'kash.query-cache' });
 
 /** Versão da cache: mude ao alterar o formato do snapshot para descartar caches antigas. */
-export const QUERY_CACHE_BUSTER = 'v1';
+export const QUERY_CACHE_BUSTER = 'v2-categories';
 
 // "foco" no mobile = app em primeiro plano (refetch de queries stale ao voltar)
 AppState.addEventListener('change', (status: AppStateStatus) => {

@@ -1,3 +1,5 @@
+import type { CategoryDef } from '../types';
+import { DEFAULT_CATEGORIES } from '../categories';
 import { addDays, monthKey, toISODate } from '../dates';
 import type { Account, Bill, Card, Goal, Invoice, Plan, Settings, Tx, User } from '../types';
 
@@ -64,5 +66,6 @@ export function seedData(today: Date) {
   const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   const invoices: Invoice[] = [{ id: 'inv1', cardId: 'card1', month: monthKey(prev), total: 1240.3, paid: false }];
 
-  return { user, settings, accounts, cards, plans, txs, bills, goals, invoices, lastRolloverMonth: monthKey(today) };
+  const categories: CategoryDef[] = DEFAULT_CATEGORIES.map((c, i) => ({ id: `cat${i + 1}`, name: c.name, color: c.color }));
+  return { user, settings, categories, accounts, cards, plans, txs, bills, goals, invoices, lastRolloverMonth: monthKey(today) };
 }

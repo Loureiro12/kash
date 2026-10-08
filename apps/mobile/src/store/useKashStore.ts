@@ -4,7 +4,7 @@ import { onboardingFlag } from '@/services/onboarding';
 import { supabase } from '@/services/supabase';
 import { queryClient } from '@/data/queryClient';
 import type { CardGradient } from '@/design-system/tokens/colors';
-import { addToGoal, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
+import { addToGoal, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type CategoryDef, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 
@@ -25,7 +25,7 @@ export interface SignUpInput extends Credentials {
   name: string;
 }
 export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount';
+export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount' | 'category';
 
 export interface NewTransaction {
   kind: TxKind;
@@ -51,7 +51,7 @@ export interface TxPatch {
 
 export type DeleteScope = 'single' | 'plan';
 
-export type EditableKind = 'card' | 'account' | 'bill' | 'goal';
+export type EditableKind = 'card' | 'account' | 'bill' | 'goal' | 'category';
 export interface EditingRef {
   kind: EditableKind;
   id: string;
@@ -81,6 +81,12 @@ export interface NewAccount {
   kind: string;
   bank: string;
   balance: number;
+  color: string;
+}
+
+export interface NewCategory {
+  name: string;
+  /** #RRGGBB */
   color: string;
 }
 
@@ -123,6 +129,8 @@ export interface KashState {
   txs: Tx[];
   bills: Bill[];
   goals: Goal[];
+  /** categorias do usuário, na ordem de exibição */
+  categories: CategoryDef[];
   plans: Plan[];
   ui: {
     sheet: SheetName | null;
@@ -210,6 +218,11 @@ export interface KashState {
   addGoal: (input: NewGoal) => void;
   updateGoal: (id: string, input: NewGoal) => void;
   removeGoal: (id: string) => void;
+  addCategory: (input: NewCategory) => void;
+  /** renomeia/recolore; lançamentos, contas fixas e parcelamentos acompanham o novo nome */
+  updateCategory: (id: string, input: NewCategory) => void;
+  /** exclui; se estiver em uso, `moveTo` (nome de outra categoria) recebe os registros */
+  removeCategory: (id: string, moveTo?: string) => void;
   recordDeposit: (input: NewDeposit) => void;
   /** processa a virada de mês se o mês atual ainda não foi processado */
   rolloverIfNeeded: () => void;
@@ -384,6 +397,8 @@ export const useKashStore = create<KashState>((set, get) => ({
       plans: snap.plans,
       bills: snap.bills,
       goals: snap.goals,
+      // cache persistida por uma versão antiga do app pode não ter categorias: mantém as atuais
+      categories: snap.categories?.length ? snap.categories : s.categories,
       invoices: snap.invoices,
       ui: { ...s.ui, selectedCardId: s.ui.selectedCardId && snap.cards.some((c) => c.id === s.ui.selectedCardId) ? s.ui.selectedCardId : (snap.cards[0]?.id ?? null) },
     })),
@@ -417,7 +432,7 @@ export const useKashStore = create<KashState>((set, get) => ({
 
   openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editingTxId: sheet === 'expense' ? null : s.ui.editingTxId, editing: null } })),
   openEdit: (ref) => {
-    const sheet: SheetName = ref.kind === 'card' ? 'addCard' : ref.kind === 'account' ? 'addAccount' : ref.kind === 'bill' ? 'addBill' : 'addGoal';
+    const sheet: SheetName = ref.kind === 'card' ? 'addCard' : ref.kind === 'account' ? 'addAccount' : ref.kind === 'bill' ? 'addBill' : ref.kind === 'category' ? 'category' : 'addGoal';
     set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editing: ref } }));
   },
   setDataStatus: (status) => set((s) => ({ ui: { ...s.ui, dataStatus: status } })),
@@ -660,6 +675,43 @@ export const useKashStore = create<KashState>((set, get) => ({
 
   /** Remove a meta; o dinheiro guardado continua na conta. */
   removeGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id), ui: { ...s.ui, sheet: null, editing: null } })),
+
+  addCategory: ({ name, color }) =>
+    set((s) => ({ categories: [...s.categories, { id: createId('cat'), name: name.trim(), color }], ui: { ...s.ui, sheet: null, editing: null } })),
+
+  updateCategory: (id, { name, color }) =>
+    set((s) => {
+      const current = s.categories.find((c) => c.id === id);
+      if (!current) return s;
+      const next = name.trim() || current.name;
+      const renamed = next !== current.name;
+      const old = current.name;
+      return {
+        categories: s.categories.map((c) => (c.id === id ? { ...c, name: next, color } : c)),
+        // mesmo efeito da RPC update_category: o nome antigo some de todo lugar
+        txs: renamed ? s.txs.map((t) => (t.category === old ? { ...t, category: next, title: t.title === old ? next : t.title } : t)) : s.txs,
+        bills: renamed ? s.bills.map((b) => (b.category === old ? { ...b, category: next } : b)) : s.bills,
+        plans: renamed ? s.plans.map((p) => (p.category === old ? { ...p, category: next, title: p.title === old ? next : p.title } : p)) : s.plans,
+        ui: { ...s.ui, sheet: null, editing: null },
+      };
+    }),
+
+  removeCategory: (id, moveTo) =>
+    set((s) => {
+      const current = s.categories.find((c) => c.id === id);
+      if (!current || s.categories.length <= 1) return s;
+      const name = current.name;
+      const target = moveTo && moveTo !== name && s.categories.some((c) => c.name === moveTo) ? moveTo : null;
+      const inUse = s.txs.some((t) => t.category === name) || s.bills.some((b) => b.category === name) || s.plans.some((p) => p.category === name);
+      if (inUse && !target) return s;
+      return {
+        categories: s.categories.filter((c) => c.id !== id),
+        txs: target ? s.txs.map((t) => (t.category === name ? { ...t, category: target } : t)) : s.txs,
+        bills: target ? s.bills.map((b) => (b.category === name ? { ...b, category: target } : b)) : s.bills,
+        plans: target ? s.plans.map((p) => (p.category === name ? { ...p, category: target } : p)) : s.plans,
+        ui: { ...s.ui, sheet: null, editing: null },
+      };
+    }),
 
   rolloverIfNeeded: () => {
     const s = get();

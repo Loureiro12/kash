@@ -1,4 +1,4 @@
-import { BRAND_GREEN, CATEGORY_COLORS as categoryColors, INVOICE_COLOR } from '../categories';
+import { BRAND_GREEN, CATEGORY_COLORS, INVOICE_COLOR, UNKNOWN_CATEGORY_COLOR } from '../categories';
 import type { Account, Card, Tx } from '../types';
 import { monthName, parseISODate, relativeDayLabel } from '../dates';
 import { round2 } from '../money';
@@ -15,9 +15,9 @@ export interface TxView {
 }
 
 /** Projeção de um lançamento para a linha de lista. */
-export function txView(tx: Tx, accounts: Account[], cards: Card[], now: Date): TxView {
+export function txView(tx: Tx, accounts: Account[], cards: Card[], now: Date, colors: Readonly<Record<string, string>> = CATEGORY_COLORS): TxView {
   const isExpense = tx.amount < 0;
-  const color = tx.category === 'Fatura' ? INVOICE_COLOR : isExpense && tx.category !== 'Entrada' ? categoryColors[tx.category] : BRAND_GREEN;
+  const color = tx.category === 'Fatura' ? INVOICE_COLOR : isExpense && tx.category !== 'Entrada' ? (colors[tx.category] ?? UNKNOWN_CATEGORY_COLOR) : BRAND_GREEN;
   const sourceName = cards.find((c) => c.id === tx.sourceId)?.name ?? accounts.find((a) => a.id === tx.sourceId)?.name ?? '';
   return {
     id: tx.id,
@@ -95,11 +95,11 @@ export interface TxDayGroup {
 }
 
 /** Agrupa por dia preservando a ordem (mais recente primeiro). */
-export function groupTxsByDay(txs: Tx[], accounts: Account[], cards: Card[], now: Date): TxDayGroup[] {
+export function groupTxsByDay(txs: Tx[], accounts: Account[], cards: Card[], now: Date, colors: Readonly<Record<string, string>> = CATEGORY_COLORS): TxDayGroup[] {
   const groups: TxDayGroup[] = [];
   for (const t of txs) {
     const last = groups[groups.length - 1];
-    const view = txView(t, accounts, cards, now);
+    const view = txView(t, accounts, cards, now, colors);
     if (last && last.date === t.date) last.items.push(view);
     else groups.push({ date: t.date, label: relativeDayLabel(t.date, now), items: [view] });
   }
