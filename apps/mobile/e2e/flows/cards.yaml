@@ -39,7 +39,9 @@ name: Cartões — selecionar e adicionar
 # "seguinte" leva ao campo dos 4 dígitos; ao completar 4 dígitos o foco vai pro limite
 - pressKey: Enter
 - inputText: "9999"
-- inputText: "1500"
+# máscara: dígitos entram pelos centavos
+- inputText: "150000"
+- assertVisible: "R$ 1.500,00"
 # CTA fixo no rodapé fica visível mesmo com o teclado aberto
 - tapOn:
     id: "add-card-save"

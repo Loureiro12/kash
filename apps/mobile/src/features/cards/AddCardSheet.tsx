@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
 import { Alert, View, type TextInput } from 'react-native';
-import { BottomSheet, Button, CreditCardFace, Input, Pressable, cardGradients, useTheme } from '@/design-system';
-import { formatBRL, parseMoneyInput } from '@kash/domain';
+import { BottomSheet, Button, cardGradients, CreditCardFace, Input, MoneyInput, Pressable, useTheme } from '@/design-system';
+import { formatBRL } from '@kash/domain';
 import { useKashStore } from '@/store';
 
 const onlyDigits = (v: string, max: number) => v.replace(/\D/g, '').slice(0, max);
@@ -33,7 +33,7 @@ function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editin
 
   const [name, setName] = useState(editing?.name ?? '');
   const [last4, setLast4] = useState(editing?.last4 ?? '');
-  const [limit, setLimit] = useState(editing ? String(editing.limit) : '');
+  const [limitN, setLimit] = useState(editing?.limit ?? 0);
   const [closing, setClosing] = useState(editing ? String(editing.closingDay) : '');
   const [due, setDue] = useState(editing ? String(editing.dueDay) : '');
   const [colorIdx, setColorIdx] = useState(editing ? Math.max(0, cardGradients.findIndex((g) => g.id === editing.gradientId)) : 0);
@@ -41,7 +41,6 @@ function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editin
   const limitRef = useRef<TextInput>(null);
 
   const gradient = cardGradients[colorIdx] ?? cardGradients[0]!;
-  const limitN = parseMoneyInput(limit);
   const canSave = name.trim().length > 0 && last4.length === 4 && limitN > 0;
 
   const onSave = () => {
@@ -108,7 +107,7 @@ function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editin
       <Input placeholder="Nome do cartão (ex.: Cartão da faculdade)" value={name} onChangeText={setName} testID="add-card-name" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => last4Ref.current?.focus()} />
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Input ref={last4Ref} containerStyle={{ flex: 1 }} placeholder="Últimos 4 dígitos" value={last4} onChangeText={(v) => { const d = onlyDigits(v, 4); setLast4(d); if (d.length === 4) limitRef.current?.focus(); }} keyboardType="number-pad" maxLength={4} testID="add-card-last4" />
-        <Input ref={limitRef} containerStyle={{ flex: 1 }} placeholder="Limite (R$)" value={limit} onChangeText={setLimit} keyboardType="decimal-pad" testID="add-card-limit" />
+        <MoneyInput ref={limitRef} containerStyle={{ flex: 1 }} placeholder="Limite (R$)" accessibilityLabel="Limite do cartão" value={limitN} onChangeValue={setLimit} testID="add-card-limit" />
       </View>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Input containerStyle={{ flex: 1 }} label="Dia do fechamento" labelSize="sm" placeholder="ex.: 28" value={closing} onChangeText={(v) => setClosing(onlyDigits(v, 2))} keyboardType="number-pad" testID="add-card-closing" />

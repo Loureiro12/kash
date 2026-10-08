@@ -34,13 +34,14 @@ name: Metas — guardar R$ 50
     id: "add-goal-name"
 - inputText: "Notebook"
 - pressKey: Enter
-- inputText: "4000"
+- inputText: "400000"
+- assertVisible: "R$ 4.000,00"
 - tapOn:
     id: "add-goal-saved"
-- inputText: "1000"
+- inputText: "100000"
 - tapOn:
     id: "add-goal-monthly"
-- inputText: "500"
+- inputText: "50000"
 - assertVisible: "Faltam 6 meses nesse ritmo"
 - tapOn:
     id: "add-goal-day"

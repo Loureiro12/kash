@@ -13,6 +13,7 @@ import {
   EyeOff,
   Home,
   Minus,
+  Diff,
   Plus,
   Target,
   Trash2,
@@ -36,6 +37,7 @@ export type IconName =
   | 'check'
   | 'plus'
   | 'minus'
+  | 'plus-minus'
   | 'close'
   | 'backspace';
 
@@ -53,6 +55,7 @@ const map = {
   check: Check,
   plus: Plus,
   minus: Minus,
+  'plus-minus': Diff,
   close: X,
   backspace: Delete,
 } as const;

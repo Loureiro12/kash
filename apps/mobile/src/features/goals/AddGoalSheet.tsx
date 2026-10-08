@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Alert, View, type TextInput } from 'react-native';
 import { ScrollView } from 'react-native';
-import { BottomSheet, Button, Chip, Input, Pressable, Text, accountColors, useTheme } from '@/design-system';
-import { goalProgress, parseMoneyInput } from '@kash/domain';
+import { accountColors, BottomSheet, Button, Chip, Input, MoneyInput, Pressable, Text, useTheme } from '@/design-system';
+import { goalProgress } from '@kash/domain';
 import { useKashStore } from '@/store';
 
 /** Sheet — Nova meta: nome, valor, já guardado, aporte mensal (prévia do prazo) e cor. */
@@ -14,7 +14,6 @@ export function AddGoalSheet() {
   return <AddGoalForm key={`${nonce}-${editingId ?? 'new'}`} visible={visible} editingId={editingId} onClose={closeSheet} />;
 }
 
-const money = (n: number) => String(n).replace('.', ',');
 
 function AddGoalForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
   const { colors } = useTheme();
@@ -26,9 +25,9 @@ function AddGoalForm({ visible, editingId, onClose }: { visible: boolean; editin
   const accounts = useKashStore((s) => s.accounts);
 
   const [name, setName] = useState(editing?.name ?? '');
-  const [target, setTarget] = useState(editing ? money(editing.target) : '');
-  const [saved, setSaved] = useState(editing ? money(editing.saved) : '');
-  const [monthly, setMonthly] = useState(editing ? money(editing.monthly) : '');
+  const [targetN, setTarget] = useState(editing?.target ?? 0);
+  const [savedN, setSaved] = useState(editing?.saved ?? 0);
+  const [monthlyN, setMonthly] = useState(editing?.monthly ?? 0);
   const [colorIdx, setColorIdx] = useState(editing ? Math.max(0, accountColors.findIndex((c) => c === editing.color)) : 1);
   const [accountId, setAccountId] = useState(editing?.accountId ?? accounts[0]?.id ?? '');
   const [depositDay, setDepositDay] = useState(editing?.depositDay ? String(editing.depositDay) : '');
@@ -36,9 +35,6 @@ function AddGoalForm({ visible, editingId, onClose }: { visible: boolean; editin
   const dayN = parseInt(depositDay, 10);
   const depositDayN = Number.isFinite(dayN) && dayN >= 1 && dayN <= 31 ? dayN : null;
 
-  const targetN = parseMoneyInput(target);
-  const savedN = parseMoneyInput(saved);
-  const monthlyN = parseMoneyInput(monthly);
   const canSave = name.trim().length > 0 && targetN > 0;
   const color = accountColors[colorIdx] ?? accountColors[0];
 
@@ -93,10 +89,10 @@ function AddGoalForm({ visible, editingId, onClose }: { visible: boolean; editin
         submitBehavior="submit"
         onSubmitEditing={() => targetRef.current?.focus()}
       />
-      <Input ref={targetRef} label="Valor da meta" labelSize="sm" placeholder="R$ 0,00" value={target} onChangeText={setTarget} keyboardType="decimal-pad" testID="add-goal-target" />
+      <MoneyInput ref={targetRef} label="Valor da meta" labelSize="sm" value={targetN} onChangeValue={setTarget} testID="add-goal-target" />
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Input containerStyle={{ flex: 1 }} label="Já guardado" labelSize="sm" placeholder="R$ 0,00" value={saved} onChangeText={setSaved} keyboardType="decimal-pad" testID="add-goal-saved" />
-        <Input containerStyle={{ flex: 1 }} label="Guardar por mês" labelSize="sm" placeholder="R$ 0,00" value={monthly} onChangeText={setMonthly} keyboardType="decimal-pad" testID="add-goal-monthly" />
+        <MoneyInput containerStyle={{ flex: 1 }} label="Já guardado" labelSize="sm" value={savedN} onChangeValue={setSaved} testID="add-goal-saved" />
+        <MoneyInput containerStyle={{ flex: 1 }} label="Guardar por mês" labelSize="sm" value={monthlyN} onChangeValue={setMonthly} testID="add-goal-monthly" />
       </View>
       {preview ? (
         <Text variant="meta" color={preview === 'Meta batida!' ? 'accentText' : 'muted'} testID="add-goal-eta">

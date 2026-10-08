@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Alert, ScrollView, View, type TextInput } from 'react-native';
-import { BottomSheet, Button, Chip, Input, Text, categoryColors } from '@/design-system';
-import { CATEGORIES, parseMoneyInput, type Category } from '@kash/domain';
+import { BottomSheet, Button, categoryColors, Chip, Input, MoneyInput, Text } from '@/design-system';
+import { CATEGORIES, type Category } from '@kash/domain';
 import { useKashStore, useSourceOptions } from '@/store';
 
 /** Sheet — Nova conta fixa: nome, valor, dia, categoria e onde é cobrada (cartão ou conta). */
@@ -22,14 +22,13 @@ function AddBillForm({ visible, editingId, onClose }: { visible: boolean; editin
   const sources = useSourceOptions();
 
   const [name, setName] = useState(editing?.name ?? '');
-  const [amount, setAmount] = useState(editing ? String(editing.amount).replace('.', ',') : '');
+  const [amountN, setAmount] = useState(editing?.amount ?? 0);
   const [day, setDay] = useState(editing ? String(editing.dueDay) : '');
   const [category, setCategory] = useState<Category>(editing?.category ?? 'Assinaturas');
   const [sourceId, setSourceId] = useState(editing?.sourceId ?? sources[0]?.id ?? '');
   const amountRef = useRef<TextInput>(null);
   const dayRef = useRef<TextInput>(null);
 
-  const amountN = parseMoneyInput(amount);
   const dayN = parseInt(day, 10);
   const validDay = Number.isFinite(dayN) && dayN >= 1 && dayN <= 31;
   const canSave = name.trim().length > 0 && amountN > 0 && validDay;
@@ -93,7 +92,7 @@ function AddBillForm({ visible, editingId, onClose }: { visible: boolean; editin
         onSubmitEditing={() => amountRef.current?.focus()}
       />
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Input ref={amountRef} containerStyle={{ flex: 1 }} label="Valor" labelSize="sm" placeholder="R$ 0,00" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" testID="add-bill-amount" />
+        <MoneyInput ref={amountRef} containerStyle={{ flex: 1 }} label="Valor" labelSize="sm" value={amountN} onChangeValue={setAmount} testID="add-bill-amount" />
         <Input
           ref={dayRef}
           containerStyle={{ flex: 1 }}

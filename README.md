@@ -213,6 +213,7 @@ Todo elemento interativo tem `testID` em kebab-case (`tab-add`, `chip-cat-Comida
 - **Temas escuro (padrão) e claro**, trocados em Perfil.
 - **`Text` só aceita variantes da escala** tipográfica Sora.
 - **Acessibilidade:** alvos de toque de 44 px ou mais, rótulos e estados em todos os controles, campos de senha com botão de mostrar e ocultar.
+- **Valores em dinheiro** usam `MoneyInput`: o usuário digita só números, que entram pelos centavos, e o campo mostra o valor já formatado (`R$ 1.234,56`). Com `allowNegative`, um botão ± troca o sinal, usado no saldo da conta. O lançamento de gasto tem teclado próprio com a mesma lógica.
 - **Movimento:** sheets em 300 ms, barras e anéis em 400 ms, haptics leves em ações.
 - **Ícone e splash** em `apps/mobile/assets/brand`. A splash animada fica em `src/features/splash/AnimatedSplash.tsx`.
 

@@ -29,6 +29,19 @@ export function parseMoneyInput(raw: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Maior valor aceito por um campo com máscara: R$ 999.999.999,99 (11 dígitos de centavos). */
+export const MAX_MONEY_DIGITS = 11;
+
+/**
+ * Texto de um campo com máscara de dinheiro → valor. Só os dígitos contam e entram pelos centavos,
+ * como numa maquininha: "5" → 0,05 · "R$ 0,051" → 0,51 · "R$ 12,3" (apagou um dígito) → 1,23.
+ * Colar "1.234,56" também funciona (→ 1234,56).
+ */
+export function moneyFromTyped(text: string): number {
+  const digits = String(text).replace(/\D/g, '').replace(/^0+/, '').slice(0, MAX_MONEY_DIGITS);
+  return digits ? parseInt(digits, 10) / 100 : 0;
+}
+
 /** Dígitos do teclado (centavos) → valor. "1250" → 12.5 */
 export function digitsToAmount(digits: string): number {
   const cents = parseInt(digits || '0', 10);

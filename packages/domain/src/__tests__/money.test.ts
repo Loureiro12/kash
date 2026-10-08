@@ -1,4 +1,4 @@
-import { applyKeypadKey, digitsToAmount, formatBRL, formatMoney, HIDDEN_VALUE, parseMoneyInput, round2 } from '../money';
+import { applyKeypadKey, digitsToAmount, formatBRL, formatMoney, HIDDEN_VALUE, parseMoneyInput, round2, moneyFromTyped } from '../money';
 
 describe('formatBRL', () => {
   it('formata com separador de milhar e 2 casas', () => {
@@ -55,5 +55,23 @@ describe('teclado numérico', () => {
 describe('round2', () => {
   it('arredonda para 2 casas', () => {
     expect(round2(1200 / 7)).toBe(171.43);
+  });
+});
+
+describe('moneyFromTyped (máscara de dinheiro)', () => {
+  it('dígitos entram pelos centavos', () => {
+    expect(moneyFromTyped('5')).toBe(0.05);
+    expect(moneyFromTyped('R$ 0,051')).toBe(0.51);
+    expect(moneyFromTyped('R$ 1.234,567')).toBe(12345.67);
+  });
+  it('apagar o último caractere tira o último dígito', () => {
+    expect(moneyFromTyped('R$ 12,3')).toBe(1.23);
+    expect(moneyFromTyped('R$ 0,0')).toBe(0);
+  });
+  it('colar valor formatado, vazio e limite de dígitos', () => {
+    expect(moneyFromTyped('1.234,56')).toBe(1234.56);
+    expect(moneyFromTyped('')).toBe(0);
+    expect(moneyFromTyped('abc')).toBe(0);
+    expect(moneyFromTyped('9999999999999')).toBe(999999999.99);
   });
 });

@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Alert, View, type TextInput } from 'react-native';
-import { BottomSheet, Button, Chip, Input, Pressable, Text, accountColors, useTheme } from '@/design-system';
-import { ACCOUNT_KINDS, parseMoneyInput, type AccountKind } from '@kash/domain';
+import { accountColors, BottomSheet, Button, Chip, Input, MoneyInput, Pressable, Text, useTheme } from '@/design-system';
+import { ACCOUNT_KINDS, type AccountKind } from '@kash/domain';
 import { useKashStore } from '@/store';
 
 /** Sheet — Nova conta bancária. */
@@ -32,7 +32,7 @@ function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; edi
   const [kind, setKind] = useState<AccountKind>(initial?.kind ?? 'Conta corrente');
   const [name, setName] = useState(editing?.name ?? '');
   const [bank, setBank] = useState(initial?.bank ?? '');
-  const [balance, setBalance] = useState(editing ? String(editing.balance).replace('.', ',') : '');
+  const [balance, setBalance] = useState(editing?.balance ?? 0);
   const [colorIdx, setColorIdx] = useState(editing ? Math.max(0, accountColors.findIndex((c) => c === editing.color)) : 0);
   const bankRef = useRef<TextInput>(null);
   const balanceRef = useRef<TextInput>(null);
@@ -40,7 +40,7 @@ function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; edi
   const canSave = name.trim().length > 0;
   const onSave = () => {
     if (!canSave) return;
-    const input = { name, kind, bank, balance: parseMoneyInput(balance), color: accountColors[colorIdx] ?? accountColors[0] };
+    const input = { name, kind, bank, balance, color: accountColors[colorIdx] ?? accountColors[0] };
     if (editing) {
       updateAccount(editing.id, input);
       showToast('Conta atualizada');
@@ -81,7 +81,7 @@ function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; edi
       </View>
       <Input placeholder="Apelido (ex.: Conta do estágio)" value={name} onChangeText={setName} testID="add-account-name" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => bankRef.current?.focus()} />
       <Input ref={bankRef} placeholder="Banco ou instituição" value={bank} onChangeText={setBank} testID="add-account-bank" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => balanceRef.current?.focus()} />
-      <Input ref={balanceRef} label="Saldo atual" labelSize="sm" placeholder="R$ 0,00" value={balance} onChangeText={setBalance} keyboardType="decimal-pad" testID="add-account-balance" />
+      <MoneyInput ref={balanceRef} label="Saldo atual" labelSize="sm" value={balance} onChangeValue={setBalance} allowNegative testID="add-account-balance" />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Text variant="metaMedium" color="muted" style={{ marginRight: 4 }}>
           Cor

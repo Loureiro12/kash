@@ -26,7 +26,9 @@ name: Contas — bancárias, fixas e nova conta
 - pressKey: Enter
 - inputText: "Banco X"
 - pressKey: Enter
-- inputText: "300"
+# máscara: dígitos entram pelos centavos
+- inputText: "30000"
+- assertVisible: "R$ 300,00"
 - tapOn:
     id: "add-account-save"
 - assertVisible: "Conta “Conta do estágio” adicionada"
@@ -60,7 +62,8 @@ name: Contas — bancárias, fixas e nova conta
     id: "add-bill-name"
 - inputText: "Spotify"
 - pressKey: Enter
-- inputText: "21,90"
+- inputText: "2190"
+- assertVisible: "R$ 21,90"
 - tapOn:
     id: "add-bill-day"
 - inputText: "8"
