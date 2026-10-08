@@ -418,9 +418,9 @@ describe('contas fixas, metas, ui', () => {
       s.toggleTheme();
       s.toggleHideValues();
       s.toggleBillReminder();
-      s.toggleBiometrics();
+      s.setBiometrics(true);
     });
-    expect(useKashStore.getState().settings).toMatchObject({ theme: 'light', hideValues: true, billReminder: false, biometrics: false });
+    expect(useKashStore.getState().settings).toMatchObject({ theme: 'light', hideValues: true, billReminder: false, biometrics: true });
   });
 });
 

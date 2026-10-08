@@ -69,6 +69,10 @@ Crie o environment **production** no repositório e, nele:
 
 Compilado e validado localmente no emulador Pixel 7 (debug, dev client): ícone adaptativo, splash, onboarding e login funcionam; notificações usam o canal `reminders`. Os builds de loja saem pelo EAS (passo 2.4), que também gera a keystore. A suíte Maestro completa está validada no iOS; no Android ver `apps/mobile/e2e/README.md`.
 
+## 5.1 Versão 1.0.1 (Face ID)
+
+O Face ID adicionou um módulo nativo (`expo-local-authentication`). A versão subiu para **1.0.1**, o que muda a `runtimeVersion`: updates OTA publicados a partir daqui só chegam a binários 1.0.1. Para entregar, gere e envie um build novo (`eas build -p ios --profile production` e `eas submit -p ios --latest`); quem está no 1.0.0 continua recebendo só updates do 1.0.0.
+
 ## 6. Fluxo do dia a dia
 
 1. Mudou o banco? Nova migração em `supabase/migrations`, `pnpm db:reset`, `pnpm db:types`, testes; o merge em `main` aplica em produção.

@@ -1,0 +1,20 @@
+appId: ${APP_ID}
+name: Biometria 1 — ativar na Segurança (o script responde ao Face ID)
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "home-avatar"
+- tapOn:
+    id: "profile-security"
+- extendedWaitUntil:
+    visible: "Entrar com Face ID"
+    timeout: 10000
+- assertVisible:
+    id: "security-biometrics-switch"
+    checked: false
+- tapOn:
+    id: "security-biometrics-switch"
+# primeira vez: o iOS pergunta se o app pode usar o Face ID
+- tapOn:
+    text: "OK|Permitir|Allow"
+    optional: true

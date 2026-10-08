@@ -1,0 +1,16 @@
+appId: ${APP_ID}
+name: Biometria 2 — ativado; reabrir o app pede o Face ID
+---
+# o aviso "Face ID ativado" some antes deste passo começar; o switch ligado é a prova
+- extendedWaitUntil:
+    visible:
+      id: "security-biometrics-switch"
+      checked: true
+    timeout: 10000
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "app-lock"
+    timeout: 20000
+- assertVisible: "Desbloquear com Face ID"

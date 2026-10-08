@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kash",
     "slug": "kash",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "kash",
     "orientation": "portrait",
     "icon": "./assets/brand/icon-1024.png",
@@ -59,7 +59,13 @@
           "defaultChannel": "reminders"
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O Kash usa o Face ID para desbloquear o app e proteger suas finanças."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

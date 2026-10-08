@@ -84,8 +84,10 @@ name: Perfil — dados pessoais, segurança, limite, moeda e ajuda
     id: "profile-security"
 - assertVisible:
     id: "security-screen"
-- tapOn:
+# biometria começa desligada (ativar pede o Face ID: coberto por e2e/biometrics.sh)
+- assertVisible:
     id: "security-biometrics-switch"
+    checked: false
 - tapOn:
     id: "security-password"
 - assertVisible:

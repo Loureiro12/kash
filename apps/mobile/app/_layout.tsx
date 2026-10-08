@@ -12,6 +12,8 @@ import { QUERY_CACHE_BUSTER, queryClient, queryPersister } from '@/data/queryCli
 import { installRemoteActions } from '@/data/remoteActions';
 import { ThemeProvider, useTheme } from '@/design-system';
 import { useAuthLinks } from '@/features/auth/useAuthLinks';
+import { AppLock } from '@/features/security/AppLock';
+import { useAutoLock } from '@/features/security/useBiometrics';
 import { ToastHost } from '@/features/navigation/SheetsHost';
 import { AnimatedSplash } from '@/features/splash/AnimatedSplash';
 import { useKashStore } from '@/store';
@@ -39,6 +41,7 @@ export default function RootLayout() {
         <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: queryPersister, buster: QUERY_CACHE_BUSTER }}>
         <ThemeProvider mode={theme}>
           <RootNavigator />
+          <AppLock ready={splashDone && authReady} />
           {!splashDone || !authReady ? <AnimatedSplash onFinish={finishSplash} holdUntil={authReady} /> : null}
         </ThemeProvider>
         </PersistQueryClientProvider>
@@ -58,6 +61,7 @@ function RootNavigator() {
     void bootstrapAuth();
   }, [bootstrapAuth]);
   useAuthLinks();
+  useAutoLock();
 
   // Virada de mês: ao abrir e sempre que o app volta pro primeiro plano.
   useEffect(() => {

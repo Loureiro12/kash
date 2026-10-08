@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, type KashSnapshot, RECOVERY_PATH, recoverSessionFromUrl, verifyRecoveryCode as apiVerifyRecoveryCode, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
+import { biometricLockPreference } from '@/services/biometrics';
 import { onboardingFlag } from '@/services/onboarding';
 import { supabase } from '@/services/supabase';
 import { queryClient } from '@/data/queryClient';
@@ -116,6 +117,8 @@ export interface NewDeposit {
 
 export interface KashState {
   auth: AuthStatus;
+  /** app bloqueado aguardando biometria (só com a preferência ligada neste aparelho) */
+  locked: boolean;
   /** id do usuário logado (chave das queries) */
   userId: string | null;
   authRequest: { status: RequestStatus; error: string | null };
@@ -182,7 +185,10 @@ export interface KashState {
   toggleTheme: () => void;
   toggleHideValues: () => void;
   toggleBillReminder: () => void;
-  toggleBiometrics: () => void;
+  /** liga/desliga o bloqueio por biometria neste aparelho (a confirmação biométrica fica no hook da tela) */
+  setBiometrics: (enabled: boolean) => void;
+  lock: () => void;
+  unlock: () => void;
   setMonthlyBudget: (value: number) => void;
   updateUser: (input: Partial<User>) => void;
 
@@ -236,6 +242,7 @@ const buildInitial = () => {
   const seed = seedData(now());
   return {
     auth: 'booting' as AuthStatus,
+    locked: false,
     userId: null as string | null,
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
@@ -255,7 +262,9 @@ export const useKashStore = create<KashState>((set, get) => ({
     try {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        set({ auth: 'app', userId: data.session.user.id });
+        // com o bloqueio ligado neste aparelho, o app abre trancado até a biometria
+        const biometrics = await biometricLockPreference.get();
+        set((s) => ({ auth: 'app', userId: data.session!.user.id, locked: biometrics, settings: { ...s.settings, biometrics } }));
         void get().loadProfile();
       } else {
         set({ auth: (await onboardingFlag.get()) ? 'login' : 'onboarding' });
@@ -371,6 +380,8 @@ export const useKashStore = create<KashState>((set, get) => ({
       // sem rede: a sessão local já foi descartada pelo supabase-js
     }
     queryClient.clear();
+    // outra pessoa pode entrar neste aparelho: o bloqueio volta a ser opt-in
+    void biometricLockPreference.set(false);
     set({ ...buildInitial(), auth: 'login' });
   },
   deleteAccount: async () => {
@@ -389,7 +400,8 @@ export const useKashStore = create<KashState>((set, get) => ({
   hydrateFromServer: (snap) =>
     set((s) => ({
       user: snap.user,
-      settings: { ...s.settings, ...snap.settings },
+      // biometria é preferência deste aparelho: o servidor não manda nela
+      settings: { ...s.settings, ...snap.settings, biometrics: s.settings.biometrics },
       lastRolloverMonth: snap.lastRolloverMonth,
       accounts: snap.accounts,
       cards: snap.cards,
@@ -406,7 +418,7 @@ export const useKashStore = create<KashState>((set, get) => ({
   loadProfile: async () => {
     try {
       const profile = await getProfile(supabase);
-      set((s) => ({ user: profile.user, settings: { ...s.settings, ...profile.settings } }));
+      set((s) => ({ user: profile.user, settings: { ...s.settings, ...profile.settings, biometrics: s.settings.biometrics } }));
     } catch {
       // perfil indisponível (offline): mantém o que está em memória
     }
@@ -416,7 +428,12 @@ export const useKashStore = create<KashState>((set, get) => ({
   toggleTheme: () => set((s) => ({ settings: { ...s.settings, theme: s.settings.theme === 'dark' ? 'light' : 'dark' } })),
   toggleHideValues: () => set((s) => ({ settings: { ...s.settings, hideValues: !s.settings.hideValues } })),
   toggleBillReminder: () => set((s) => ({ settings: { ...s.settings, billReminder: !s.settings.billReminder } })),
-  toggleBiometrics: () => set((s) => ({ settings: { ...s.settings, biometrics: !s.settings.biometrics } })),
+  setBiometrics: (enabled) => {
+    void biometricLockPreference.set(enabled);
+    set((s) => ({ settings: { ...s.settings, biometrics: enabled } }));
+  },
+  lock: () => set((s) => (s.auth === 'app' && s.settings.biometrics ? { locked: true } : s)),
+  unlock: () => set({ locked: false }),
   setMonthlyBudget: (value) => {
     if (!(value > 0)) return;
     set((s) => ({ settings: { ...s.settings, monthlyBudget: round2(value) } }));

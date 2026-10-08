@@ -74,7 +74,7 @@
 
 **Conta e privacidade**
 - Cadastro, login, alterar senha e **recuperação de senha por código** enviado por e-mail.
-- Sessão criptografada no aparelho.
+- Sessão criptografada no aparelho e desbloqueio com Face ID, Touch ID ou digital.
 - Tema escuro e claro, lembretes por notificação local, relatório por categoria.
 - Exportar todos os dados em JSON e excluir a conta pelo próprio app.
 - Cor de cartão e conta escolhida pelo usuário, com seletor de cor completo.
@@ -185,6 +185,8 @@ app (rotas) → features (telas) → store / data → design-system
 
 **Excluir e mover parcelamentos.** Excluir "todas as parcelas" marca o parcelamento como excluído (`plans.deleted_at`): ele some de "Parcelas em aberto", a virada de mês não o relança e o "Desfazer" o restaura com o mesmo contador. Excluir "só esta parcela" não mexe no contador, e a próxima segue a numeração. Trocar o cartão de uma parcela move o parcelamento inteiro e as parcelas já lançadas (RPC `move_plan_to_card`); na edição de uma parcela, só cartões aparecem como origem.
 
+**Face ID / biometria.** Em Perfil › Segurança, "Entrar com Face ID" (ou Touch ID/digital, conforme o aparelho) só liga depois de confirmar a biometria. Com ela ligada, o app abre trancado (`AppLock`) e pede a biometria depois da splash e ao voltar de mais de 30 s em segundo plano; "Entrar com senha" encerra a sessão. A preferência é deste aparelho (`src/services/biometrics.ts`, AsyncStorage): não sincroniza com o servidor e é desligada no logout. Sem biometria cadastrada, a tela explica e leva aos Ajustes.
+
 **Lembretes.** `planReminders` monta a lista de notificações locais: contas fixas e faturas 2 dias antes do vencimento às 9h, dia de depósito das metas e "faturas fecharam" no dia 1º. O app reagenda sempre que os dados mudam e só com a permissão concedida no switch "Lembrete de contas".
 
 **Recuperação de senha.** O e-mail traz um código (6 dígitos no local, 8 no projeto hospedado) que o usuário digita na tela "Esqueci a senha". O código vira uma sessão de recuperação, em que só a tela de nova senha existe. O mesmo e-mail mantém um deep link `kash://reset-password` como atalho.
@@ -210,7 +212,7 @@ app (rotas) → features (telas) → store / data → design-system
 | Banco: RLS, RPCs, virada de mês | pgTAP | `supabase/tests` |
 | Client contra o banco real | Vitest | `packages/supabase-client/tests` |
 | Edge Function | `deno test` | `supabase/functions` |
-| Ponta a ponta no app | Maestro (18 fluxos) | `apps/mobile/e2e/flows` |
+| Ponta a ponta no app | Maestro (18 fluxos + roteiro de biometria) | `apps/mobile/e2e/flows` |
 
 Os fluxos E2E cobrem onboarding e login, Início, lançar gasto à vista e parcelado, parcelamento antigo, cartões e fatura, contas, metas, páginas internas, editar e excluir, perfil e configurações, exportar dados, esqueci a senha com código, cores personalizadas, categorias e exclusão de conta. O runner reseta o banco antes de cada fluxo; detalhes em [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md).
 

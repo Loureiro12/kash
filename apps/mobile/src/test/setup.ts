@@ -3,6 +3,9 @@
 // Gesture handler: mocks oficiais do pacote (GestureHandlerRootView etc.).
 require('react-native-gesture-handler/jestSetup');
 
+// AsyncStorage: mock oficial em memória.
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 // Reanimated: usa o mock oficial em testes.
 jest.mock('react-native-reanimated', () => {
   const Reanimated = require('react-native-reanimated/mock');
@@ -90,6 +93,15 @@ jest.mock('reanimated-color-picker', () => {
   const Box = ({ children }: { children?: React.ReactNode }) => React.createElement(View, null, children);
   return { __esModule: true, default: Box, Panel1: Box, HueSlider: Box, Swatches: Box, Preview: Box };
 });
+
+jest.mock('expo-local-authentication', () => ({
+  hasHardwareAsync: jest.fn(async () => true),
+  isEnrolledAsync: jest.fn(async () => true),
+  supportedAuthenticationTypesAsync: jest.fn(async () => [2]),
+  authenticateAsync: jest.fn(async () => ({ success: true })),
+  cancelAuthenticate: jest.fn(async () => undefined),
+  AuthenticationType: { FINGERPRINT: 1, FACIAL_RECOGNITION: 2, IRIS: 3 },
+}));
 
 jest.mock('@/data/queryClient', () => ({
   queryClient: { clear: jest.fn(), refetchQueries: jest.fn(), invalidateQueries: jest.fn(async () => undefined) },

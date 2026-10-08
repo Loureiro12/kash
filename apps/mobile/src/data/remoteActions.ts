@@ -149,7 +149,7 @@ export function installRemoteActions() {
   wrap('toggleTheme', (_args, _before, after) => api.updateSettings(db, { theme: after.settings.theme }));
   wrap('toggleHideValues', (_args, _before, after) => api.updateSettings(db, { hideValues: after.settings.hideValues }));
   wrap('toggleBillReminder', (_args, _before, after) => api.updateSettings(db, { billReminder: after.settings.billReminder }));
-  wrap('toggleBiometrics', (_args, _before, after) => api.updateSettings(db, { biometrics: after.settings.biometrics }));
+  // biometria é preferência do aparelho (não sincroniza)
 }
 
 /** Só para testes: desinstala (restaura as ações locais) para reinstalar com mocks novos. */

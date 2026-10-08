@@ -1,0 +1,15 @@
+appId: ${APP_ID}
+name: Biometria 3 — rosto reconhecido destranca; reabrir tranca de novo
+---
+- extendedWaitUntil:
+    notVisible:
+      id: "app-lock"
+    timeout: 10000
+- assertVisible:
+    id: "tab-add"
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "app-lock-password"
+    timeout: 20000

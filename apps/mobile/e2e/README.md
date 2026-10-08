@@ -25,6 +25,9 @@ maestro test e2e/flows/expense.yaml --env APP_ID=com.andreloureiro.kash   # sem 
 ## E-mails (recuperação de senha)
 - O fluxo `reset-password.yaml` lê o e-mail no Mailpit do Supabase local (`http://127.0.0.1:54324/api/v1`) via `runScript` (`scripts/recovery-code.js`) e digita o código na tela de esqueci a senha. Alertas que sobrem de uma execução interrompida são dispensados no `launch-fresh.yaml`.
 
+## Biometria (Face ID)
+- `e2e/biometrics.sh` roda só no simulador iOS: cadastra o Face ID e responde "rosto reconhecido/não reconhecido" com `xcrun simctl spawn <udid> notifyutil -p com.apple.BiometricKit_Sim.pearl.match|nomatch`, alternando com os passos Maestro em `e2e/biometrics/`. Fica fora do `run.sh` porque precisa desses comandos entre os passos.
+
 ## Convenções
 - Todo elemento interativo tem `testID` em kebab-case (`tab-add`, `chip-cat-Comida`, `bill-bill2`).
 - Os fluxos começam limpos via `subflows/launch-fresh.yaml` (`clearState: true`, que também descarta a sessão guardada).

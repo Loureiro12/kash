@@ -14,7 +14,7 @@ export function seedData(today: Date) {
 
   const user: User = { name: 'Lara Mendes', email: 'lara.mendes@email.com', phone: '(11) 98765-4321' };
 
-  const settings: Settings = { theme: 'dark', hideValues: false, billReminder: true, monthlyBudget: 1800, biometrics: true, currency: 'BRL' };
+  const settings: Settings = { theme: 'dark', hideValues: false, billReminder: true, monthlyBudget: 1800, biometrics: false, currency: 'BRL' };
 
   const accounts: Account[] = [
     { id: 'acc1', name: 'Conta corrente', kind: 'Conta corrente · Banco digital', balance: 2340.5, color: '#C6F432' },
