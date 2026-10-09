@@ -1,0 +1,51 @@
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.monthTitle {
+  margin: 0;
+  font-weight: 700;
+  font-size: 17px;
+  text-transform: capitalize;
+}
+.searchRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search {
+  position: relative;
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 16px;
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 1;
+}
+.searchInput {
+  padding-left: 40px;
+}
+.day {
+  margin: 18px 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.newBtns {
+  display: flex;
+  gap: 8px;
+}

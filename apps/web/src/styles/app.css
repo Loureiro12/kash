@@ -1,0 +1,147 @@
+/*
+ * Tokens do Kash web (handoff design_handoff_kash_web). Mesmos valores do app mobile.
+ * Escopo: `.kash-app` (o site institucional continua com tokens.css). O tema vem de `data-theme`.
+ */
+.kash-app {
+  color-scheme: dark;
+  --bg: #0b0c0e;
+  --surface: #16181c;
+  --surface2: #1f2227;
+  --text: #f3f4f0;
+  --muted: #8b9099;
+  --line: rgba(255, 255, 255, 0.08);
+  --accent: #c6f432;
+  --accentText: #c6f432;
+  --onaccent: #0b0c0e;
+  --ink: #0b0c0e;
+  --neg: #ff7a6b;
+  /* texto vermelho e botão de perigo com contraste AA (4.5:1) sobre os fundos do tema */
+  --negText: #ff7a6b;
+  --dangerBg: #ff7a6b;
+  --onDanger: #0b0c0e;
+  --posSoft: rgba(198, 244, 50, 0.14);
+  --negSoft: rgba(255, 122, 107, 0.14);
+  --overlay: rgba(0, 0, 0, 0.55);
+  --shadow-modal: 0 30px 80px rgba(0, 0, 0, 0.4);
+  --shadow-toast: 0 12px 30px rgba(0, 0, 0, 0.3);
+  --track-on-accent: rgba(11, 12, 14, 0.18);
+  /* ação do toast (o toast usa as cores invertidas do tema) */
+  --toastAction: #4e7a00;
+
+  --r-card: 24px;
+  --r-card-sm: 22px;
+  --r-modal: 26px;
+  --r-btn: 16px;
+  --r-btn-sm: 14px;
+  --r-input: 14px;
+  --r-pill: 999px;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 200ms;
+  --dur-bar: 400ms;
+  --dur-modal: 300ms;
+
+  --sidebar-w: 244px;
+  --page-pad-x: 16px;
+  --page-pad-y: 20px;
+
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.kash-app[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f4f5ef;
+  --surface: #ffffff;
+  --surface2: #eceee6;
+  --text: #14161a;
+  /* handoff: #6B7079; um tom mais escuro para manter 4.5:1 também sobre --surface2 */
+  --muted: #61666f;
+  --line: rgba(0, 0, 0, 0.08);
+  /* handoff: #4E7A00; um tom mais escuro para manter 4.5:1 sobre --surface2 (hover) */
+  --accentText: #456c00;
+  --neg: #d9442f;
+  --negText: #b1351f;
+  --dangerBg: #b1351f;
+  --onDanger: #ffffff;
+  --posSoft: rgba(141, 196, 20, 0.16);
+  --negSoft: rgba(217, 68, 47, 0.12);
+  --toastAction: #c6f432;
+}
+
+/* o fundo da página acompanha o tema (rolagem elástica, áreas fora do contêiner) */
+html:has(.kash-app[data-theme='light']) body {
+  background: #f4f5ef;
+}
+
+@media (min-width: 900px) {
+  .kash-app {
+    --page-pad-x: 40px;
+    --page-pad-y: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kash-app {
+    --dur-fast: 0ms;
+    --dur-bar: 0ms;
+    --dur-modal: 0ms;
+  }
+}
+
+.kash-app a {
+  color: var(--accentText);
+}
+
+.kash-app a:hover {
+  color: var(--text);
+}
+
+/* links no meio do texto: sublinhados (não dependem só da cor) */
+.kash-app p a,
+.kash-app li a,
+.kash-app label a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.kash-app :focus-visible {
+  outline: 2px solid var(--accentText);
+  outline-offset: 2px;
+}
+
+.kash-app button,
+.kash-app input,
+.kash-app select,
+.kash-app textarea {
+  font-family: inherit;
+}
+
+.kash-app ::selection {
+  background: var(--accent);
+  color: var(--onaccent);
+}
+
+@keyframes kashUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes kashFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

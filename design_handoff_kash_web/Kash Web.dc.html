@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Sora',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+--bg:#0B0C0E;--surface:#16181C;--surface2:#1F2227;--text:#F3F4F0;--muted:#8B9099;--line:rgba(255,255,255,.08);--accent:#C6F432;--accentText:#C6F432;--onaccent:#0B0C0E;--neg:#FF7A6B;--posSoft:rgba(198,244,50,.14);--negSoft:rgba(255,122,107,.14);background:var(--bg);color:var(--text)}
+body.light{--bg:#F4F5EF;--surface:#FFFFFF;--surface2:#ECEEE6;--text:#14161A;--muted:#6B7079;--line:rgba(0,0,0,.08);--accentText:#4E7A00;--neg:#D9442F;--posSoft:rgba(141,196,20,.16);--negSoft:rgba(217,68,47,.12)}
+a{color:var(--accentText)}a:hover{color:var(--text)}
+input{font-family:inherit}
+@keyframes kashUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes kashFade{from{opacity:0}to{opacity:1}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:var(--bg);color:var(--text);font-family:'Sora',system-ui,sans-serif">
+
+  <!-- AUTH -->
+  <sc-if value="{{ isAuth }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100vh;display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr))">
+      <div style="background:#C6F432;color:#0B0C0E;padding:56px 64px;display:flex;flex-direction:column;gap:40px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:11px;background:#0B0C0E;color:#C6F432;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px">K</div>
+          <div style="font-weight:800;font-size:24px;letter-spacing:-0.03em">Kash</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;max-width:520px">
+          <div style="font-weight:800;font-size:64px;line-height:1.0;letter-spacing:-0.045em;text-wrap:pretty">Sua grana, sem mistério.</div>
+          <div style="font-size:17px;line-height:1.55;opacity:.8;text-wrap:pretty">Cartões, contas e boletos num lugar só. Lance um gasto em 3 toques e saiba quanto sobra até o fim do mês.</div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+            <div style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600"><span style="width:26px;height:26px;border-radius:50%;background:#0B0C0E;color:#C6F432;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none">1</span>Lance gastos de cartão e débito, à vista ou parcelado</div>
+            <div style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600"><span style="width:26px;height:26px;border-radius:50%;background:#0B0C0E;color:#C6F432;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none">2</span>Nunca mais esqueça uma conta fixa</div>
+            <div style="display:flex;align-items:center;gap:12px;font-size:15px;font-weight:600"><span style="width:26px;height:26px;border-radius:50%;background:#0B0C0E;color:#C6F432;display:flex;align-items:center;justify-content:center;font-size:13px;flex:none">3</span>Veja o mês que vem antes de ele chegar</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;padding:56px 32px;box-sizing:border-box">
+        <div style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:14px;animation:kashFade .3s ease">
+          <div style="font-weight:800;font-size:32px;letter-spacing:-0.03em">Bem-vindo de volta</div>
+          <div style="font-size:14px;color:var(--muted);margin-bottom:12px">Entre pra ver como anda sua grana.</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;color:var(--muted);font-weight:500">E-mail ou celular</label>
+            <input value="{{ loginEmail }}" onChange="{{ setLoginEmail }}" placeholder="voce@email.com" style="height:50px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:15px;outline:none" />
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;color:var(--muted);font-weight:500">Senha</label>
+            <input type="password" value="{{ loginPass }}" onChange="{{ setLoginPass }}" placeholder="••••••••" style="height:50px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:15px;outline:none" />
+          </div>
+          <a href="#" style="font-size:13px;text-decoration:none;align-self:flex-end;font-weight:500">Esqueci a senha</a>
+          <button onClick="{{ goApp }}" style="height:52px;border-radius:16px;border:0;background:var(--accent);color:var(--onaccent);font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;margin-top:8px">Entrar</button>
+          <button onClick="{{ goSignup }}" style="height:50px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--text);font-weight:600;font-size:14px;font-family:inherit;cursor:pointer" style-hover="background:var(--surface)">Criar conta grátis</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- APP -->
+  <sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;min-height:100vh">
+
+      <!-- SIDEBAR -->
+      <aside style="width:244px;flex:none;position:sticky;top:0;height:100vh;box-sizing:border-box;padding:24px 16px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:18px;overflow:auto">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 8px;flex:none">
+          <div style="width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--onaccent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">K</div>
+          <div style="font-weight:800;font-size:20px;letter-spacing:-0.03em">Kash</div>
+        </div>
+        <button onClick="{{ openSheet }}" style="flex:none;height:46px;border-radius:14px;border:0;background:var(--accent);color:var(--onaccent);font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="filter:brightness(1.06)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Lançar gasto
+        </button>
+        <nav style="display:flex;flex-direction:column;gap:4px;flex:none">
+          <sc-for list="{{ webNav }}" as="n" hint-placeholder-count="7">
+            <button onClick="{{ n.onClick }}" style="height:42px;border-radius:12px;border:0;background:{{ n.bg }};color:{{ n.fg }};font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:12px;padding:0 12px;text-align:left" style-hover="background:{{ n.hoverBg }}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ n.icon }}"></path></svg>{{ n.label }}
+            </button>
+          </sc-for>
+        </nav>
+        <div style="flex:1"></div>
+        <div onClick="{{ openProfile }}" style="flex:none;display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;cursor:pointer;background:{{ profileActiveBg }}" style-hover="background:var(--surface)">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#C6F432,#5BB3FF);display:flex;align-items:center;justify-content:center;font-weight:700;color:#0B0C0E;flex:none">L</div>
+          <div style="display:flex;flex-direction:column;min-width:0">
+            <div style="font-weight:700;font-size:13px">Lara Mendes</div>
+            <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ver perfil</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <main style="flex:1;min-width:0;padding:32px 40px 64px;box-sizing:border-box">
+        <div style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+
+          <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:260px">
+              <div style="font-weight:800;font-size:30px;letter-spacing:-0.035em">{{ pageTitle }}</div>
+              <div style="font-size:14px;color:var(--muted);text-wrap:pretty">{{ pageSub }}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ toggleHide }}" style="height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px" style-hover="background:var(--surface2)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>{{ hideLabel }}
+              </button>
+              <button onClick="{{ toggleTheme }}" style="height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:inherit;font-weight:600;font-size:12px;cursor:pointer" style-hover="background:var(--surface2)">{{ themeShort }}</button>
+            </div>
+          </div>
+
+          <!-- INÍCIO -->
+          <sc-if value="{{ tabHome }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+              <div style="padding:24px;border-radius:24px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:8px">
+                <div style="font-size:13px;color:var(--muted);font-weight:500">Saldo total</div>
+                <div style="font-weight:800;font-size:36px;letter-spacing:-0.03em;line-height:1.05">{{ totalBalance }}</div>
+                <div style="display:flex;gap:8px;margin-top:auto;padding-top:10px;flex-wrap:wrap">
+                  <div style="padding:6px 10px;border-radius:999px;background:var(--posSoft);color:var(--accentText);font-size:12px;font-weight:600;white-space:nowrap">↑ {{ monthIncome }} entrou</div>
+                  <div style="padding:6px 10px;border-radius:999px;background:var(--negSoft);color:var(--neg);font-size:12px;font-weight:600;white-space:nowrap">↓ {{ monthSpent }} saiu</div>
+                </div>
+              </div>
+              <div onClick="{{ openReport }}" style="padding:24px;border-radius:24px;background:var(--accent);color:#0B0C0E;cursor:pointer;display:flex;flex-direction:column;gap:10px" style-hover="filter:brightness(1.04)">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-weight:700;font-size:14px">Gastos do mês</div><div style="font-size:12px;font-weight:600;opacity:.75">ver relatório →</div></div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><div style="font-weight:800;font-size:30px;letter-spacing:-0.03em">{{ monthSpent }}</div><div style="font-size:12px;font-weight:600;opacity:.75">de {{ budgetFmt }}</div></div>
+                <div style="height:8px;border-radius:99px;background:rgba(11,12,14,.18);overflow:hidden"><div style="height:100%;border-radius:99px;background:#0B0C0E;width:{{ budgetPct }}%;transition:width .4s"></div></div>
+                <div style="font-size:12px;font-weight:600">{{ budgetMsg }}</div>
+              </div>
+              <div onClick="{{ openForecast }}" style="padding:24px;border-radius:24px;background:var(--surface);border:1px solid var(--line);cursor:pointer;display:flex;flex-direction:column;gap:12px" style-hover="background:var(--surface2)">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-weight:700;font-size:14px">Previsão de gastos</div><div style="font-size:12px;font-weight:600;color:var(--accentText)">ver previsão →</div></div>
+                <div style="display:flex;align-items:flex-end;gap:8px;height:64px">
+                  <sc-for list="{{ forecastMini }}" as="f" hint-placeholder-count="6">
+                    <div style="flex:1;border-radius:6px;background:var(--accent);height:{{ f.h }}%"></div>
+                  </sc-for>
+                </div>
+                <div style="font-size:12px;color:var(--muted)">{{ forecastNextLabel }}</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start">
+              <div style="padding:8px 24px 12px;border-radius:24px;background:var(--surface);border:1px solid var(--line)">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0 6px"><div style="font-weight:700;font-size:16px">Lançamentos</div><button onClick="{{ openSheet }}" style="border:0;background:none;color:var(--accentText);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:0">+ novo</button></div>
+                <sc-for list="{{ allTxs }}" as="t" hint-placeholder-count="8">
+                  <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)">
+                    <div style="width:38px;height:38px;border-radius:12px;background:{{ t.soft }};color:{{ t.color }};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none">{{ t.initial }}</div>
+                    <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+                      <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</div>
+                      <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.meta }}</div>
+                    </div>
+                    <div style="font-weight:700;font-size:14px;color:{{ t.amountColor }};white-space:nowrap">{{ t.amountFmt }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="padding:8px 24px 16px;border-radius:24px;background:var(--surface);border:1px solid var(--line)">
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0 6px"><div style="font-weight:700;font-size:16px">Próximas contas</div><button onClick="{{ tabGoBills }}" style="border:0;background:none;color:var(--accentText);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:0">ver todas</button></div>
+                  <sc-for list="{{ upcomingBills }}" as="b" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)">
+                      <div style="width:38px;height:38px;border-radius:12px;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none"><div style="font-size:9px;color:var(--muted);font-weight:600;line-height:1">DIA</div><div style="font-size:14px;font-weight:800;line-height:1.1">{{ b.due }}</div></div>
+                      <div style="flex:1;min-width:0;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.name }}</div>
+                      <div style="font-weight:700;font-size:14px;white-space:nowrap">{{ b.amountFmt }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="padding:8px 24px 20px;border-radius:24px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding-top:16px"><div style="font-weight:700;font-size:16px">Metas</div><button onClick="{{ tabGoGoals }}" style="border:0;background:none;color:var(--accentText);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;padding:0">ver metas</button></div>
+                  <sc-for list="{{ goalsView }}" as="g" hint-placeholder-count="3">
+                    <div style="display:flex;flex-direction:column;gap:7px">
+                      <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.name }}</span><span style="color:var(--muted);white-space:nowrap">{{ g.pct }}%</span></div>
+                      <div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="height:100%;border-radius:99px;background:{{ g.color }};width:{{ g.pct }}%;transition:width .4s"></div></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- CARTÕES -->
+          <sc-if value="{{ tabCards }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <sc-for list="{{ cardsView }}" as="c" hint-placeholder-count="2">
+                <div onClick="{{ c.onPick }}" style="width:300px;height:176px;border-radius:22px;background:{{ c.grad }};color:{{ c.ink }};padding:20px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;outline:{{ c.outline }};outline-offset:3px;transition:transform .2s;transform:{{ c.scale }}">
+                  <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700;font-size:14px">{{ c.name }}</div><div style="font-weight:800;font-size:14px;opacity:.7">kash</div></div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <div style="font-size:11px;opacity:.7;font-weight:500">Fatura atual</div>
+                    <div style="font-weight:800;font-size:26px;letter-spacing:-0.03em">{{ c.usedFmt }}</div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:500;opacity:.8"><span>•••• {{ c.last }}</span><span>fecha {{ c.closes }}</span></div>
+                  </div>
+                </div>
+              </sc-for>
+              <button onClick="{{ openAddCard }}" style="width:176px;height:176px;border-radius:22px;border:1px dashed var(--muted);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px" style-hover="background:var(--surface);color:var(--text)"><span style="font-size:28px;font-weight:500">+</span>Novo cartão</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start">
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="padding:22px 24px;border-radius:24px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-weight:700;font-size:16px">Limite usado · {{ selCard.name }}</div><div style="font-size:13px;color:var(--muted)">{{ selCard.pct }}%</div></div>
+                  <div style="height:10px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="height:100%;border-radius:99px;background:var(--accent);width:{{ selCard.pct }}%;transition:width .4s"></div></div>
+                  <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)"><span style="white-space:nowrap">Disponível <b style="color:var(--text)">{{ selCard.availFmt }}</b></span><span style="white-space:nowrap">Limite {{ selCard.limitFmt }}</span></div>
+                  <div style="display:flex;gap:10px;margin-top:4px">
+                    <div style="flex:1;padding:14px;border-radius:14px;background:var(--surface2);display:flex;flex-direction:column;gap:2px"><div style="font-size:11px;color:var(--muted)">Fechamento</div><div style="font-weight:700;font-size:15px">{{ selCard.closes }}</div></div>
+                    <div style="flex:1;padding:14px;border-radius:14px;background:var(--surface2);display:flex;flex-direction:column;gap:2px"><div style="font-size:11px;color:var(--muted)">Vencimento</div><div style="font-weight:700;font-size:15px">{{ selCard.due }}</div></div>
+                  </div>
+                </div>
+                <sc-if value="{{ hasCardPlans }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:22px 24px;border-radius:24px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:14px">
+                    <div style="font-weight:700;font-size:16px">Parcelas em aberto</div>
+                    <sc-for list="{{ cardPlans }}" as="p" hint-placeholder-count="2">
+                      <div style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:16px;background:var(--surface2)">
+                        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.title }}</div><div style="font-weight:700;font-size:13px;white-space:nowrap">{{ p.perFmt }}/mês</div></div>
+                        <div style="height:6px;border-radius:99px;background:var(--line);overflow:hidden"><div style="height:100%;border-radius:99px;background:var(--accent);width:{{ p.pct }}%"></div></div>
+                        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)"><span>{{ p.cur }} de {{ p.n }} pagas</span><span>termina em {{ p.ends }} · falta {{ p.leftFmt }}</span></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="padding:8px 24px 12px;border-radius:24px;background:var(--surface);border:1px solid var(--line)">
+                <div style="font-weight:700;font-size:16px;padding:16px 0 6px">Lançamentos da fatura</div>
+                <sc-for list="{{ selCardTxs }}" as="t" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)">
+                    <div style="width:38px;height:38px;border-radius:12px;background:{{ t.soft }};color:{{ t.color }};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none">{{ t.initial }}</div>
+                    <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.title }}</div><div style="font-size:12px;color:var(--muted)">{{ t.meta }}</div></div>
+                    <div style="font-weight:700;font-size:14px;color:{{ t.amountColor }};white-space:nowrap">{{ t.amountFmt }}</div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ selCardEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:28px 0;text-align:center;font-size:13px;color:var(--muted)">Nenhum gasto nesse cartão ainda.</div></sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- CONTAS BANCÁRIAS / FIXAS -->
+          <sc-if value="{{ tabAccounts }}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{ isBankSeg }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:24px;border-radius:24px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:13px;color:var(--muted)">Em todas as contas</div>
+                <div style="font-weight:800;font-size:36px;letter-spacing:-0.03em">{{ totalBalance }}</div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+                <sc-for list="{{ accountsView }}" as="a" hint-placeholder-count="3">
+                  <div style="padding:22px;border-radius:22px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:18px">
+                    <div style="width:44px;height:44px;border-radius:13px;background:{{ a.color }};display:flex;align-items:center;justify-content:center;font-weight:700;color:#0B0C0E">{{ a.initial }}</div>
+                    <div style="display:flex;flex-direction:column;gap:3px"><div style="font-weight:700;font-size:15px">{{ a.name }}</div><div style="font-size:12px;color:var(--muted)">{{ a.kind }}</div></div>
+                    <div style="font-weight:800;font-size:22px;letter-spacing:-0.02em">{{ a.balanceFmt }}</div>
+                  </div>
+                </sc-for>
+                <button onClick="{{ openAddAcc }}" style="min-height:180px;border-radius:22px;border:1px dashed var(--muted);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px" style-hover="background:var(--surface);color:var(--text)"><span style="font-size:28px;font-weight:500">+</span>Adicionar conta</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isBillsSeg }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+                <div style="padding:20px 22px;border-radius:22px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px"><div style="font-size:12px;color:var(--muted)">A pagar este mês</div><div style="font-weight:800;font-size:26px;letter-spacing:-0.02em;color:var(--neg)">{{ billsPendingFmt }}</div></div>
+                <div style="padding:20px 22px;border-radius:22px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px"><div style="font-size:12px;color:var(--muted)">Pagas</div><div style="font-weight:800;font-size:26px;letter-spacing:-0.02em;color:var(--accentText)">{{ billsPaidCount }}/{{ billsCount }}</div></div>
+                <div style="padding:20px 22px;border-radius:22px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px"><div style="font-size:12px;color:var(--muted)">Total mensal</div><div style="font-weight:800;font-size:26px;letter-spacing:-0.02em">{{ billsMonthlyFmt }}</div></div>
+              </div>
+              <div style="padding:8px 12px;border-radius:24px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column">
+                <sc-for list="{{ billsView }}" as="b" hint-placeholder-count="5">
+                  <div onClick="{{ b.onToggle }}" style="display:flex;align-items:center;gap:14px;padding:14px 12px;border-radius:14px;cursor:pointer;opacity:{{ b.opacity }}" style-hover="background:var(--surface2)">
+                    <div style="width:26px;height:26px;border-radius:50%;border:2px solid {{ b.checkBorder }};background:{{ b.checkBg }};display:flex;align-items:center;justify-content:center;flex:none;box-sizing:border-box"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0B0C0E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:{{ b.checkOpacity }}"><path d="M5 12l5 5L20 7"></path></svg></div>
+                    <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><div style="font-weight:600;font-size:14px;text-decoration:{{ b.deco }}">{{ b.name }}</div><div style="font-size:12px;color:var(--muted)">{{ b.status }}</div></div>
+                    <div style="font-weight:700;font-size:15px;white-space:nowrap">{{ b.amountFmt }}</div>
+                  </div>
+                </sc-for>
+                <button style="height:48px;margin:6px 0;border-radius:14px;border:1px dashed var(--muted);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:13px;cursor:pointer" style-hover="color:var(--text)">+ Nova conta fixa</button>
+              </div>
+            </sc-if>
+          </sc-if>
+
+          <!-- METAS -->
+          <sc-if value="{{ tabGoals }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:14px;color:var(--muted)">Você já guardou <b style="color:var(--accentText)">{{ goalsSavedFmt }}</b> no total.</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+              <sc-for list="{{ goalsView }}" as="g" hint-placeholder-count="3">
+                <div style="padding:22px;border-radius:24px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:16px">
+                  <div style="display:flex;align-items:center;gap:16px">
+                    <div style="position:relative;width:88px;height:88px;flex:none">
+                      <svg width="88" height="88" viewBox="0 0 68 68" style="display:block"><circle cx="34" cy="34" r="28" fill="none" stroke="var(--surface2)" stroke-width="7"></circle><circle cx="34" cy="34" r="28" fill="none" stroke="{{ g.color }}" stroke-width="7" stroke-linecap="round" stroke-dasharray="{{ g.dash }}" transform="rotate(-90 34 34)" style="transition:stroke-dasharray .4s"></circle></svg>
+                      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700">{{ g.pct }}%</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><div style="font-weight:700;font-size:16px">{{ g.name }}</div><div style="font-size:13px;color:var(--muted)">{{ g.savedFmt }} de {{ g.targetFmt }}</div><div style="font-size:12px;color:var(--muted)">{{ g.eta }}</div></div>
+                  </div>
+                  <button onClick="{{ g.onAdd }}" style="height:42px;border-radius:12px;border:0;background:var(--posSoft);color:var(--accentText);font-family:inherit;font-weight:700;font-size:13px;cursor:pointer">+ Guardar R$ 50</button>
+                </div>
+              </sc-for>
+              <button style="min-height:200px;border-radius:24px;border:1px dashed var(--muted);background:transparent;color:var(--muted);font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px" style-hover="background:var(--surface);color:var(--text)"><span style="font-size:28px;font-weight:500">+</span>Nova meta</button>
+            </div>
+            <div style="padding:22px 24px;border-radius:24px;background:var(--accent);color:#0B0C0E;display:flex;flex-direction:column;gap:6px;max-width:720px">
+              <div style="font-weight:700;font-size:15px">Dica da semana</div>
+              <div style="font-size:14px;line-height:1.55;opacity:.85;text-wrap:pretty">Você gastou {{ catTopFmt }} com {{ catTopName }} este mês. Guardar 10% disso já adianta sua meta em {{ catTopTipFmt }}.</div>
+            </div>
+          </sc-if>
+
+          <!-- RELATÓRIO -->
+          <sc-if value="{{ pageReport }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start">
+              <div style="padding:24px;border-radius:24px;background:var(--surface);border:1px solid var(--line)">
+                <div style="font-size:13px;color:var(--muted)">Gastos · outubro</div>
+                <div style="font-weight:800;font-size:34px;letter-spacing:-0.03em;margin-top:2px">{{ monthSpent }}</div>
+                <div style="font-size:13px;color:var(--accentText);font-weight:600;margin-top:2px">{{ monthDelta }}</div>
+                <div style="display:flex;align-items:flex-end;gap:14px;height:220px;margin-top:24px">
+                  <sc-for list="{{ monthsView }}" as="m" hint-placeholder-count="6">
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end">
+                      <div style="width:100%;border-radius:10px;background:{{ m.bg }};height:{{ m.h }}%;transition:height .4s"></div>
+                      <div style="font-size:12px;color:{{ m.labelColor }};font-weight:600">{{ m.label }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="padding:24px;border-radius:24px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:16px">
+                <div style="font-weight:700;font-size:16px">Por categoria</div>
+                <sc-for list="{{ catBreakdown }}" as="c" hint-placeholder-count="5">
+                  <div style="display:flex;flex-direction:column;gap:7px">
+                    <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span style="font-weight:600;display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:3px;background:{{ c.color }}"></span>{{ c.name }}</span><span style="color:var(--muted);white-space:nowrap">{{ c.amountFmt }} · {{ c.pct }}%</span></div>
+                    <div style="height:8px;border-radius:99px;background:var(--surface2);overflow:hidden"><div style="height:100%;border-radius:99px;background:{{ c.color }};width:{{ c.pct }}%;transition:width .4s"></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- PREVISÃO -->
+          <sc-if value="{{ pageForecast }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start">
+              <div style="padding:24px;border-radius:24px;background:var(--surface);border:1px solid var(--line)">
+                <div style="font-size:13px;color:var(--muted)">Comprometido em {{ forecastNextMonth }}</div>
+                <div style="font-weight:800;font-size:34px;letter-spacing:-0.03em;margin-top:2px">{{ forecastNextFmt }}</div>
+                <div style="font-size:13px;color:var(--muted);margin-top:2px">{{ forecastNextPctMsg }}</div>
+                <div style="display:flex;align-items:flex-end;gap:14px;height:220px;margin-top:24px">
+                  <sc-for list="{{ forecastView }}" as="m" hint-placeholder-count="6">
+                    <div onClick="{{ m.onPick }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;cursor:pointer">
+                      <div style="width:100%;height:{{ m.h }}%;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;opacity:{{ m.opacity }};transition:opacity .2s">
+                        <div style="flex:{{ m.instFlex }};background:var(--accent)"></div>
+                        <div style="flex:{{ m.billFlex }};background:var(--muted)"></div>
+                      </div>
+                      <div style="font-size:12px;color:{{ m.labelColor }};font-weight:600">{{ m.label }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;gap:16px;margin-top:16px;font-size:12px;color:var(--muted)">
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--muted)"></span>Contas fixas</span>
+                  <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--accent)"></span>Parcelas</span>
+                  <span>Clique num mês pra ver o detalhe</span>
+                </div>
+              </div>
+              <div style="padding:8px 24px 12px;border-radius:24px;background:var(--surface);border:1px solid var(--line)">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding:16px 0 6px"><div style="font-weight:700;font-size:16px">{{ forecastSelTitle }}</div><div style="font-weight:800;font-size:16px">{{ forecastSelTotal }}</div></div>
+                <sc-for list="{{ forecastSelItems }}" as="i" hint-placeholder-count="6">
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)">
+                    <div style="width:40px;height:36px;border-radius:11px;background:{{ i.bg }};color:{{ i.fg }};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex:none">{{ i.tag }}</div>
+                    <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ i.title }}</div><div style="font-size:12px;color:var(--muted)">{{ i.sub }}</div></div>
+                    <div style="font-weight:700;font-size:14px;white-space:nowrap">{{ i.amountFmt }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- PERFIL -->
+          <sc-if value="{{ pageProfile }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;align-items:start">
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;align-items:center;gap:16px;padding:22px;border-radius:24px;background:var(--surface);border:1px solid var(--line)">
+                  <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#C6F432,#5BB3FF);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px;color:#0B0C0E;flex:none">L</div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><div style="font-weight:700;font-size:17px">Lara Mendes</div><div style="font-size:13px;color:var(--muted)">lara.mendes@email.com</div></div>
+                  <button style="height:38px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);font-family:inherit;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:var(--surface2)">Editar</button>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-left:4px">Conta</div>
+                  <div style="border-radius:22px;background:var(--surface);border:1px solid var(--line);overflow:hidden">
+                    <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);cursor:pointer" style-hover="background:var(--surface2)"><div style="flex:1;font-weight:600;font-size:14px">Dados pessoais</div><div style="font-size:13px;color:var(--muted)">Nome, e-mail, celular</div></div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);cursor:pointer" style-hover="background:var(--surface2)"><div style="flex:1;font-weight:600;font-size:14px">Segurança</div><div style="font-size:13px;color:var(--muted)">Senha, verificação em 2 etapas</div></div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer" style-hover="background:var(--surface2)"><div style="flex:1;font-weight:600;font-size:14px">Limite mensal</div><div style="font-size:13px;color:var(--muted)">{{ budgetFmt }}</div></div>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-left:4px">Preferências</div>
+                  <div style="border-radius:22px;background:var(--surface);border:1px solid var(--line);overflow:hidden">
+                    <div onClick="{{ toggleTheme }}" style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);cursor:pointer"><div style="flex:1;font-weight:600;font-size:14px">Tema escuro</div><div style="width:44px;height:26px;border-radius:99px;background:{{ switchBg }};position:relative;transition:background .2s"><div style="position:absolute;top:3px;left:{{ switchKnob }};width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div></div></div>
+                    <div onClick="{{ toggleNotif }}" style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);cursor:pointer"><div style="display:flex;flex-direction:column;gap:2px;flex:1"><div style="font-weight:600;font-size:14px">Lembrete de contas</div><div style="font-size:12px;color:var(--muted)">E-mail 2 dias antes do vencimento</div></div><div style="width:44px;height:26px;border-radius:99px;background:{{ notifBg }};position:relative;transition:background .2s"><div style="position:absolute;top:3px;left:{{ notifKnob }};width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div></div></div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:16px 18px"><div style="flex:1;font-weight:600;font-size:14px">Moeda</div><div style="font-size:13px;color:var(--muted)">Real (R$)</div></div>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-left:4px">Sobre</div>
+                  <div style="border-radius:22px;background:var(--surface);border:1px solid var(--line);overflow:hidden">
+                    <div onClick="{{ openTerms }}" style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);cursor:pointer" style-hover="background:var(--surface2)"><div style="flex:1;font-weight:600;font-size:14px">Termos de uso</div><div style="color:var(--muted)">→</div></div>
+                    <div onClick="{{ openPrivacy }}" style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);cursor:pointer" style-hover="background:var(--surface2)"><div style="flex:1;font-weight:600;font-size:14px">Política de privacidade</div><div style="color:var(--muted)">→</div></div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);cursor:pointer" style-hover="background:var(--surface2)"><div style="flex:1;font-weight:600;font-size:14px">Ajuda e suporte</div><div style="color:var(--muted)">→</div></div>
+                    <div style="display:flex;align-items:center;gap:12px;padding:16px 18px"><div style="flex:1;font-weight:600;font-size:14px">Versão</div><div style="font-size:13px;color:var(--muted)">Web 1.0.0</div></div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <button onClick="{{ logout }}" style="flex:1;min-width:160px;height:50px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:inherit;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:var(--surface2)">Sair da conta</button>
+                  <button onClick="{{ openDelete }}" style="flex:1;min-width:160px;height:50px;border-radius:16px;border:0;background:var(--negSoft);color:var(--neg);font-family:inherit;font-weight:600;font-size:14px;cursor:pointer">Excluir conta</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TERMOS / PRIVACIDADE -->
+          <sc-if value="{{ isDocPage }}" hint-placeholder-val="{{ false }}">
+            <div style="max-width:720px;display:flex;flex-direction:column;gap:22px">
+              <button onClick="{{ openProfile }}" style="align-self:flex-start;height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-family:inherit;font-weight:600;font-size:13px;cursor:pointer">← Voltar ao perfil</button>
+              <sc-for list="{{ docSections }}" as="d" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:6px"><div style="font-weight:700;font-size:16px">{{ d.h }}</div><div style="font-size:14px;line-height:1.65;color:var(--muted);text-wrap:pretty">{{ d.p }}</div></div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </main>
+    </div>
+
+    <!-- MODAL: LANÇAR GASTO -->
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
+        <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(0,0,0,.55);animation:kashFade .2s ease"></div>
+        <div style="position:relative;width:100%;max-width:520px;max-height:100%;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:26px;padding:26px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px;animation:kashUp .3s cubic-bezier(.2,.8,.2,1);box-shadow:0 30px 80px rgba(0,0,0,.4)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:800;font-size:20px;letter-spacing:-0.02em">Lançar gasto</div><button onClick="{{ closeSheet }}" style="border:0;background:var(--surface);color:var(--muted);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px">×</button></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;color:var(--muted);font-weight:500">Valor</label>
+            <input value="{{ amountDisplay }}" onChange="{{ setAmountInput }}" inputMode="numeric" style="height:64px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:{{ amountColor }};padding:0 18px;font-size:34px;font-weight:800;letter-spacing:-0.03em;outline:none" />
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="font-size:12px;color:var(--muted);font-weight:500">Categoria</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ catChips }}" as="c" hint-placeholder-count="6">
+                <button onClick="{{ c.onPick }}" style="height:36px;padding:0 14px;border-radius:999px;border:1px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }};font-family:inherit;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:{{ c.color }}"></span>{{ c.name }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="font-size:12px;color:var(--muted);font-weight:500">Pago com</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ sourceChips }}" as="s" hint-placeholder-count="5">
+                <button onClick="{{ s.onPick }}" style="height:34px;padding:0 12px;border-radius:10px;border:1px solid {{ s.border }};background:{{ s.bg }};color:{{ s.fg }};font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">{{ s.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ srcIsCard }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:12px;height:56px;padding:0 8px 0 16px;border-radius:16px;background:var(--surface);border:1px solid var(--line)">
+              <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0"><div style="font-size:14px;font-weight:600">{{ instLabel }}</div><div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ instSub }}</div></div>
+              <button onClick="{{ instDec }}" style="width:40px;height:40px;border-radius:12px;border:0;background:var(--surface2);color:var(--text);font-size:18px;cursor:pointer;font-family:inherit">−</button>
+              <div style="min-width:34px;text-align:center;font-weight:700;font-size:15px">{{ instN }}x</div>
+              <button onClick="{{ instInc }}" style="width:40px;height:40px;border-radius:12px;border:0;background:var(--surface2);color:var(--text);font-size:18px;cursor:pointer;font-family:inherit">+</button>
+            </div>
+          </sc-if>
+          <input value="{{ note }}" onChange="{{ setNote }}" placeholder="Descrição (ex.: lanche com a galera)" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none" />
+          <button onClick="{{ saveTx }}" style="height:54px;border-radius:16px;border:0;background:{{ saveBg }};color:{{ saveFg }};font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;transition:background .2s">Salvar gasto</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- MODAL: NOVO CARTÃO -->
+    <sc-if value="{{ addCardOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
+        <div onClick="{{ closeForms }}" style="position:absolute;inset:0;background:rgba(0,0,0,.55);animation:kashFade .2s ease"></div>
+        <div style="position:relative;width:100%;max-width:520px;max-height:100%;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:26px;padding:26px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;animation:kashUp .3s cubic-bezier(.2,.8,.2,1);box-shadow:0 30px 80px rgba(0,0,0,.4)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:800;font-size:20px;letter-spacing:-0.02em">Novo cartão</div><button onClick="{{ closeForms }}" style="border:0;background:var(--surface);color:var(--muted);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px">×</button></div>
+          <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+            <div style="width:260px;height:152px;border-radius:20px;background:{{ fcGrad }};color:{{ fcInk }};padding:18px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;flex:none">
+              <div style="display:flex;justify-content:space-between;font-weight:700;font-size:13px"><span>{{ fcNameShow }}</span><span style="opacity:.7;font-weight:800">kash</span></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:11px;opacity:.7">Limite</div><div style="font-weight:800;font-size:22px;letter-spacing:-0.03em">{{ fcLimitShow }}</div><div style="font-size:12px;opacity:.8">•••• {{ fcLastShow }}</div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:12px;color:var(--muted);font-weight:500">Cor</div>
+              <div style="display:flex;gap:10px">
+                <sc-for list="{{ cardColors }}" as="cc" hint-placeholder-count="4">
+                  <button onClick="{{ cc.onPick }}" style="width:32px;height:32px;border-radius:50%;border:0;background:{{ cc.grad }};cursor:pointer;outline:{{ cc.outline }};outline-offset:3px"></button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <input value="{{ fcName }}" onChange="{{ setFcName }}" placeholder="Nome do cartão (ex.: Cartão da faculdade)" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <input value="{{ fcLast }}" onChange="{{ setFcLast }}" placeholder="Últimos 4 dígitos" maxLength="4" inputMode="numeric" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none;min-width:0" />
+            <input value="{{ fcLimit }}" onChange="{{ setFcLimit }}" placeholder="Limite (R$)" inputMode="numeric" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none;min-width:0" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:12px;color:var(--muted);font-weight:500">Dia do fechamento</label><input value="{{ fcClose }}" onChange="{{ setFcClose }}" placeholder="ex.: 28" inputMode="numeric" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none;min-width:0" /></div>
+            <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:12px;color:var(--muted);font-weight:500">Dia do vencimento</label><input value="{{ fcDue }}" onChange="{{ setFcDue }}" placeholder="ex.: 5" inputMode="numeric" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none;min-width:0" /></div>
+          </div>
+          <button onClick="{{ saveCard }}" style="height:54px;border-radius:16px;border:0;background:{{ fcSaveBg }};color:{{ fcSaveFg }};font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;transition:background .2s">Adicionar cartão</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- MODAL: NOVA CONTA -->
+    <sc-if value="{{ addAccOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
+        <div onClick="{{ closeForms }}" style="position:absolute;inset:0;background:rgba(0,0,0,.55);animation:kashFade .2s ease"></div>
+        <div style="position:relative;width:100%;max-width:520px;max-height:100%;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:26px;padding:26px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;animation:kashUp .3s cubic-bezier(.2,.8,.2,1);box-shadow:0 30px 80px rgba(0,0,0,.4)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:800;font-size:20px;letter-spacing:-0.02em">Nova conta</div><button onClick="{{ closeForms }}" style="border:0;background:var(--surface);color:var(--muted);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px">×</button></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="font-size:12px;color:var(--muted);font-weight:500">Tipo de conta</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ accKinds }}" as="k" hint-placeholder-count="4">
+                <button onClick="{{ k.onPick }}" style="height:36px;padding:0 14px;border-radius:999px;border:1px solid {{ k.border }};background:{{ k.bg }};color:{{ k.fg }};font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">{{ k.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <input value="{{ faName }}" onChange="{{ setFaName }}" placeholder="Apelido (ex.: Conta do estágio)" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none" />
+          <input value="{{ faBank }}" onChange="{{ setFaBank }}" placeholder="Banco ou instituição" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none" />
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:12px;color:var(--muted);font-weight:500">Saldo atual</label><input value="{{ faBalance }}" onChange="{{ setFaBalance }}" placeholder="R$ 0,00" inputMode="decimal" style="height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 16px;font-size:14px;outline:none" /></div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <div style="font-size:12px;color:var(--muted);font-weight:500;margin-right:4px">Cor</div>
+            <sc-for list="{{ accColors }}" as="ac" hint-placeholder-count="5">
+              <button onClick="{{ ac.onPick }}" style="width:30px;height:30px;border-radius:50%;border:0;background:{{ ac.color }};cursor:pointer;outline:{{ ac.outline }};outline-offset:3px"></button>
+            </sc-for>
+          </div>
+          <button onClick="{{ saveAcc }}" style="height:54px;border-radius:16px;border:0;background:{{ faSaveBg }};color:{{ faSaveFg }};font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;transition:background .2s">Adicionar conta</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- MODAL: EXCLUIR CONTA -->
+    <sc-if value="{{ deleteOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box">
+        <div onClick="{{ closeDelete }}" style="position:absolute;inset:0;background:rgba(0,0,0,.55);animation:kashFade .2s ease"></div>
+        <div style="position:relative;width:100%;max-width:460px;background:var(--bg);border:1px solid var(--line);border-radius:26px;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;animation:kashUp .3s cubic-bezier(.2,.8,.2,1);box-shadow:0 30px 80px rgba(0,0,0,.4)">
+          <div style="width:52px;height:52px;border-radius:16px;background:var(--negSoft);color:var(--neg);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5"></path></svg></div>
+          <div style="font-weight:800;font-size:22px;letter-spacing:-0.03em">Excluir sua conta?</div>
+          <div style="font-size:14px;line-height:1.6;color:var(--muted);text-wrap:pretty">Isso apaga para sempre seus lançamentos, cartões, contas fixas e metas. Não dá pra desfazer.</div>
+          <div onClick="{{ toggleDeleteConfirm }}" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);cursor:pointer">
+            <div style="width:24px;height:24px;border-radius:7px;border:2px solid {{ delCheckBorder }};background:{{ delCheckBg }};display:flex;align-items:center;justify-content:center;flex:none;box-sizing:border-box"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:{{ delCheckOpacity }}"><path d="M5 12l5 5L20 7"></path></svg></div>
+            <div style="font-size:13px;font-weight:500">Entendi que vou perder todos os meus dados</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px">
+            <button onClick="{{ closeDelete }}" style="flex:1;height:50px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--text);font-family:inherit;font-weight:600;font-size:14px;cursor:pointer">Cancelar</button>
+            <button onClick="{{ confirmDelete }}" style="flex:1;height:50px;border-radius:16px;border:0;background:{{ delBtnBg }};color:{{ delBtnFg }};font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:background .2s">Excluir definitivamente</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;right:24px;bottom:24px;z-index:60;padding:14px 18px;border-radius:16px;background:var(--text);color:var(--bg);font-weight:600;font-size:13px;display:flex;align-items:center;gap:10px;animation:kashUp .25s ease;box-shadow:0 12px 30px rgba(0,0,0,.3)"><span style="width:8px;height:8px;border-radius:50%;background:#C6F432"></span>{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;,&quot;section&quot;:&quot;Aparência&quot;},&quot;startAt&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;app&quot;,&quot;login&quot;],&quot;default&quot;:&quot;app&quot;,&quot;tsType&quot;:&quot;'app' | 'login'&quot;,&quot;section&quot;:&quot;Fluxo&quot;}}">
+const CATS = [
+  {n:'Comida',c:'#FFB86B'},{n:'Transporte',c:'#6BC5FF'},{n:'Lazer',c:'#D98BFF'},
+  {n:'Mercado',c:'#7EE0A8'},{n:'Assinaturas',c:'#FF8FB1'},{n:'Outros',c:'#AAB2BF'}
+];
+const catColor = n => (CATS.find(c => c.n === n) || CATS[5]).c;
+const fmt = n => 'R$ ' + Math.abs(n).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const BUDGET = 1800;
+const MONTH_NAMES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const monthName = k => MONTH_NAMES[(9 + k) % 12]; // 0 = outubro (mês atual do protótipo)
+const ICON = {
+  home: 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z',
+  cards: 'M4 5h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2zM2 10h20',
+  wallet: 'M5 5h12a2 2 0 012 2v1h1a1 1 0 011 1v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2zM16 13h.01',
+  bills: 'M5 4h14a2 2 0 012 2v13a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zM8 2v4M16 2v4M3 10h18',
+  goals: 'M12 3a9 9 0 110 18 9 9 0 010-18zM12 8a4 4 0 110 8 4 4 0 010-8z',
+  report: 'M5 20V11M12 20V5M19 20v-6',
+  forecast: 'M3 17l6-6 4 4 8-8M15 7h6v6',
+};
+const MONTHS = [{label:'mai',v:1420},{label:'jun',v:1680},{label:'jul',v:1250},{label:'ago',v:1910},{label:'set',v:1530}];
+
+class Component extends DCLogic {
+  state = {
+    screen: null, tab: null, themeLocal: null, hide: false,
+    sheet: null, digits: null, cat: 'Comida', src: 'card1', note: null, accSeg: 'bank', cardIdx: 0, toast: null,
+    loginEmail: '', loginPass: '', nextId: 100, notif: true, deleteOpen: false, deleteConfirm: false,
+    addCardOpen: false, fcName: '', fcLast: '', fcLimit: '', fcClose: '', fcDue: '', fcColor: 0,
+    addAccOpen: false, faName: '', faBank: '', faBalance: '', faKind: 'Conta corrente', faColor: 0,
+    accounts: [
+      {id:'acc1', name:'Conta corrente', kind:'Banco digital', balance:2340.5, color:'#C6F432'},
+      {id:'acc2', name:'Poupança', kind:'Rende 100% CDI', balance:1800, color:'#6BC5FF'},
+      {id:'acc3', name:'Carteira', kind:'Dinheiro em espécie', balance:85, color:'#FFB86B'},
+    ],
+    cards: [
+      {id:'card1', name:'Cartão principal', last:'4821', limit:2500, closes:'28 out', due:'05 nov', grad:'linear-gradient(135deg,#D7FF5C 0%,#9ED61E 100%)', ink:'#0B0C0E'},
+      {id:'card2', name:'Cartão universitário', last:'1107', limit:800, closes:'02 nov', due:'10 nov', grad:'linear-gradient(135deg,#2B2F36 0%,#111317 100%)', ink:'#F3F4F0'},
+    ],
+    inst: null, forecastSel: 1,
+    plans: [
+      {id:'p1', title:'Celular novo', cat:'Outros', src:'card1', n:12, cur:5, per:199.9},
+      {id:'p2', title:'Tênis de corrida', cat:'Lazer', src:'card2', n:6, cur:3, per:89.9},
+    ],
+    txs: [
+      {id:1, title:'Almoço no RU', cat:'Comida', amount:-14.5, date:'Hoje', src:'acc1'},
+      {id:11, title:'Celular novo (5/12)', cat:'Outros', amount:-199.9, date:'Hoje', src:'card1'},
+      {id:12, title:'Tênis de corrida (3/6)', cat:'Lazer', amount:-89.9, date:'Ontem', src:'card2'},
+      {id:2, title:'Uber pra facul', cat:'Transporte', amount:-18.9, date:'Hoje', src:'card1'},
+      {id:3, title:'Streaming de música', cat:'Assinaturas', amount:-21.9, date:'Ontem', src:'card2'},
+      {id:4, title:'Mesada', cat:'Entrada', amount:600, date:'Ontem', src:'acc1'},
+      {id:5, title:'Mercado da esquina', cat:'Mercado', amount:-86.3, date:'02 out', src:'card1'},
+      {id:6, title:'Cinema com amigos', cat:'Lazer', amount:-42, date:'01 out', src:'card1'},
+      {id:7, title:'Freela de design', cat:'Entrada', amount:850, date:'01 out', src:'acc1'},
+      {id:8, title:'Pizza sexta', cat:'Comida', amount:-58, date:'30 set', src:'card1'},
+      {id:9, title:'Recarga do bilhete', cat:'Transporte', amount:-60, date:'29 set', src:'acc1'},
+      {id:10, title:'Jogo na promoção', cat:'Lazer', amount:-79.9, date:'28 set', src:'card2'},
+    ],
+    bills: [
+      {id:'b1', name:'Aluguel da república', amount:650, due:5, paid:true},
+      {id:'b2', name:'Internet', amount:99.9, due:10, paid:false},
+      {id:'b3', name:'Streaming de vídeo', amount:34.9, due:12, paid:false},
+      {id:'b4', name:'Academia', amount:89.9, due:15, paid:false},
+      {id:'b5', name:'Plano do celular', amount:49.9, due:20, paid:false},
+    ],
+    goals: [
+      {id:'g1', name:'Viagem pra praia', target:3000, saved:1240, color:'#6BC5FF', monthly:300},
+      {id:'g2', name:'Fone novo', target:900, saved:620, color:'#D98BFF', monthly:150},
+      {id:'g3', name:'Reserva de emergência', target:5000, saved:2100, color:'#C6F432', monthly:250},
+    ],
+  };
+
+  theme() { return this.state.themeLocal ?? this.props.theme ?? 'dark'; }
+  applyTheme() { if (this.props.embed) return; document.body.classList.toggle('light', this.theme() === 'light'); }
+  currentScreen() { const s = this.state, p = this.props; return s.screen ?? (p.startAt === 'login' ? 'login' : 'app'); }
+  startSplash() {
+    clearTimeout(this._splash);
+    if (this.currentScreen() === 'splash') this._splash = setTimeout(() => this.setState({screen: 'onboard'}), 2800);
+  }
+  componentDidMount() { this.applyTheme(); this.startSplash(); }
+  componentDidUpdate() { this.applyTheme(); }
+  componentWillUnmount() { clearTimeout(this._splash); clearTimeout(this._t); }
+
+  toast(msg) {
+    clearTimeout(this._t);
+    this.setState({toast: msg});
+    this._t = setTimeout(() => this.setState({toast: null}), 2200);
+  }
+
+  formVals() {
+    const s = this.state;
+    const num = v => parseFloat(String(v).replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+    const field = k => e => this.setState({[k]: e.target.value});
+    const CARD_COLORS = [
+      {grad: 'linear-gradient(135deg,#D7FF5C 0%,#9ED61E 100%)', ink: '#0B0C0E'},
+      {grad: 'linear-gradient(135deg,#2B2F36 0%,#111317 100%)', ink: '#F3F4F0'},
+      {grad: 'linear-gradient(135deg,#8FD3FF 0%,#4C9BE8 100%)', ink: '#0B0C0E'},
+      {grad: 'linear-gradient(135deg,#E6A6FF 0%,#A85CE0 100%)', ink: '#0B0C0E'},
+    ];
+    const ACC_COLORS = ['#C6F432', '#6BC5FF', '#FFB86B', '#D98BFF', '#7EE0A8'];
+    const ACC_KINDS = ['Conta corrente', 'Poupança', 'Carteira', 'Investimento'];
+    const fcLimitN = num(s.fcLimit);
+    const canCard = s.fcName.trim() && s.fcLast.length === 4 && fcLimitN > 0;
+    const canAcc = s.faName.trim().length > 0;
+    const fc = CARD_COLORS[s.fcColor];
+    return {
+      addCardOpen: s.addCardOpen, addAccOpen: s.addAccOpen,
+      openAddCard: () => this.setState({addCardOpen: true, fcName: '', fcLast: '', fcLimit: '', fcClose: '', fcDue: '', fcColor: 0}),
+      openAddAcc: () => this.setState({addAccOpen: true, faName: '', faBank: '', faBalance: '', faKind: 'Conta corrente', faColor: 0}),
+      closeForms: () => this.setState({addCardOpen: false, addAccOpen: false}),
+      fcName: s.fcName, fcLast: s.fcLast, fcLimit: s.fcLimit, fcClose: s.fcClose, fcDue: s.fcDue,
+      setFcName: field('fcName'), setFcLimit: field('fcLimit'), setFcClose: field('fcClose'), setFcDue: field('fcDue'),
+      setFcLast: e => this.setState({fcLast: e.target.value.replace(/\D/g, '').slice(0, 4)}),
+      fcGrad: fc.grad, fcInk: fc.ink, fcNameShow: s.fcName.trim() || 'Nome do cartão', fcLastShow: s.fcLast.padEnd(4, '•'), fcLimitShow: fcLimitN > 0 ? fmt(fcLimitN) : 'R$ —',
+      cardColors: CARD_COLORS.map((c, i) => ({...c, onPick: () => this.setState({fcColor: i}), outline: i === s.fcColor ? '2px solid var(--text)' : '2px solid transparent'})),
+      fcSaveBg: canCard ? 'var(--accent)' : 'var(--surface2)', fcSaveFg: canCard ? 'var(--onaccent)' : 'var(--muted)',
+      saveCard: () => {
+        if (!canCard) return;
+        const id = 'card' + Date.now();
+        const close = s.fcClose ? `${String(s.fcClose).padStart(2, '0')} nov` : '— ', due = s.fcDue ? `${String(s.fcDue).padStart(2, '0')} dez` : '—';
+        this.setState(st => ({addCardOpen: false, cardIdx: st.cards.length,
+          cards: [...st.cards, {id, name: st.fcName.trim(), last: st.fcLast, limit: fcLimitN, closes: close, due, grad: fc.grad, ink: fc.ink}]}));
+        this.toast(`Cartão “${s.fcName.trim()}” adicionado`);
+      },
+      faName: s.faName, faBank: s.faBank, faBalance: s.faBalance,
+      setFaName: field('faName'), setFaBank: field('faBank'), setFaBalance: field('faBalance'),
+      accKinds: ACC_KINDS.map(k => ({label: k, onPick: () => this.setState({faKind: k}),
+        bg: s.faKind === k ? 'var(--text)' : 'var(--surface)', fg: s.faKind === k ? 'var(--bg)' : 'var(--text)', border: s.faKind === k ? 'var(--text)' : 'var(--line)'})),
+      accColors: ACC_COLORS.map((c, i) => ({color: c, onPick: () => this.setState({faColor: i}), outline: i === s.faColor ? '2px solid var(--text)' : '2px solid transparent'})),
+      faSaveBg: canAcc ? 'var(--accent)' : 'var(--surface2)', faSaveFg: canAcc ? 'var(--onaccent)' : 'var(--muted)',
+      saveAcc: () => {
+        if (!canAcc) return;
+        const kind = s.faBank.trim() ? `${s.faKind} · ${s.faBank.trim()}` : s.faKind;
+        this.setState(st => ({addAccOpen: false,
+          accounts: [...st.accounts, {id: 'acc' + Date.now(), name: st.faName.trim(), kind, balance: num(st.faBalance), color: ACC_COLORS[st.faColor]}]}));
+        this.toast(`Conta “${s.faName.trim()}” adicionada`);
+      },
+    };
+  }
+
+  renderVals() {
+    const s = this.state, p = this.props;
+    const screen = this.currentScreen();
+    const tab = s.tab ?? p.initialTab ?? 'home';
+    const page = s.page === undefined ? (p.initialPage ?? null) : s.page;
+    const sheet = s.sheet ?? p.initialSheet ?? false;
+    const digits = s.digits ?? p.initialDigits ?? '';
+    const note = s.note ?? p.initialNote ?? '';
+    const instN = s.inst ?? Number(p.initialInst ?? 1);
+    const isDark = this.theme() === 'dark';
+    const hide = s.hide;
+    const money = n => hide ? 'R$ ••••' : fmt(n);
+    const txView = t => {
+      const neg = t.amount < 0, color = neg ? catColor(t.cat) : '#C6F432';
+      const srcName = (s.cards.find(c => c.id === t.src) || s.accounts.find(a => a.id === t.src) || {}).name || '';
+      return {...t, initial: t.title[0].toUpperCase(), color, soft: color + '26',
+        meta: `${t.date} · ${neg ? t.cat : 'Entrada'} · ${srcName}`,
+        amountFmt: (neg ? '− ' : '+ ') + money(t.amount), amountColor: neg ? 'var(--text)' : 'var(--accentText)'};
+    };
+    const expenses = s.txs.filter(t => t.amount < 0);
+    const monthSpentN = expenses.reduce((a, t) => a + Math.abs(t.amount), 0);
+    const monthIncomeN = s.txs.filter(t => t.amount > 0).reduce((a, t) => a + t.amount, 0);
+    const totalBalanceN = s.accounts.reduce((a, x) => a + x.balance, 0);
+    const budgetPct = Math.min(100, Math.round(monthSpentN / BUDGET * 100));
+    const left = BUDGET - monthSpentN;
+    const budgetMsg = left > 0 ? `Sobram ${fmt(left)} pra fechar o mês no verde` : `Passou ${fmt(-left)} do limite do mês`;
+
+    const cardsView = s.cards.map((c, i) => {
+      const used = s.txs.filter(t => t.src === c.id && t.amount < 0).reduce((a, t) => a + Math.abs(t.amount), 0);
+      const sel = i === s.cardIdx;
+      return {...c, used, usedFmt: money(used), limitFmt: fmt(c.limit), availFmt: money(c.limit - used),
+        pct: Math.round(used / c.limit * 100), onPick: () => this.setState({cardIdx: i}),
+        outline: sel ? '2px solid var(--accent)' : '2px solid transparent', scale: sel ? 'scale(1)' : 'scale(.96)'};
+    });
+    const selCard = cardsView[s.cardIdx];
+    const selCardTxs = s.txs.filter(t => t.src === selCard.id).map(txView);
+
+    const accountsView = s.accounts.map(a => ({...a, initial: a.name[0], balanceFmt: money(a.balance)}));
+
+    const billsView = s.bills.map(b => ({...b, amountFmt: fmt(b.amount),
+      status: b.paid ? 'Paga' : `Vence dia ${b.due}`, deco: b.paid ? 'line-through' : 'none', opacity: b.paid ? .55 : 1,
+      checkBorder: b.paid ? 'var(--accent)' : 'var(--muted)', checkBg: b.paid ? 'var(--accent)' : 'transparent', checkOpacity: b.paid ? 1 : 0,
+      onToggle: () => this.setState(st => ({bills: st.bills.map(x => x.id === b.id ? {...x, paid: !x.paid} : x)}))}));
+    const pending = s.bills.filter(b => !b.paid);
+    const upcomingBills = pending.map(b => ({...b, amountFmt: fmt(b.amount)}));
+
+    const goalsView = s.goals.map(g => {
+      const pct = Math.min(100, Math.round(g.saved / g.target * 100));
+      const circ = 2 * Math.PI * 28;
+      const monthsLeft = Math.max(0, Math.ceil((g.target - g.saved) / g.monthly));
+      return {...g, pct, dash: `${circ * pct / 100} ${circ}`, savedFmt: money(g.saved), targetFmt: fmt(g.target),
+        eta: pct >= 100 ? 'Meta batida!' : `Faltam ~${monthsLeft} ${monthsLeft === 1 ? 'mês' : 'meses'} nesse ritmo`,
+        onAdd: () => { this.setState(st => ({goals: st.goals.map(x => x.id === g.id ? {...x, saved: Math.min(x.target, x.saved + 50)} : x)})); this.toast(`R$ 50,00 guardados em “${g.name}”`); }};
+    });
+    const goalsSaved = s.goals.reduce((a, g) => a + g.saved, 0);
+
+    const byCat = {};
+    expenses.forEach(t => { byCat[t.cat] = (byCat[t.cat] || 0) + Math.abs(t.amount); });
+    const catBreakdown = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([name, amt]) => ({name, color: catColor(name), amountFmt: fmt(amt), pct: Math.round(amt / monthSpentN * 100)}));
+    const top = catBreakdown[0] || {name: '—', amountFmt: 'R$ 0,00'};
+    const topAmt = byCat[top.name] || 0;
+
+    const allMonths = [...MONTHS, {label: 'out', v: monthSpentN}];
+    const maxM = Math.max(...allMonths.map(m => m.v));
+    const monthsView = allMonths.map((m, i) => ({label: m.label, h: Math.max(6, Math.round(m.v / maxM * 100)),
+      bg: i === allMonths.length - 1 ? 'var(--accent)' : 'var(--surface2)', labelColor: i === allMonths.length - 1 ? 'var(--text)' : 'var(--muted)'}));
+    const prev = MONTHS[MONTHS.length - 1].v;
+    const delta = Math.round((monthSpentN - prev) / prev * 100);
+    const monthDelta = delta <= 0 ? `${-delta}% a menos que setembro` : `${delta}% a mais que setembro`;
+
+    const cents = parseInt(digits || '0', 10);
+    const amount = cents / 100;
+    const catChips = CATS.map(c => ({name: c.n, color: c.c, onPick: () => this.setState({cat: c.n}),
+      bg: s.cat === c.n ? 'var(--text)' : 'var(--surface)', fg: s.cat === c.n ? 'var(--bg)' : 'var(--text)', border: s.cat === c.n ? 'var(--text)' : 'var(--line)'}));
+    const sources = [...s.cards.map(c => ({id: c.id, label: `${c.name} •••• ${c.last}`})), ...s.accounts.map(a => ({id: a.id, label: a.name}))];
+    const sourceChips = sources.map(x => ({...x, onPick: () => this.setState({src: x.id}),
+      bg: s.src === x.id ? 'var(--posSoft)' : 'var(--surface)', fg: s.src === x.id ? 'var(--accentText)' : 'var(--muted)', border: s.src === x.id ? 'var(--accentText)' : 'var(--line)'}));
+    const press = k => () => this.setState(st => {
+      if (k === 'del') return {digits: (st.digits ?? p.initialDigits ?? '').slice(0, -1)};
+      if ((st.digits ?? p.initialDigits ?? '').length >= 8) return null;
+      return {digits: ((st.digits ?? p.initialDigits ?? '') + k).replace(/^0+/, '')};
+    });
+    const keys = ['1','2','3','4','5','6','7','8','9','00','0','del'].map(k => ({label: k === 'del' ? '⌫' : k, onPress: press(k)}));
+    const canSave = cents > 0;
+    const srcIsCard = s.src.startsWith('card');
+    const inst = srcIsCard ? instN : 1;
+    const cardName = id => (s.cards.find(c => c.id === id) || {}).name || '';
+    const cardPlans = s.plans.filter(p => p.src === selCard.id && p.cur < p.n).map(p => ({...p, perFmt: fmt(p.per),
+      pct: Math.round(p.cur / p.n * 100), ends: monthName(p.n - p.cur), leftFmt: fmt((p.n - p.cur) * p.per)}));
+    const billsTotal = s.bills.reduce((a, b) => a + b.amount, 0);
+    const forecast = [1, 2, 3, 4, 5, 6].map(k => {
+      const due = s.plans.filter(p => p.cur + k <= p.n);
+      const instTotal = due.reduce((a, p) => a + p.per, 0);
+      const items = [
+        ...due.map(p => ({title: `${p.title} (${p.cur + k}/${p.n})`, sub: cardName(p.src), amountFmt: fmt(p.per), tag: `${p.cur + k}/${p.n}`, bg: 'var(--posSoft)', fg: 'var(--accentText)'})),
+        ...s.bills.map(b => ({title: b.name, sub: `Conta fixa · dia ${b.due}`, amountFmt: fmt(b.amount), tag: 'FIXA', bg: 'var(--surface2)', fg: 'var(--muted)'})),
+      ];
+      return {label: monthName(k).slice(0, 3), total: instTotal + billsTotal, inst: instTotal, bills: billsTotal, items};
+    });
+    const maxF = Math.max(...forecast.map(f => f.total), 1);
+
+    const setTab = tab => () => this.setState({tab, page: null});
+    const tabColor = t => (tab === t && !page) ? 'var(--accentText)' : 'var(--muted)';
+
+    const nv = (t, extra) => () => this.setState({tab: t, page: null, ...(extra || {})});
+    const navItem = (label, icon, onClick, active) => ({label, icon, onClick,
+      bg: active ? 'var(--accent)' : 'transparent', fg: active ? 'var(--onaccent)' : 'var(--muted)', hoverBg: active ? 'var(--accent)' : 'var(--surface)'});
+    const onTab = t => tab === t && !page;
+    const webNav = [
+      navItem('Início', ICON.home, nv('home'), onTab('home')),
+      navItem('Cartões', ICON.cards, nv('cards'), onTab('cards')),
+      navItem('Contas bancárias', ICON.wallet, nv('accounts', {accSeg: 'bank'}), onTab('accounts') && s.accSeg === 'bank'),
+      navItem('Contas fixas', ICON.bills, nv('accounts', {accSeg: 'bills'}), onTab('accounts') && s.accSeg === 'bills'),
+      navItem('Metas', ICON.goals, nv('goals'), onTab('goals')),
+      navItem('Relatório', ICON.report, () => this.setState({page: 'report'}), page === 'report'),
+      navItem('Previsão', ICON.forecast, () => this.setState({page: 'forecast'}), page === 'forecast'),
+    ];
+    const greet = new Date().getHours() < 12 ? 'Bom dia' : new Date().getHours() < 18 ? 'Boa tarde' : 'Boa noite';
+    const PAGE_T = {report: ['Relatório', 'Gastos de outubro por mês e por categoria.'],
+      forecast: ['Previsão', 'Quanto já está comprometido nos próximos meses com contas fixas e parcelas do cartão.'],
+      profile: ['Perfil', 'Sua conta, preferências e informações legais.'],
+      terms: ['Termos de uso', 'Atualizado em 1 de outubro de 2026'], privacy: ['Política de privacidade', 'Atualizado em 1 de outubro de 2026']};
+    const TAB_T = {home: [`${greet}, Lara`, 'Aqui está o resumo do seu mês.'], cards: ['Cartões', 'Clique num cartão pra ver a fatura e as parcelas.'],
+      goals: ['Metas', 'Guarde um pouco por vez e veja o progresso crescer.'],
+      accounts: s.accSeg === 'bank' ? ['Contas bancárias', 'O saldo de todas as suas contas num lugar só.'] : ['Contas fixas', 'Clique numa conta pra marcar como paga.']};
+    const [pageTitle, pageSub] = page ? PAGE_T[page] : TAB_T[tab];
+    const web = {
+      webNav, pageTitle, pageSub, isAuth: screen !== 'app', allTxs: s.txs.map(txView),
+      isDocPage: page === 'terms' || page === 'privacy',
+      setAmountInput: e => this.setState({digits: e.target.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 8)}),
+      hideLabel: hide ? 'Mostrar valores' : 'Ocultar valores', themeShort: isDark ? 'Tema claro' : 'Tema escuro',
+      billsMonthlyFmt: fmt(s.bills.reduce((a, b) => a + b.amount, 0)),
+      profileActiveBg: page === 'profile' ? 'var(--surface)' : 'transparent',
+      goSignup: () => { this.setState({screen: 'app'}); this.toast('Conta criada. Bem-vinda ao Kash!'); },
+    };
+    return {
+      ...web,
+      showNotes: !p.embed,
+      isDark, themeLabel: isDark ? '☾ Escuro · trocar' : '☀ Claro · trocar',
+      toggleTheme: () => this.setState({themeLocal: isDark ? 'light' : 'dark'}),
+      isSplash: screen === 'splash', isOnboard: screen === 'onboard' || screen === 'splash', isLogin: screen === 'login', isApp: screen === 'app',
+      replaySplash: () => this.setState({screen: 'splash'}, () => this.startSplash()),
+      goLogin: () => this.setState({screen: 'login'}), goApp: () => this.setState({screen: 'app'}),
+      loginEmail: s.loginEmail, loginPass: s.loginPass,
+      setLoginEmail: e => this.setState({loginEmail: e.target.value}), setLoginPass: e => this.setState({loginPass: e.target.value}),
+      greeting: new Date().getHours() < 12 ? 'Bom dia,' : new Date().getHours() < 18 ? 'Boa tarde,' : 'Boa noite,',
+      toggleHide: () => this.setState({hide: !hide}),
+      tabHome: tab === 'home' && !page, tabCards: tab === 'cards' && !page, tabAccounts: tab === 'accounts' && !page, tabGoals: tab === 'goals' && !page,
+      pageReport: page === 'report', pageProfile: page === 'profile', pageDoc: page === 'terms' || page === 'privacy',
+      openProfile: () => this.setState({page: 'profile'}), openTerms: () => this.setState({page: 'terms'}), openPrivacy: () => this.setState({page: 'privacy'}),
+      docTitle: page === 'terms' ? 'Termos de uso' : 'Privacidade',
+      docSections: page === 'terms' ? [
+        {h: '1. O que é o Kash', p: 'O Kash é um app de organização financeira pessoal. Você lança seus gastos manualmente; não movimentamos dinheiro nem acessamos suas contas bancárias.'},
+        {h: '2. Sua conta', p: 'Você é responsável por manter sua senha segura. Menores de 18 anos podem usar o app com ciência de um responsável.'},
+        {h: '3. Uso aceitável', p: 'Não use o Kash para atividades ilegais ou para tentar acessar dados de outras pessoas.'},
+        {h: '4. Encerramento', p: 'Você pode excluir sua conta a qualquer momento em Perfil → Excluir conta. Todos os dados são apagados em até 30 dias.'},
+      ] : [
+        {h: 'Quais dados coletamos', p: 'Nome, e-mail e os lançamentos que você cadastra. Não coletamos dados bancários nem localização.'},
+        {h: 'Como usamos', p: 'Apenas para mostrar seus relatórios, metas e lembretes dentro do app. Não vendemos nem compartilhamos com anunciantes.'},
+        {h: 'Onde ficam', p: 'Em servidores criptografados no Brasil, conforme a LGPD.'},
+        {h: 'Seus direitos', p: 'Você pode exportar ou apagar seus dados quando quiser, direto no app.'},
+      ],
+      switchBg: isDark ? 'var(--accent)' : 'var(--surface2)', switchKnob: isDark ? '21px' : '3px',
+      toggleNotif: () => this.setState({notif: !s.notif}),
+      notifBg: s.notif ? 'var(--accent)' : 'var(--surface2)', notifKnob: s.notif ? '21px' : '3px',
+      logout: () => this.setState({screen: 'login', page: null, tab: 'home'}),
+      deleteOpen: s.deleteOpen, openDelete: () => this.setState({deleteOpen: true, deleteConfirm: false}), closeDelete: () => this.setState({deleteOpen: false}),
+      toggleDeleteConfirm: () => this.setState({deleteConfirm: !s.deleteConfirm}),
+      delCheckBorder: s.deleteConfirm ? 'var(--neg)' : 'var(--muted)', delCheckBg: s.deleteConfirm ? 'var(--neg)' : 'transparent', delCheckOpacity: s.deleteConfirm ? 1 : 0,
+      delBtnBg: s.deleteConfirm ? 'var(--neg)' : 'var(--surface2)', delBtnFg: s.deleteConfirm ? '#fff' : 'var(--muted)',
+      confirmDelete: () => { if (!s.deleteConfirm) return; this.setState({deleteOpen: false, screen: 'onboard', page: null, tab: 'home'}); this.toast('Conta excluída'); },
+      goHome: setTab('home'), goCards: setTab('cards'), goAccounts: setTab('accounts'), goGoals: setTab('goals'),
+      tabGoBills: () => this.setState({tab: 'accounts', accSeg: 'bills', page: null}), tabGoGoals: setTab('goals'),
+      tabHomeColor: tabColor('home'), tabCardsColor: tabColor('cards'), tabAccountsColor: tabColor('accounts'), tabGoalsColor: tabColor('goals'),
+      openReport: () => this.setState({page: 'report'}), closePage: () => this.setState({page: null}),
+      totalBalance: money(totalBalanceN), monthSpent: money(monthSpentN), monthIncome: money(monthIncomeN),
+      budgetFmt: fmt(BUDGET), budgetPct, budgetMsg,
+      upcomingBills, recentTxs: s.txs.slice(0, 6).map(txView),
+      cardsView, selCard, selCardTxs, selCardEmpty: selCardTxs.length === 0,
+      segBank: () => this.setState({accSeg: 'bank'}), segBills: () => this.setState({accSeg: 'bills'}),
+      isBankSeg: s.accSeg === 'bank', isBillsSeg: s.accSeg === 'bills',
+      segBankBg: s.accSeg === 'bank' ? 'var(--text)' : 'transparent', segBankColor: s.accSeg === 'bank' ? 'var(--bg)' : 'var(--muted)',
+      segBillsBg: s.accSeg === 'bills' ? 'var(--text)' : 'transparent', segBillsColor: s.accSeg === 'bills' ? 'var(--bg)' : 'var(--muted)',
+      accountsView, billsView, billsPendingFmt: fmt(pending.reduce((a, b) => a + b.amount, 0)),
+      billsPaidCount: s.bills.length - pending.length, billsCount: s.bills.length,
+      goalsView, goalsSavedFmt: money(goalsSaved),
+      catTopName: top.name.toLowerCase(), catTopFmt: fmt(topAmt), catTopTipFmt: fmt(topAmt * 0.1),
+      monthsView, monthDelta, catBreakdown,
+      sheetOpen: sheet, openSheet: () => this.setState({sheet: true, digits: '', note: '', inst: 1}), closeSheet: () => this.setState({sheet: false}),
+      amountDisplay: fmt(amount), amountColor: canSave ? 'var(--text)' : 'var(--muted)',
+      catChips, sourceChips, keys, note: note, setNote: e => this.setState({note: e.target.value}),
+      saveBg: canSave ? 'var(--accent)' : 'var(--surface2)', saveFg: canSave ? 'var(--onaccent)' : 'var(--muted)',
+      srcIsCard: srcIsCard, instN: inst,
+      instLabel: inst === 1 ? 'À vista' : `${inst}x de ${fmt(amount / inst)}`,
+      instSub: inst === 1 ? 'Toque em + para parcelar' : `Última parcela em ${monthName(inst - 1)} · total ${fmt(amount)}`,
+      instDec: () => this.setState({inst: Math.max(1, inst - 1)}), instInc: () => this.setState({inst: Math.min(24, inst + 1)}),
+      saveTx: () => {
+        if (!canSave) return;
+        const isAcc = s.src.startsWith('acc');
+        const n = srcIsCard ? inst : 1;
+        const per = Math.round(amount / n * 100) / 100;
+        const title = note.trim() || s.cat;
+        this.setState(st => ({
+          sheet: false, nextId: st.nextId + 1,
+          txs: [{id: st.nextId, title: n > 1 ? `${title} (1/${n})` : title, cat: st.cat, amount: -per, date: 'Hoje', src: st.src}, ...st.txs],
+          plans: n > 1 ? [...st.plans, {id: 'p' + Date.now(), title, cat: st.cat, src: st.src, n, cur: 1, per}] : st.plans,
+          accounts: isAcc ? st.accounts.map(a => a.id === st.src ? {...a, balance: a.balance - amount} : a) : st.accounts,
+        }));
+        this.toast(n > 1 ? `${n}x de ${fmt(per)} no cartão` : `${fmt(amount)} lançado em ${s.cat}`);
+      },
+      // parcelas do cartão selecionado
+      hasCardPlans: cardPlans.length > 0, cardPlans,
+      // previsão
+      pageForecast: page === 'forecast', openForecast: () => this.setState({page: 'forecast'}),
+      forecastMini: forecast.map(f => ({h: Math.max(10, Math.round(f.total / maxF * 100)), bg: 'var(--accent)'})),
+      forecastNextLabel: `${monthName(1)}: ${fmt(forecast[0].total)} já comprometidos`,
+      forecastNextMonth: monthName(1), forecastNextFmt: fmt(forecast[0].total),
+      forecastNextPctMsg: `${Math.round(forecast[0].total / BUDGET * 100)}% do seu limite mensal de ${fmt(BUDGET)}`,
+      forecastView: forecast.map((f, i) => ({label: f.label, h: Math.max(8, Math.round(f.total / maxF * 100)),
+        instFlex: f.inst, billFlex: f.bills, opacity: s.forecastSel === i + 1 ? 1 : .45,
+        labelColor: s.forecastSel === i + 1 ? 'var(--text)' : 'var(--muted)', onPick: () => this.setState({forecastSel: i + 1})})),
+      forecastSelTitle: `Em ${monthName(s.forecastSel)}`, forecastSelTotal: fmt(forecast[s.forecastSel - 1].total),
+      forecastSelItems: forecast[s.forecastSel - 1].items,
+      hasToast: !!s.toast, toast: s.toast,
+      ...this.formVals(),
+    };
+  }
+}
+</script>
+</body>
+</html>

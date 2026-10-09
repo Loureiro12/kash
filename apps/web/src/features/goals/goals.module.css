@@ -1,0 +1,74 @@
+.goal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.name {
+  font-weight: 700;
+  font-size: 16px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.edit {
+  align-self: flex-start;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+}
+.edit:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+.depositLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.depositLine:disabled {
+  cursor: default;
+}
+.depositLine:not(:disabled):hover {
+  color: var(--text);
+}
+.due {
+  color: var(--accentText);
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.actions > * {
+  flex: 1;
+}

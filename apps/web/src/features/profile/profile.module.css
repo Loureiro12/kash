@@ -1,0 +1,142 @@
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.identityText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.name {
+  font-weight: 700;
+  font-size: 17px;
+}
+.buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.buttons > * {
+  flex: 1;
+  min-width: 160px;
+}
+
+/* subpáginas */
+.narrow {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.faqItem {
+  border-bottom: 1px solid var(--line);
+}
+.faqItem:last-child {
+  border-bottom: 0;
+}
+.faqQ {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.faqQ:hover {
+  background: var(--surface2);
+}
+.faqQ svg {
+  margin-left: auto;
+  flex: none;
+  color: var(--muted);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.faqQ[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+.faqA {
+  margin: 0;
+  padding: 0 18px 15px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.doc {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.docSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.docSection h2 {
+  margin: 0;
+  font-weight: 700;
+  font-size: 16px;
+}
+.docSection p,
+.docSection li {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+.docSection ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.currency {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex: none;
+}
+.catTile {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex: none;
+}
+.budgetValue {
+  font-weight: 800;
+  font-size: 34px;
+  letter-spacing: -0.03em;
+}

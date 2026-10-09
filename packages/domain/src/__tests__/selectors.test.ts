@@ -4,7 +4,7 @@ import { budgetStatus } from '../selectors/budget';
 import { activePlans, cardDates, cardUsage, installmentPreview } from '../selectors/cards';
 import { billSourceName, billsSummary, cardBills, upcomingBills } from '../selectors/bills';
 import { addToGoal, depositLabel, depositStatus, goalProgress, recordDeposit, totalSaved } from '../selectors/goals';
-import { categoryBreakdown, monthDelta, monthlyHistory, topCategoryTip } from '../selectors/report';
+import { categoryBreakdown, monthDelta, monthlyHistory, previousMonthsSpent, topCategoryTip } from '../selectors/report';
 import { forecast, forecastHeights, forecastSelection } from '../selectors/forecast';
 import { monthIncome, monthSpent, totalBalance } from '../selectors/balance';
 import { filterTxs, groupTxsByDay, monthTitle, sourceOptions, txTotals, txView, txsOfMonth } from '../selectors/transactions';
@@ -140,6 +140,19 @@ describe('relatório', () => {
   });
   it('delta vs mês anterior', () => {
     expect(monthDelta(seed.txs, now).message).toBe('56% a menos que setembro');
+  });
+  it('meses anteriores calculados dos lançamentos (sem fatura e sem entradas)', () => {
+    const txs = [
+      { id: 'a', title: 'x', category: 'Comida', amount: -100, date: '2026-09-10', sourceId: 'acc1' },
+      { id: 'b', title: 'y', category: 'Fatura', amount: -500, date: '2026-09-11', sourceId: 'acc1' },
+      { id: 'c', title: 'z', category: 'Entrada', amount: 900, date: '2026-09-12', sourceId: 'acc1' },
+      { id: 'd', title: 'w', category: 'Lazer', amount: -40.5, date: '2026-05-01', sourceId: 'card1' },
+      { id: 'e', title: 'v', category: 'Lazer', amount: -99, date: '2026-04-30', sourceId: 'card1' },
+    ];
+    expect(previousMonthsSpent(txs, now)).toEqual([40.5, 0, 0, 0, 100]);
+  });
+  it('delta sem gastos no mês anterior não inventa porcentagem', () => {
+    expect(monthDelta(seed.txs, now, [0, 0, 0, 0, 0]).message).toBe('Sem gastos em setembro pra comparar');
   });
   it('dica da semana', () => {
     expect(topCategoryTip(seed.txs, now)).toMatchObject({ name: 'lazer' });

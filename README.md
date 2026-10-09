@@ -128,7 +128,7 @@ Todos na raiz do repositório.
 | Comando | O que faz |
 |---|---|
 | `pnpm ios` / `pnpm dev` | build nativo no simulador / só o Metro |
-| `pnpm dev:web` · `pnpm e2e:web` | site em http://localhost:3000 / Playwright do site |
+| `pnpm dev:web` · `pnpm e2e:web` | site e Kash web em http://localhost:3000 (app em `/entrar`) / Playwright |
 | `pnpm dev:prod` | Metro apontando para a **produção**, com log de requisições (lê `apps/mobile/.env.prod`) |
 | `pnpm typecheck` · `pnpm lint` | TypeScript e ESLint em todos os pacotes |
 | `pnpm test` | testes unitários: domínio (Vitest) e app (Jest) |
@@ -146,7 +146,7 @@ Antes de abrir PR: `pnpm typecheck && pnpm lint && pnpm test`, e `pnpm test:back
 
 ```
 apps/mobile/              app Expo
-apps/web/                 site (Next.js): landing e política de privacidade; ver apps/web/README.md
+apps/web/                 site (Next.js): landing, privacidade e o Kash web (app completo no navegador); ver apps/web/README.md
   app/                    rotas (Expo Router): (auth) e (app) protegidas por estado de auth
   src/design-system/      tokens, tema e ~30 componentes; não conhece o domínio
   src/features/<área>/    telas e sheets: home, cards, accounts, goals, transactions, profile, auth…
@@ -215,7 +215,7 @@ app (rotas) → features (telas) → store / data → design-system
 | Client contra o banco real | Vitest | `packages/supabase-client/tests` |
 | Edge Function | `deno test` | `supabase/functions` |
 | Ponta a ponta no app | Maestro (18 fluxos + roteiro de biometria) | `apps/mobile/e2e/flows` |
-| Site | Vitest (conteúdo) + Playwright no celular e no desktop, com axe | `apps/web/tests` |
+| Site e Kash web | Vitest (conteúdo e camada de dados) + Playwright no celular e no desktop, com axe (fluxos do app contra o Supabase local) | `apps/web/tests` |
 
 Os fluxos E2E cobrem onboarding e login, Início, lançar gasto à vista e parcelado, parcelamento antigo, cartões e fatura, contas, metas, páginas internas, editar e excluir, perfil e configurações, exportar dados, esqueci a senha com código, cores personalizadas, categorias e exclusão de conta. O runner reseta o banco antes de cada fluxo; detalhes em [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md).
 

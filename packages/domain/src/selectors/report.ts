@@ -1,6 +1,6 @@
 import { CATEGORY_COLORS, UNKNOWN_CATEGORY_COLOR } from '../categories';
 import type { Category, Tx } from '../types';
-import { monthName } from '../dates';
+import { monthKey, monthName, parseISODate } from '../dates';
 import { round2 } from '../money';
 import { monthSpent, monthTxs } from './balance';
 
@@ -36,6 +36,21 @@ export interface MonthBar {
 /** Histórico de meses anteriores (mock até existir persistência) — índice 0 = 5 meses atrás. */
 export const PREVIOUS_MONTHS_SPENT = [1420, 1680, 1250, 1910, 1530];
 
+/**
+ * Gastos reais dos `count` meses anteriores ao atual (índice 0 = o mais antigo), calculados dos
+ * lançamentos com as mesmas regras de `monthSpent` (saídas, sem pagamento de fatura).
+ */
+export function previousMonthsSpent(txs: Tx[], now: Date, count = 5): number[] {
+  const keys = Array.from({ length: count }, (_, i) => monthKey(new Date(now.getFullYear(), now.getMonth() - (count - i), 1)));
+  const totals = new Map(keys.map((k) => [k, 0]));
+  for (const t of txs) {
+    if (t.amount >= 0 || t.category === 'Fatura') continue;
+    const key = monthKey(parseISODate(t.date));
+    if (totals.has(key)) totals.set(key, totals.get(key)! + Math.abs(t.amount));
+  }
+  return keys.map((k) => round2(totals.get(k)!));
+}
+
 /** Gráfico de 6 barras: 5 meses anteriores + mês atual. */
 export function monthlyHistory(txs: Tx[], now: Date, previous: number[] = PREVIOUS_MONTHS_SPENT): MonthBar[] {
   const values = [...previous, monthSpent(txs, now)];
@@ -59,6 +74,7 @@ export function monthDelta(txs: Tx[], now: Date, previous: number[] = PREVIOUS_M
   const current = monthSpent(txs, now);
   const pct = prev > 0 ? Math.round(((current - prev) / prev) * 100) : 0;
   const prevName = monthName(-1, now);
+  if (prev <= 0) return { pct: 0, message: `Sem gastos em ${prevName} pra comparar` };
   return { pct, message: pct <= 0 ? `${-pct}% a menos que ${prevName}` : `${pct}% a mais que ${prevName}` };
 }
 
