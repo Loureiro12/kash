@@ -89,7 +89,7 @@ describe('hidratação do servidor', () => {
   it('substitui as entidades, mantém preferências locais e ajusta o cartão selecionado', () => {
     const snap = {
       user: { name: 'Lara', email: 'lara@email.com', phone: '' },
-      settings: { theme: 'light' as const, hideValues: false, billReminder: true, emailReminder: false, monthlyBudget: 2500, biometrics: true, currency: 'BRL' as const },
+      settings: { theme: 'light' as const, hideValues: false, billReminder: true, emailReminder: false, onboardingDone: true, checklistHidden: true, monthlyBudget: 2500, biometrics: true, currency: 'BRL' as const },
       lastRolloverMonth: '2026-10',
       accounts: [{ id: 'u-acc', name: 'Conta', kind: 'Conta corrente', balance: 10, color: '#fff' }],
       cards: [{ id: 'u-card', name: 'Cartão', last4: '0000', limit: 100, closingDay: 1, dueDay: 10, gradientId: 'blue' as const }],

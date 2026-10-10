@@ -56,7 +56,7 @@ declare
 begin
   if exists (select 1 from auth.users where email = 'lara@email.com') then return; end if;
   v_uid := tests.create_user('lara@email.com', 'Lara Mendes');
-  update public.profiles set phone = '(11) 98765-4321' where id = v_uid;
+  update public.profiles set phone = '(11) 98765-4321', onboarding_done_at = now(), checklist_hidden_at = now() where id = v_uid;
 
   insert into public.accounts (id, user_id, name, kind, institution, opening_balance, color, position) values
     (acc1, v_uid, 'Conta corrente', 'corrente', 'Banco digital', 2340.50 - (600 + 850 - 14.50 - 60 - 650), '#C6F432', 0), -- abertura = saldo exibido − lançamentos do seed (incl. aluguel pago)

@@ -103,6 +103,8 @@ export function toSettings(row: ProfileRow): Settings {
     hideValues: row.hide_values,
     billReminder: row.bill_reminder,
     emailReminder: row.email_reminder,
+    onboardingDone: row.onboarding_done_at != null,
+    checklistHidden: row.checklist_hidden_at != null,
     monthlyBudget: num(row.monthly_budget),
     biometrics: row.biometrics,
     currency: 'BRL',

@@ -135,6 +135,10 @@ export interface Settings {
   billReminder: boolean;
   /** lembretes por e-mail (Kash web; opt-in, desligado por padrão) */
   emailReminder: boolean;
+  /** passou (ou pulou) as boas-vindas do primeiro acesso */
+  onboardingDone: boolean;
+  /** escondeu o card "Primeiros passos" do Início */
+  checklistHidden: boolean;
   monthlyBudget: number;
   /** entrar com Face ID / Touch ID */
   biometrics: boolean;

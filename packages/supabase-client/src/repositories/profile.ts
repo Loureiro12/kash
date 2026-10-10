@@ -37,6 +37,8 @@ export async function updateSettings(db: KashClient, input: Partial<Settings>): 
   if (input.hideValues !== undefined) patch.hide_values = input.hideValues;
   if (input.billReminder !== undefined) patch.bill_reminder = input.billReminder;
   if (input.emailReminder !== undefined) patch.email_reminder = input.emailReminder;
+  if (input.onboardingDone !== undefined) patch.onboarding_done_at = input.onboardingDone ? new Date().toISOString() : null;
+  if (input.checklistHidden !== undefined) patch.checklist_hidden_at = input.checklistHidden ? new Date().toISOString() : null;
   if (input.monthlyBudget !== undefined) patch.monthly_budget = input.monthlyBudget;
   if (input.biometrics !== undefined) patch.biometrics = input.biometrics;
   const me = await currentUser(db);

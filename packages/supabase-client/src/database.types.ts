@@ -377,6 +377,7 @@ export type Database = {
         Row: {
           bill_reminder: boolean;
           biometrics: boolean;
+          checklist_hidden_at: string | null;
           created_at: string;
           currency: string;
           email_reminder: boolean;
@@ -385,6 +386,7 @@ export type Database = {
           last_rollover_month: string;
           monthly_budget: number;
           name: string;
+          onboarding_done_at: string | null;
           phone: string;
           theme: string;
           updated_at: string;
@@ -393,6 +395,7 @@ export type Database = {
         Insert: {
           bill_reminder?: boolean;
           biometrics?: boolean;
+          checklist_hidden_at?: string | null;
           created_at?: string;
           currency?: string;
           email_reminder?: boolean;
@@ -401,6 +404,7 @@ export type Database = {
           last_rollover_month?: string;
           monthly_budget?: number;
           name?: string;
+          onboarding_done_at?: string | null;
           phone?: string;
           theme?: string;
           updated_at?: string;
@@ -408,6 +412,7 @@ export type Database = {
         Update: {
           bill_reminder?: boolean;
           biometrics?: boolean;
+          checklist_hidden_at?: string | null;
           created_at?: string;
           currency?: string;
           email_reminder?: boolean;
@@ -416,6 +421,7 @@ export type Database = {
           last_rollover_month?: string;
           monthly_budget?: number;
           name?: string;
+          onboarding_done_at?: string | null;
           phone?: string;
           theme?: string;
           updated_at?: string;
