@@ -95,6 +95,19 @@ export function buildPrompt(text: string, kind: 'card' | 'account', categories: 
   return { system, user: `Documento:\n\n${text}`, tool: STATEMENT_TOOL };
 }
 
+/**
+ * Motivo da falha da IA, para quem administra ver na aba Rede sem abrir os logs
+ * (a pessoa usando o app vê só a mensagem amigável).
+ */
+export function failureReason(message: string): 'credit' | 'auth' | 'model' | 'rate_limit' | 'overloaded' | 'unknown' {
+  if (/credit balance|billing/i.test(message)) return 'credit';
+  if (/anthropic 401|anthropic 403|x-api-key|authentication/i.test(message)) return 'auth';
+  if (/anthropic 404|model/i.test(message)) return 'model';
+  if (/anthropic 429|rate.?limit/i.test(message)) return 'rate_limit';
+  if (/anthropic 529|anthropic 5\d\d|overloaded/i.test(message)) return 'overloaded';
+  return 'unknown';
+}
+
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Valida a resposta da IA: o que não tiver o formato certo é descartado (nunca confiamos às cegas). */
@@ -163,8 +176,9 @@ export async function handleImportAssist(req: Request, deps: ImportAssistDeps): 
   try {
     result = await deps.callModel(buildPrompt(text, kind, categories));
   } catch (err) {
-    console.error('import-assist: falha na IA', err instanceof Error ? err.message : err);
-    return json(502, { error: 'ai_failed' });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('import-assist: falha na IA', message);
+    return json(502, { error: 'ai_failed', reason: failureReason(message) });
   }
   await deps.logCall(userId, result.usage);
   return json(200, { statement: toStatement(result.input, kind, categories) });

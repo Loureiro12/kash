@@ -291,6 +291,15 @@ describe('revisão do extrato da conta', () => {
 });
 
 describe('texto do PDF antes da IA', () => {
+  it('nome do titular escrito de outros jeitos pelo banco (sobrenome a mais, inicial, só o primeiro nome)', () => {
+    const text = ['Olá, André.', 'ANDRÉ LOUREIRO GONÇALVES', 'FATURA 13 OUT 2026', 'Andre L Goncalves R$ 567,70', '05 SET •••• 5415 Dm*Helphbomaxcom - Parcela 2/12 R$ 22,90'].join('\n');
+    const out = redactStatementText(text, { names: ['Andre Loureiro'] });
+    expect(out).not.toMatch(/andr[eé]|loureiro|gon[cç]alves/i);
+    expect(out).toContain('Olá, TITULAR.');
+    expect(out).toContain('TITULAR R$ 567,70');
+    expect(out).toContain('Dm*Helphbomaxcom - Parcela 2/12 R$ 22,90');
+  });
+
   it('tira CPF, cartão, endereço, CEP, código de barras e o nome do titular', () => {
     const text = [
       'ANDRÉ SOUZA TESTE',

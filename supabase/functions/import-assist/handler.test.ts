@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { buildPrompt, DAILY_LIMIT, handleImportAssist, toStatement, type ImportAssistDeps } from './handler.ts';
+import { buildPrompt, DAILY_LIMIT, failureReason, handleImportAssist, toStatement, type ImportAssistDeps } from './handler.ts';
 
 const categories = ['Comida', 'Assinaturas', 'Outros'];
 const aiOutput = {
@@ -71,8 +71,18 @@ Deno.test('falha da IA vira 502 e não registra uso', async () => {
       throw new Error('boom');
     },
   });
-  assertEquals((await handleImportAssist(post(valid), d)).status, 502);
+  const res = await handleImportAssist(post(valid), d);
+  assertEquals(res.status, 502);
+  assertEquals(await res.json(), { error: 'ai_failed', reason: 'unknown' });
   assertEquals(logged, []);
+});
+
+Deno.test('motivo da falha da IA', () => {
+  assertEquals(failureReason('anthropic 400: {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}'), 'credit');
+  assertEquals(failureReason('anthropic 401: {"error":{"type":"authentication_error","message":"invalid x-api-key"}}'), 'auth');
+  assertEquals(failureReason('anthropic 404: {"error":{"type":"not_found_error","message":"model: claude-x"}}'), 'model');
+  assertEquals(failureReason('anthropic 429: rate_limit_error'), 'rate_limit');
+  assertEquals(failureReason('anthropic 529: overloaded_error'), 'overloaded');
 });
 
 Deno.test('prompt e validação sem dados', () => {

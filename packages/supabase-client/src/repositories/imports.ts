@@ -71,7 +71,7 @@ const AI_ERRORS: Record<string, string> = {
   daily_limit: 'Você chegou ao limite de leituras de PDF de hoje. Tente amanhã ou use OFX/CSV.',
   text_too_long: 'Esse PDF é grande demais. Envie só a fatura de um mês.',
   empty_text: 'Não encontramos texto nesse PDF. Ele pode ser uma imagem escaneada; use o OFX ou CSV do banco.',
-  ai_failed: 'A leitura com IA falhou agora. Tente de novo em instantes.',
+  ai_failed: 'A leitura com IA falhou agora. Tente de novo em instantes ou use o OFX/CSV do banco.',
 };
 
 /** Lê com IA o texto (já limpo) de um PDF de fatura/extrato. Devolve o ParsedStatement da Edge Function. */

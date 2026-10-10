@@ -34,10 +34,14 @@ export function redactStatementText(text: string, options: RedactOptions = {}): 
   for (const name of options.names ?? []) {
     const parts = stripAccents(name).trim().split(/\s+/).filter((p) => p.length > 2);
     if (parts.length === 0) continue;
-    // procura sem acento (mesmo comprimento em NFC) e troca no texto original
-    const patterns = [new RegExp(parts.map(escapeRe).join('\\s+'), 'gi')];
-    if (parts.length >= 2) patterns.push(new RegExp(`${escapeRe(parts[0]!)}\\s+${escapeRe(parts[1]!)}(?:\\s+[A-Za-z]+){0,3}`, 'gi'));
+    const [first, ...rest] = parts;
+    // o banco escreve o nome do jeito dele ("ANDRÉ LOUREIRO GONÇALVES", "Andre L Goncalves", "Olá, André"):
+    // o primeiro nome leva junto as palavras e iniciais que vêm logo depois, na mesma linha
+    // (uma inicial seguida de "$" é o "R$" do valor e fica)
+    const word = '(?:[A-Za-z]{2,}|[A-Za-z](?![$\\w])\\.?)';
+    const patterns = [new RegExp(`\\b${escapeRe(first!)}(?:[ \\t]+${word}){0,4}`, 'gi'), ...rest.filter((p) => p.length > 3).map((p) => new RegExp(`\\b${escapeRe(p)}\\b`, 'gi'))];
     for (const re of patterns) {
+      // procura sem acento (mesmo comprimento em NFC) e troca no texto original
       const plain = stripAccents(out);
       let result = '';
       let last = 0;
@@ -48,5 +52,6 @@ export function redactStatementText(text: string, options: RedactOptions = {}): 
       out = result + out.slice(last);
     }
   }
+  out = out.replace(/TITULAR(?:[ \t]+TITULAR)+/g, 'TITULAR');
   return out.replace(/\n{3,}/g, '\n\n').trim();
 }
