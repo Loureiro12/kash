@@ -131,6 +131,29 @@ export function createActions(qc: QueryClient) {
       return ok(await run(() => api.createTransfer(db(), input), label));
     },
 
+    // importação de fatura/extrato (as linhas já vêm revisadas)
+    async importStatement(
+      input: { target: { type: 'card' | 'account'; id: string }; fileName: string; format: 'pdf' | 'ofx' | 'csv'; statementMonth: string | null; items: Record<string, unknown>[]; keepBalance: boolean },
+      rules: api.MerchantRuleRecord[],
+    ): Promise<string | null> {
+      const id = await run(async () => {
+        const importId =
+          input.target.type === 'card'
+            ? await api.importCardStatement(db(), { cardId: input.target.id, fileName: input.fileName, format: input.format, statementMonth: input.statementMonth, items: input.items as api.CardImportItem[] })
+            : await api.importAccountStatement(db(), { accountId: input.target.id, fileName: input.fileName, format: input.format, items: input.items, keepBalance: input.keepBalance });
+        // regras aprendidas não podem derrubar a importação
+        await api.saveMerchantRules(db(), rules).catch(() => undefined);
+        return importId;
+      });
+      await qc.invalidateQueries({ queryKey: ['imports'] });
+      return typeof id === 'string' ? id : null;
+    },
+    async undoImport(importId: string) {
+      const done = ok(await run(() => api.undoImport(db(), importId), 'Importação desfeita'));
+      await qc.invalidateQueries({ queryKey: ['imports'] });
+      return done;
+    },
+
     // cartões
     async saveCard(id: string | null, values: CardFormValues) {
       const input: api.CardInput = { ...values, closingDay: values.closingDay ?? 1, dueDay: values.dueDay ?? 10 };

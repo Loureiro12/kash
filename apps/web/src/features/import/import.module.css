@@ -1,0 +1,239 @@
+.layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 110px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px dashed var(--muted);
+  background: var(--surface2);
+  cursor: pointer;
+  text-align: center;
+}
+.drop:hover {
+  border-color: var(--accentText);
+}
+.dropTitle {
+  font-weight: 700;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.fileInput:focus-visible + * {
+  outline: 2px solid var(--accentText);
+}
+.consent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.consent input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex: none;
+  accent-color: var(--accent);
+}
+.error {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--negSoft);
+  color: var(--negText);
+  font-size: 13px;
+  font-weight: 500;
+}
+.mapping {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--surface2);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.summaryText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.summaryControls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.summaryControls > * {
+  flex: 1 1 220px;
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.rowOff .rowMain,
+.rowOff .rowSide {
+  color: var(--muted);
+}
+.check {
+  width: 20px;
+  height: 20px;
+  margin-top: 13px;
+  accent-color: var(--accent);
+}
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.title {
+  height: 42px;
+  font-weight: 600;
+}
+.original {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+.badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.rowSide {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.amount {
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.category {
+  height: 38px;
+  width: auto;
+  min-width: 140px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+@media (min-width: 760px) {
+  .row {
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+  }
+  .rowSide {
+    grid-column: 3;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+}
+
+.ignored {
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 16px 20px;
+}
+.ignored summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 15px;
+}
+.ignoredRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ignoredRow:last-child {
+  border-bottom: 0;
+}
+.ignoredRow .amount {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.footer {
+  position: sticky;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-toast);
+}
+.footerText {
+  flex: 1 1 200px;
+  font-weight: 600;
+  font-size: 14px;
+}
+@media (min-width: 900px) {
+  .footer {
+    bottom: 16px;
+  }
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 640px;
+}
+.doneActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

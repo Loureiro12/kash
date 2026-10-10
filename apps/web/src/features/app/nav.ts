@@ -15,6 +15,7 @@ export const routes = {
   home: '/app',
   welcome: '/app/boas-vindas',
   transactions: '/app/lancamentos',
+  importer: '/app/importar',
   cards: '/app/cartoes',
   accounts: '/app/contas',
   bills: '/app/contas-fixas',

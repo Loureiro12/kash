@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // pacotes do monorepo publicam TypeScript direto (sem build)
-  transpilePackages: ['@kash/domain', '@kash/supabase-client'],
+  transpilePackages: ['@kash/domain', '@kash/importers', '@kash/supabase-client'],
   poweredByHeader: false,
   images: {
     formats: ['image/avif', 'image/webp'],

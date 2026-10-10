@@ -78,6 +78,17 @@ Modais: lançar gasto/entrada (parcelado 1–24x, compra antiga com "1ª parcela
 
 **Como funciona.** A sessão do Supabase fica no `localStorage` (`kash-web-auth`); `AppShell` só mostra as telas com sessão e com o snapshot carregado (o mesmo `loadSnapshot` do app, depois do `ensure_rollover`). As escritas vão direto para o servidor (que calcula saldos, parcelas e faturas) e o snapshot é refeito; marcar conta como paga, guardar R$ 50 e as preferências atualizam a tela na hora (otimista). Tema e "ocultar valores" são do perfil, então valem no app e na web.
 
+**Importar fatura e extrato** (`/app/importar`; atalhos em Lançamentos, Cartões e Contas).
+- **Arquivos:** OFX e CSV são lidos no navegador, sem IA, pelo pacote `@kash/importers`, que detecta as colunas do CSV ou pergunta. O PDF é aberto no navegador com `pdfjs-dist` (aceita senha); o texto é limpo (`redactStatementText`: CPF, cartão, endereço, CEP, código de barras e nome) e só ele vai para a Edge Function `import-assist`, que usa a IA da Anthropic com saída estruturada. É opcional e pede consentimento.
+- **Revisão:** cada linha mostra o nome editável com o original embaixo, a categoria, o selo da parcela ("3/12 agora · faltam 10"), "possível duplicado" e "conferir valor" (valor que não aparece no PDF). As linhas que ficaram de fora mostram o motivo.
+- **Regras:**
+  - parcela em aberto sempre vira parcelamento, na parcela do mês atual;
+  - compra à vista entra só com "Tudo" e só na fatura mais recente; nesse caso a fatura fechada daquele mês é recalculada e dá para pagá-la pelo Kash;
+  - fatura antiga traz só parcelamentos;
+  - extrato de conta pode manter o saldo de hoje.
+- **Sem duplicar:** cada linha tem um `external_id` estável, e reimportar não cria nada de novo. Renomear ou mudar a categoria vira regra (`merchant_rules`) para as próximas importações.
+- **Desfazer:** a importação inteira pode ser desfeita, pelo resultado ou pelo histórico.
+
 **Primeiro acesso guiado.** Regras em `@kash/domain` (`onboardingStatus`); estado no perfil (`onboarding_done_at`, `checklist_hidden_at`; migração `onboarding`), então vale em qualquer navegador e o app pode adotar depois. Quem já tinha contas foi marcado como concluído na migração.
 
 **Transferência entre contas.** Duas pernas ligadas por `transfer_id` (saída na origem, entrada no destino) com a categoria de sistema "Transferência" (migração `transfers`; RPCs `create_transfer`, `update_transfer`, e `soft_delete_transaction` apaga as duas). Saldos vêm da soma; `@kash/domain` tira a categoria de gasto, entrada, relatório e totais (`isTransfer`) e as listas mostram uma linha só (`collapseTransfers`/`txViews`).

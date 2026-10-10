@@ -1,6 +1,7 @@
 'use client';
 
 import { categoryColorMap, DEFAULT_TX_FILTERS, formatBRL, type TxFilters, type TxKindFilter } from '@kash/domain';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Icon } from '@/components/app/Icon';
 import { Button, Card, EmptyState, IconButton, Segmented, TextInput, ToggleChip, uiStyles } from '@/components/app/ui';
@@ -8,6 +9,7 @@ import { useKash } from '@/kash/data';
 import { useUi } from '@/kash/ui';
 import { transactionsView } from '@/kash/views';
 import { useNow } from '@/features/app/hooks';
+import { routes } from '@/features/app/nav';
 import { PageHeader } from '@/features/app/PageHeader';
 import { TxRow } from '@/features/app/TxRow';
 import s from '@/features/app/screens.module.css';
@@ -37,6 +39,9 @@ export function TransactionsScreen() {
             <Button variant="soft" size="sm" onClick={() => openModal({ name: 'transaction', kind: 'income' })} testID="tx-new-income">
               + Entrada
             </Button>
+            <Link href={routes.importer} className={`${uiStyles.btn} ${uiStyles.secondary} ${uiStyles.sm}`} onClick={() => useUi.getState().setImportTarget(null)} data-testid="tx-import">
+              Importar
+            </Link>
             <Button variant="secondary" size="sm" onClick={() => openModal({ name: 'transfer' })} testID="tx-new-transfer">
               ⇄ Transferir
             </Button>

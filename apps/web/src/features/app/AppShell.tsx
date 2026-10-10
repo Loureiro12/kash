@@ -183,7 +183,8 @@ function Frame({ name, children }: { name: string; children: React.ReactNode }) 
         <div className={s.content}>{children}</div>
       </main>
 
-      {!modal ? (
+      {/* na importação o rodapé com "Importar" fica no lugar do botão flutuante */}
+      {!modal && pathname !== routes.importer ? (
         <button type="button" className={s.fab} onClick={() => openModal({ name: 'transaction' })} aria-label="Lançar gasto" data-testid="fab-new-tx">
           <Icon name="plus" size={24} strokeWidth={2.6} />
         </button>

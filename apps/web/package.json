@@ -13,12 +13,14 @@
   },
   "dependencies": {
     "@kash/domain": "workspace:*",
+    "@kash/importers": "workspace:*",
     "@kash/supabase-client": "workspace:*",
     "@supabase/supabase-js": "^2.117.3",
     "@tanstack/react-query": "^5.104.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "next": "16.4.0",
+    "pdfjs-dist": "4.10.38",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "zustand": "^5.0.15"

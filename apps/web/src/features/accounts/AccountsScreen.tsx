@@ -1,11 +1,13 @@
 'use client';
 
 import { totalBalance } from '@kash/domain';
+import Link from 'next/link';
 import { Button, Card, DashedButton, EmptyState, uiStyles } from '@/components/app/ui';
 import { readableInk } from '@/components/app/colors';
 import { useKash } from '@/kash/data';
 import { useUi } from '@/kash/ui';
 import { useMoney } from '@/features/app/hooks';
+import { routes } from '@/features/app/nav';
 import { PageHeader } from '@/features/app/PageHeader';
 import s from '@/features/app/screens.module.css';
 import a from './accounts.module.css';
@@ -22,11 +24,16 @@ export function AccountsScreen() {
         title="Contas bancárias"
         subtitle="O saldo de todas as suas contas num lugar só."
         actions={
-          accounts.length >= 2 ? (
-            <Button variant="soft" size="sm" onClick={() => openModal({ name: 'transfer' })} testID="accounts-transfer">
-              ⇄ Transferir
-            </Button>
-          ) : null
+          <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Link href={routes.importer} className={`${uiStyles.btn} ${uiStyles.secondary} ${uiStyles.sm}`} onClick={() => useUi.getState().setImportTarget({ type: 'account', id: accounts[0]?.id ?? '' })} data-testid="accounts-import">
+              Importar extrato
+            </Link>
+            {accounts.length >= 2 ? (
+              <Button variant="soft" size="sm" onClick={() => openModal({ name: 'transfer' })} testID="accounts-transfer">
+                ⇄ Transferir
+              </Button>
+            ) : null}
+          </span>
         }
       />
       {accounts.length === 0 ? (

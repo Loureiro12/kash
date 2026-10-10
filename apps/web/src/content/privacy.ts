@@ -67,6 +67,7 @@ export const privacySections: PolicySection[] = [
     title: 'Compartilhamento',
     paragraphs: [
       'Não vendemos seus dados e não usamos seus gastos para mostrar anúncios. Compartilhamos dados apenas com fornecedores que nos ajudam a operar o Kash, como hospedagem em nuvem e envio de e-mails, sempre sob contrato e com o mínimo necessário. Também podemos compartilhar dados se houver ordem judicial ou exigência legal.',
+      'Importação com IA (opcional): quando você pede para o Kash ler o PDF de uma fatura e autoriza o uso da IA, o texto dos lançamentos é enviado à Anthropic, fornecedora do modelo de IA, só para identificar data, descrição, valor e parcelas. Antes do envio, o Kash tira do texto CPF, endereço, número do cartão, código de barras e o seu nome. O arquivo PDF não sai do seu aparelho, e arquivos OFX e CSV são lidos sem IA.',
     ],
   },
   {

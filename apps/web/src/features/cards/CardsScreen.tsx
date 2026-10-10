@@ -1,12 +1,14 @@
 'use client';
 
 import { formatBRL } from '@kash/domain';
+import Link from 'next/link';
 import { useMemo } from 'react';
 import { Button, Card, CardHeader, CreditCardFace, DashedButton, EmptyState, ProgressBar, uiStyles } from '@/components/app/ui';
 import { useKash } from '@/kash/data';
 import { useUi } from '@/kash/ui';
 import { cardsView } from '@/kash/views';
 import { useMoney, useNow } from '@/features/app/hooks';
+import { routes } from '@/features/app/nav';
 import { PageHeader } from '@/features/app/PageHeader';
 import { TxRow } from '@/features/app/TxRow';
 import s from '@/features/app/screens.module.css';
@@ -25,7 +27,15 @@ export function CardsScreen() {
 
   return (
     <>
-      <PageHeader title="Cartões" subtitle="Clique num cartão pra ver a fatura e as parcelas." />
+      <PageHeader
+        title="Cartões"
+        subtitle="Clique num cartão pra ver a fatura e as parcelas."
+        actions={
+          <Link href={routes.importer} className={`${uiStyles.btn} ${uiStyles.soft} ${uiStyles.sm}`} onClick={() => useUi.getState().setImportTarget(sel ? { type: 'card', id: sel.card.id } : { type: 'card', id: '' })} data-testid="cards-import">
+            Importar fatura
+          </Link>
+        }
+      />
 
       {v.list.length === 0 ? (
         <Card>

@@ -42,6 +42,8 @@ interface UiState {
   selectedCardId: string | null;
   /** fluxo de "esqueci a senha" em andamento: a sessão de recuperação não leva direto ao app */
   recovering: boolean;
+  /** destino pré-escolhido ao abrir Importar (cartão ou conta de onde a pessoa veio) */
+  importTarget: { type: 'card' | 'account'; id: string } | null;
 
   openModal: (modal: ModalState) => void;
   closeModal: () => void;
@@ -50,13 +52,14 @@ interface UiState {
   setNavOpen: (open: boolean) => void;
   selectCard: (id: string | null) => void;
   setRecovering: (value: boolean) => void;
+  setImportTarget: (target: { type: 'card' | 'account'; id: string } | null) => void;
   reset: () => void;
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 let toastSeq = 0;
 
-const initial = { modal: null, modalNonce: 0, toast: null, navOpen: false, selectedCardId: null, recovering: false };
+const initial = { modal: null, modalNonce: 0, toast: null, navOpen: false, selectedCardId: null, recovering: false, importTarget: null };
 
 export const useUi = create<UiState>((set, get) => ({
   ...initial,
@@ -76,6 +79,7 @@ export const useUi = create<UiState>((set, get) => ({
   setNavOpen: (navOpen) => set({ navOpen }),
   selectCard: (selectedCardId) => set({ selectedCardId }),
   setRecovering: (recovering) => set({ recovering }),
+  setImportTarget: (importTarget) => set({ importTarget }),
   reset: () => {
     if (toastTimer) clearTimeout(toastTimer);
     set({ ...initial });
