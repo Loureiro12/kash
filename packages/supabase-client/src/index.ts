@@ -9,6 +9,7 @@ export * from './repositories/bills';
 export * from './repositories/cards';
 export * from './repositories/categories';
 export * from './repositories/goals';
+export * from './repositories/imports';
 export * from './repositories/invoices';
 export * from './repositories/plans';
 export * from './repositories/export';

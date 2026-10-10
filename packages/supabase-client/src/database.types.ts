@@ -63,6 +63,34 @@ export type Database = {
         };
         Relationships: [];
       };
+      ai_calls: {
+        Row: {
+          created_at: string;
+          id: number;
+          input_tokens: number;
+          output_tokens: number;
+          purpose: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: never;
+          input_tokens?: number;
+          output_tokens?: number;
+          purpose?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: never;
+          input_tokens?: number;
+          output_tokens?: number;
+          purpose?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       bills: {
         Row: {
           amount: number;
@@ -259,6 +287,55 @@ export type Database = {
           },
         ];
       };
+      imports: {
+        Row: {
+          balance_adjustment: number;
+          created_at: string;
+          file_name: string;
+          format: string;
+          id: string;
+          plan_count: number;
+          skipped_count: number;
+          source_id: string;
+          source_type: Database['public']['Enums']['source_type'];
+          statement_month: string | null;
+          tx_count: number;
+          undone_at: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          balance_adjustment?: number;
+          created_at?: string;
+          file_name?: string;
+          format: string;
+          id?: string;
+          plan_count?: number;
+          skipped_count?: number;
+          source_id: string;
+          source_type: Database['public']['Enums']['source_type'];
+          statement_month?: string | null;
+          tx_count?: number;
+          undone_at?: string | null;
+          user_id?: string;
+        };
+        Update: {
+          balance_adjustment?: number;
+          created_at?: string;
+          file_name?: string;
+          format?: string;
+          id?: string;
+          plan_count?: number;
+          skipped_count?: number;
+          source_id?: string;
+          source_type?: Database['public']['Enums']['source_type'];
+          statement_month?: string | null;
+          tx_count?: number;
+          undone_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       invoices: {
         Row: {
           card_id: string;
@@ -315,6 +392,34 @@ export type Database = {
           },
         ];
       };
+      merchant_rules: {
+        Row: {
+          category: string | null;
+          id: string;
+          pattern: string;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          category?: string | null;
+          id?: string;
+          pattern: string;
+          title: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          category?: string | null;
+          id?: string;
+          pattern?: string;
+          title?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       plans: {
         Row: {
           card_id: string;
@@ -323,8 +428,11 @@ export type Database = {
           current: number;
           deleted_at: string | null;
           deleted_group: string | null;
+          external_id: string | null;
           id: string;
+          import_id: string | null;
           installments: number;
+          original_title: string | null;
           per_installment: number;
           title: string;
           user_id: string;
@@ -337,8 +445,11 @@ export type Database = {
           current?: number;
           deleted_at?: string | null;
           deleted_group?: string | null;
+          external_id?: string | null;
           id?: string;
+          import_id?: string | null;
           installments: number;
+          original_title?: string | null;
           per_installment: number;
           title: string;
           user_id?: string;
@@ -350,8 +461,11 @@ export type Database = {
           current?: number;
           deleted_at?: string | null;
           deleted_group?: string | null;
+          external_id?: string | null;
           id?: string;
+          import_id?: string | null;
           installments?: number;
+          original_title?: string | null;
           per_installment?: number;
           title?: string;
           user_id?: string;
@@ -369,6 +483,13 @@ export type Database = {
             columns: ['card_id'];
             isOneToOne: false;
             referencedRelation: 'cards';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'plans_import_id_fkey';
+            columns: ['import_id'];
+            isOneToOne: false;
+            referencedRelation: 'imports';
             referencedColumns: ['id'];
           },
         ];
@@ -458,7 +579,10 @@ export type Database = {
           date: string;
           deleted_at: string | null;
           deleted_group: string | null;
+          external_id: string | null;
           id: string;
+          import_id: string | null;
+          original_title: string | null;
           plan_id: string | null;
           source_id: string;
           source_type: Database['public']['Enums']['source_type'];
@@ -475,7 +599,10 @@ export type Database = {
           date?: string;
           deleted_at?: string | null;
           deleted_group?: string | null;
+          external_id?: string | null;
           id?: string;
+          import_id?: string | null;
+          original_title?: string | null;
           plan_id?: string | null;
           source_id: string;
           source_type: Database['public']['Enums']['source_type'];
@@ -491,7 +618,10 @@ export type Database = {
           date?: string;
           deleted_at?: string | null;
           deleted_group?: string | null;
+          external_id?: string | null;
           id?: string;
+          import_id?: string | null;
+          original_title?: string | null;
           plan_id?: string | null;
           source_id?: string;
           source_type?: Database['public']['Enums']['source_type'];
@@ -501,6 +631,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'transactions_import_id_fkey';
+            columns: ['import_id'];
+            isOneToOne: false;
+            referencedRelation: 'imports';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'transactions_plan_id_fkey';
             columns: ['plan_id'];
@@ -571,6 +708,26 @@ export type Database = {
       dispatch_reminders: { Args: Record<PropertyKey, never>; Returns: number };
       ensure_rollover: { Args: Record<PropertyKey, never>; Returns: number };
       export_my_data: { Args: Record<PropertyKey, never>; Returns: Json };
+      import_account_statement: {
+        Args: {
+          p_account_id: string;
+          p_file_name: string;
+          p_format: string;
+          p_items: Json;
+          p_keep_balance?: boolean;
+        };
+        Returns: string;
+      };
+      import_card_statement: {
+        Args: {
+          p_card_id: string;
+          p_file_name: string;
+          p_format: string;
+          p_items: Json;
+          p_statement_month: string;
+        };
+        Returns: string;
+      };
       kash_today: { Args: Record<PropertyKey, never>; Returns: string };
       mark_reminder_sent: {
         Args: { p_day: string; p_items: number; p_user_id: string };
@@ -587,6 +744,10 @@ export type Database = {
         Args: { p_account_id?: string; p_amount: number; p_date?: string; p_goal_id: string };
         Returns: undefined;
       };
+      refresh_card_invoices: {
+        Args: { p_card_id: string; p_months: string[] };
+        Returns: undefined;
+      };
       reminder_digest: {
         Args: { p_day?: string };
         Returns: {
@@ -600,6 +761,7 @@ export type Database = {
       seed_default_categories: { Args: { p_uid: string }; Returns: undefined };
       soft_delete_transaction: { Args: { p_scope?: string; p_tx_id: string }; Returns: string };
       undo_delete_transaction: { Args: { p_group: string }; Returns: number };
+      undo_import: { Args: { p_import_id: string }; Returns: number };
       unpay_bill: { Args: { p_bill_id: string }; Returns: undefined };
       update_category: {
         Args: { p_color: string; p_id: string; p_name: string };

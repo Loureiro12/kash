@@ -154,6 +154,7 @@ apps/web/                 site (Next.js): landing, privacidade e o Kash web (app
   src/data/               TanStack Query, sincronização com o servidor e escritas otimistas
   src/services/           Supabase (sessão segura), notificações, log de requisições
   e2e/                    fluxos Maestro e runner com reset do banco
+packages/importers/       @kash/importers: leitura de fatura/extrato (OFX, CSV, regras de importação), sem React
 packages/domain/          @kash/domain: regras de negócio puras (sem React), testadas com Vitest
 packages/supabase-client/ @kash/supabase-client: cliente tipado, repositórios, RPCs, erros, mappers
 packages/config/          tsconfig base
