@@ -26,7 +26,7 @@ export interface SignUpInput extends Credentials {
   name: string;
 }
 export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount' | 'category';
+export type SheetName = 'transfer' | 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount' | 'category';
 
 export interface NewTransaction {
   kind: TxKind;
@@ -39,6 +39,16 @@ export interface NewTransaction {
   date?: string;
   /** compra parcelada: mês ("yyyy-mm") da 1ª parcela; no passado, as parcelas anteriores contam como pagas */
   firstInstallmentMonth?: string;
+}
+
+/** Transferência entre contas (valor em centavos; as duas pernas são criadas juntas). */
+export interface NewTransfer {
+  fromAccountId: string;
+  toAccountId: string;
+  amountCents: number;
+  /** ISO date; default hoje */
+  date?: string;
+  note: string;
 }
 
 export interface TxPatch {
@@ -152,6 +162,8 @@ export interface KashState {
     accountsSegment: AccountsSegment;
     /** meta alvo do sheet de depósito */
     depositGoalId: string | null;
+    /** transferência em edição no sheet de transferência (null = nova) */
+    transferId: string | null;
     /** fatura alvo do sheet de pagamento */
     payInvoiceId: string | null;
   };
@@ -198,6 +210,8 @@ export interface KashState {
   openSheet: (sheet: SheetName) => void;
   openDeposit: (goalId: string) => void;
   openTransaction: (txId: string) => void;
+  /** sheet de transferência; com id, edita a existente */
+  openTransfer: (transferId?: string) => void;
   openPayInvoice: (invoiceId: string) => void;
   openEdit: (ref: EditingRef) => void;
   setDataStatus: (status: DataStatus) => void;
@@ -211,6 +225,8 @@ export interface KashState {
   addTransaction: (input: NewTransaction) => void;
   updateTransaction: (id: string, patch: TxPatch) => void;
   deleteTransaction: (id: string, scope?: DeleteScope) => void;
+  addTransfer: (input: NewTransfer) => void;
+  updateTransfer: (transferId: string, input: NewTransfer) => void;
   undoDelete: () => void;
   addCard: (input: NewCard) => void;
   updateCard: (id: string, input: NewCard) => void;
@@ -248,7 +264,7 @@ const buildInitial = () => {
     userId: null as string | null,
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null },
+    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null },
   };
 };
 
@@ -456,7 +472,14 @@ export const useKashStore = create<KashState>((set, get) => ({
     set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editing: ref } }));
   },
   setDataStatus: (status) => set((s) => ({ ui: { ...s.ui, dataStatus: status } })),
-  openTransaction: (txId) => set((s) => ({ ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: txId } })),
+  openTransaction: (txId) =>
+    set((s) => {
+      // transferência abre o próprio sheet (edita as duas pernas juntas)
+      const transferId = s.txs.find((t) => t.id === txId)?.transferId;
+      if (transferId) return { ui: { ...s.ui, sheet: 'transfer', sheetNonce: s.ui.sheetNonce + 1, transferId } };
+      return { ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: txId } };
+    }),
+  openTransfer: (transferId) => set((s) => ({ ui: { ...s.ui, sheet: 'transfer', sheetNonce: s.ui.sheetNonce + 1, transferId: transferId ?? null } })),
   openPayInvoice: (invoiceId) => set((s) => ({ ui: { ...s.ui, sheet: 'payInvoice', sheetNonce: s.ui.sheetNonce + 1, payInvoiceId: invoiceId } })),
   openDeposit: (goalId) => set((s) => ({ ui: { ...s.ui, sheet: 'deposit', sheetNonce: s.ui.sheetNonce + 1, depositGoalId: goalId } })),
   closeSheet: () => set((s) => ({ ui: { ...s.ui, sheet: null } })),
@@ -546,7 +569,8 @@ export const useKashStore = create<KashState>((set, get) => ({
       const tx = s.txs.find((t) => t.id === id);
       if (!tx) return s;
       const plan = tx.planId ? (s.plans.find((p) => p.id === tx.planId) ?? null) : null;
-      const removing = plan && scope === 'plan' ? s.txs.filter((t) => t.planId === plan.id) : [tx];
+      // transferência: as duas pernas saem juntas, como no servidor
+      const removing = tx.transferId ? s.txs.filter((t) => t.transferId === tx.transferId) : plan && scope === 'plan' ? s.txs.filter((t) => t.planId === plan.id) : [tx];
       const removedIds = new Set(removing.map((t) => t.id));
       const accounts = s.accounts.map((a) => {
         const delta = removing.filter((t) => t.sourceId === a.id).reduce((sum, t) => sum + t.amount, 0);
@@ -564,6 +588,46 @@ export const useKashStore = create<KashState>((set, get) => ({
         invoices,
         plans,
         ui: { ...s.ui, sheet: null, editingTxId: null, lastDeleted: { txs: removing, plan, accounts: s.accounts, bills: s.bills, invoices: s.invoices } },
+      };
+    }),
+
+  addTransfer: ({ fromAccountId, toAccountId, amountCents, date, note }) => {
+    const amount = round2(amountCents / 100);
+    const s0 = get();
+    if (!(amount > 0) || fromAccountId === toAccountId || !s0.accounts.some((a) => a.id === fromAccountId) || !s0.accounts.some((a) => a.id === toAccountId)) return;
+    const transferId = createId('transfer');
+    const when = date ?? toISODate(now());
+    const title = note.trim() || 'Transferência';
+    set((s) => ({
+      txs: [
+        { id: createId('tx'), title, category: 'Transferência', amount: -amount, date: when, sourceId: fromAccountId, sourceType: 'account', transferId },
+        { id: createId('tx'), title, category: 'Transferência', amount, date: when, sourceId: toAccountId, sourceType: 'account', transferId },
+        ...s.txs,
+      ],
+      accounts: s.accounts.map((a) => (a.id === fromAccountId ? { ...a, balance: round2(a.balance - amount) } : a.id === toAccountId ? { ...a, balance: round2(a.balance + amount) } : a)),
+      ui: { ...s.ui, sheet: null, transferId: null },
+    }));
+  },
+
+  updateTransfer: (transferId, { fromAccountId, toAccountId, amountCents, date, note }) =>
+    set((s) => {
+      const out = s.txs.find((t) => t.transferId === transferId && t.amount < 0);
+      const into = s.txs.find((t) => t.transferId === transferId && t.amount > 0);
+      const amount = round2(amountCents / 100);
+      if (!out || !into || !(amount > 0) || fromAccountId === toAccountId) return s;
+      const title = note.trim() || 'Transferência';
+      const when = date ?? out.date;
+      // desfaz a transferência antiga nos saldos e aplica a nova
+      const delta = new Map<string, number>();
+      const add = (id: string, v: number) => delta.set(id, (delta.get(id) ?? 0) + v);
+      add(out.sourceId, -out.amount);
+      add(into.sourceId, -into.amount);
+      add(fromAccountId, -amount);
+      add(toAccountId, amount);
+      return {
+        txs: s.txs.map((t) => (t.id === out.id ? { ...t, title, amount: -amount, date: when, sourceId: fromAccountId } : t.id === into.id ? { ...t, title, amount, date: when, sourceId: toAccountId } : t)),
+        accounts: s.accounts.map((a) => (delta.has(a.id) ? { ...a, balance: round2(a.balance + delta.get(a.id)!) } : a)),
+        ui: { ...s.ui, sheet: null, transferId: null },
       };
     }),
 

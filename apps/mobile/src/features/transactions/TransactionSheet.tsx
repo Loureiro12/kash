@@ -28,6 +28,7 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   const deleteTransaction = useKashStore((s) => s.deleteTransaction);
   const undoDelete = useKashStore((s) => s.undoDelete);
   const showToast = useKashStore((s) => s.showToast);
+  const openTransfer = useKashStore((s) => s.openTransfer);
   const sources = useSourceOptions();
   const accountSources = sources.filter((s) => !s.isCard);
   const today = now();
@@ -132,16 +133,21 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
       title={title}
       headerContent={
         !editing ? (
-          <SegmentedControl<TxKind>
+          <SegmentedControl<TxKind | 'transfer'>
             compact
             value={kind}
             onChange={(k) => {
+              if (k === 'transfer') {
+                openTransfer();
+                return;
+              }
               setKind(k);
               if (k === 'income' && srcIsCard) setSourceId(accountSources[0]?.id ?? '');
             }}
             options={[
               { value: 'expense', label: 'Gasto', testID: 'tx-kind-expense' },
               { value: 'income', label: 'Entrada', testID: 'tx-kind-income' },
+              { value: 'transfer', label: 'Transferência', testID: 'tx-kind-transfer' },
             ]}
             testID="tx-kind"
             style={{ alignSelf: 'flex-start' }}

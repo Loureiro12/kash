@@ -9,6 +9,7 @@ Checklist de lançamento em `docs/release.md` › 5.2.
 
 Base: builds 1.0.1 (iOS 6, Android 3), feitos no commit `9ea8010`.
 
+- **Transferência entre contas** (Contas › Transferir, ou a opção "Transferência" em Lançar gasto): move o dinheiro de uma conta para outra sem contar como gasto nem entrada; aparece numa linha só ("Corrente → Poupança"), tem filtro em Lançamentos e pode ser editada ou excluída (com desfazer).
 - **Sincronização em tempo real**: o que você lança ou muda no Kash web (ou em outro celular) aparece no app na hora, sem precisar puxar a tela. Ao voltar do segundo plano, o app se atualiza sozinho.
 - **Lembrete por e-mail** no Perfil › Preferências: opt-in, e-mail às 9h com contas e faturas que vencem em 2 dias e os depósitos de metas do dia. Independente da notificação push e sincronizado com o Kash web. Precisa do backend publicado (migração `20261012000000_email_reminders` + função `send-reminders`).
 - **Relatório com os meses reais**: o gráfico de 6 meses e a comparação com o mês anterior usam os lançamentos de verdade (antes os 5 meses anteriores eram valores de exemplo). Sem gastos no mês anterior, mostra "Sem gastos em <mês> pra comparar".
@@ -18,6 +19,7 @@ Base: builds 1.0.1 (iOS 6, Android 3), feitos no commit `9ea8010`.
 ### Texto de "Novidades" para as lojas
 
 > Novidades desta versão:
+> • Transferência entre contas: passe dinheiro da corrente pra poupança sem bagunçar seus gastos.
 > • Tempo real: o que você lança no computador aparece no celular na hora (e vice-versa).
 > • Lembrete por e-mail: ligue em Perfil › Preferências e receba às 9h as contas e faturas que vencem em 2 dias.
 > • Relatório mais fiel: o gráfico dos últimos meses agora usa os seus lançamentos de verdade.

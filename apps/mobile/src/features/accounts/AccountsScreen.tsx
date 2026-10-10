@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Card, CheckCircle, DashedButton, EmptyState, Pressable, Screen, SegmentedControl, Text, TileIcon } from '@/design-system';
+import { Button, Card, CheckCircle, DashedButton, EmptyState, Pressable, Screen, SegmentedControl, Text, TileIcon } from '@/design-system';
 import { DataGate } from '../navigation/DataGate';
 import { formatBRL, totalBalance } from '@kash/domain';
 import { useBillsSummary, useBillsView, useKashStore, useMoney } from '@/store';
@@ -32,6 +32,7 @@ function BankAccounts() {
   const accounts = useKashStore((s) => s.accounts);
   const openSheet = useKashStore((s) => s.openSheet);
   const openEdit = useKashStore((s) => s.openEdit);
+  const openTransfer = useKashStore((s) => s.openTransfer);
   if (accounts.length === 0) {
     return (
       <View testID="accounts-bank">
@@ -72,6 +73,7 @@ function BankAccounts() {
             </Card>
           </Pressable>
         ))}
+        {accounts.length >= 2 ? <Button label="⇄ Transferir entre contas" variant="soft" size="md" onPress={() => openTransfer()} testID="accounts-transfer" /> : null}
         <DashedButton label="+ Adicionar conta" onPress={() => openSheet('addAccount')} testID="accounts-add" />
       </View>
     </View>

@@ -101,6 +101,13 @@ export function installRemoteActions() {
     return group ? api.undoDeleteTransaction(db, group) : undefined;
   });
 
+  // transferências: o servidor cria/edita as duas pernas (o local já aplicou o otimista)
+  wrap('addTransfer', ([input]) => api.createTransfer(db, { fromAccountId: input.fromAccountId, toAccountId: input.toAccountId, amount: input.amountCents / 100, date: input.date ?? today(), title: input.note }));
+  wrap('updateTransfer', ([transferId, input], before) => {
+    const out = before.txs.find((t) => t.transferId === transferId && t.amount < 0);
+    return api.updateTransfer(db, transferId, { fromAccountId: input.fromAccountId, toAccountId: input.toAccountId, amount: input.amountCents / 100, date: input.date ?? out?.date ?? today(), title: input.note });
+  });
+
   // cartões
   wrap('addCard', ([input]) => api.createCard(db, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId, color: input.color ?? null }), {
     onSuccess: (card) => {

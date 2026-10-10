@@ -11,12 +11,14 @@ import { DepositSheet } from '../goals/DepositSheet';
 import { ChangePasswordSheet } from '../profile/ChangePasswordSheet';
 import { DeleteAccountSheet } from '../profile/DeleteAccountSheet';
 import { TransactionSheet } from '../transactions/TransactionSheet';
+import { TransferSheet } from '../transactions/TransferSheet';
 
 /** Monta todos os sheets globais e o toast uma única vez, acima da navegação. */
 export function SheetsHost() {
   return (
     <>
       <TransactionSheet />
+      <TransferSheet />
       <AddCardSheet />
       <PayInvoiceSheet />
       <AddAccountSheet />

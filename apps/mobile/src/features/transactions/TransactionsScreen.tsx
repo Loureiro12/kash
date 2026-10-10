@@ -31,16 +31,17 @@ export function TransactionsScreen() {
       <View style={{ marginTop: 14 }}>
         <SegmentedControl<TxKindFilter>
           value={filters.kind}
-          onChange={(kind) => set({ kind, category: kind === 'income' ? null : filters.category })}
+          onChange={(kind) => set({ kind, category: kind === 'income' || kind === 'transfer' ? null : filters.category })}
           options={[
             { value: 'all', label: 'Tudo', testID: 'tx-kind-all' },
             { value: 'expense', label: 'Gastos', testID: 'tx-filter-expense' },
             { value: 'income', label: 'Entradas', testID: 'tx-filter-income' },
+            { value: 'transfer', label: 'Transf.', testID: 'tx-filter-transfer' },
           ]}
         />
       </View>
 
-      {filters.kind !== 'income' ? (
+      {filters.kind === 'all' || filters.kind === 'expense' ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
           <Chip label="Todas" selected={filters.category === null} onPress={() => set({ category: null })} testID="tx-cat-all" />
           {categoryNames.map((c) => (

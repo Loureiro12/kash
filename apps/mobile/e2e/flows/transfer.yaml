@@ -1,0 +1,41 @@
+appId: ${APP_ID}
+name: Transferência entre contas — move o saldo, não muda o total e persiste no servidor
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "tab-accounts"
+- assertVisible:
+    id: "accounts-screen"
+- assertVisible: "R$ 4.225,50"
+- scrollUntilVisible:
+    element:
+      id: "accounts-transfer"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "accounts-transfer"
+- assertVisible:
+    id: "sheet-transfer"
+# R$ 200,00 da conta corrente para a carteira
+- tapOn:
+    id: "key-2"
+- tapOn:
+    id: "key-00"
+- tapOn:
+    id: "key-00"
+- tapOn:
+    id: "transfer-to-a0000000-0000-4000-8000-000000000003"
+- assertVisible:
+    id: "transfer-preview"
+- tapOn:
+    id: "transfer-save"
+- assertVisible: "R$ 200,00 transferidos"
+# total igual; saldos trocados (inclusive depois do servidor responder e o snapshot voltar)
+- extendedWaitUntil:
+    visible: "Carteira, .*R\\$ 285,00"
+    timeout: 5000
+- assertVisible: "R$ 4.225,50"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Carteira, .*R\\$ 285,00"
+    timeout: 8000

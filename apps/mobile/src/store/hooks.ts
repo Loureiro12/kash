@@ -4,7 +4,7 @@
  */
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { activePlans, billSourceName, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, openInvoices, previousMonthsSpent, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, upcomingBills, type TxFilters } from '@kash/domain';
+import { activePlans, billSourceName, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, openInvoices, previousMonthsSpent, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, txViews, upcomingBills, type TxFilters } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useKashStore } from './useKashStore';
 
@@ -46,7 +46,7 @@ export function useRecentTxs(limit = 6) {
   const { colors } = useCategories();
   return useMemo(() => {
     const today = now();
-    return txs.slice(0, limit).map((t) => txView(t, accounts, cards, today, colors));
+    return txViews(txs, accounts, cards, today, colors).slice(0, limit);
   }, [txs, accounts, cards, limit, colors]);
 }
 

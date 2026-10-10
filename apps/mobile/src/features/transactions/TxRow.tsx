@@ -20,7 +20,7 @@ export function TxRow({ tx, testID }: TxRowProps) {
       testID={testID}
       pressedOpacity={0.6}
       accessibilityRole="button"
-      accessibilityLabel={`${tx.title}, ${tx.isExpense ? 'menos' : 'mais'} ${formatBRL(tx.amount)}, ${tx.meta}`}
+      accessibilityLabel={`${tx.title}, ${tx.kind === 'transfer' ? '' : tx.isExpense ? 'menos ' : 'mais '}${formatBRL(tx.amount)}, ${tx.meta}`}
       accessibilityHint="Abre o lançamento para editar"
       style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.line }}
     >
@@ -33,8 +33,8 @@ export function TxRow({ tx, testID }: TxRowProps) {
           {tx.meta}
         </Text>
       </View>
-      <Text variant="value" color={tx.isExpense ? 'text' : 'accentText'}>
-        {tx.isExpense ? '− ' : '+ '}
+      <Text variant="value" color={tx.kind === 'transfer' ? 'muted' : tx.isExpense ? 'text' : 'accentText'}>
+        {tx.kind === 'transfer' ? '' : tx.isExpense ? '− ' : '+ '}
         {money(tx.amount)}
       </Text>
     </Pressable>
