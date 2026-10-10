@@ -126,7 +126,10 @@ export type ThemeMode = 'dark' | 'light';
 export interface Settings {
   theme: ThemeMode;
   hideValues: boolean;
+  /** push de vencimentos no celular */
   billReminder: boolean;
+  /** lembretes por e-mail (Kash web; opt-in, desligado por padrão) */
+  emailReminder: boolean;
   monthlyBudget: number;
   /** entrar com Face ID / Touch ID */
   biometrics: boolean;

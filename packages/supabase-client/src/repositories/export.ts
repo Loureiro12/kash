@@ -14,6 +14,8 @@ export interface KashExport {
   bills: Record<string, unknown>[];
   goals: Record<string, unknown>[];
   invoices: Record<string, unknown>[];
+  /** dias em que o lembrete por e-mail foi enviado */
+  reminder_emails: Array<{ day: string; items: number; sent_at: string }>;
 }
 
 export async function exportMyData(db: KashClient): Promise<KashExport> {

@@ -379,6 +379,7 @@ export type Database = {
           biometrics: boolean;
           created_at: string;
           currency: string;
+          email_reminder: boolean;
           hide_values: boolean;
           id: string;
           last_rollover_month: string;
@@ -394,6 +395,7 @@ export type Database = {
           biometrics?: boolean;
           created_at?: string;
           currency?: string;
+          email_reminder?: boolean;
           hide_values?: boolean;
           id: string;
           last_rollover_month?: string;
@@ -408,6 +410,7 @@ export type Database = {
           biometrics?: boolean;
           created_at?: string;
           currency?: string;
+          email_reminder?: boolean;
           hide_values?: boolean;
           id?: string;
           last_rollover_month?: string;
@@ -416,6 +419,28 @@ export type Database = {
           phone?: string;
           theme?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      reminder_emails: {
+        Row: {
+          day: string;
+          items: number;
+          sent_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          day: string;
+          items: number;
+          sent_at?: string;
+          user_id: string;
+        };
+        Update: {
+          day?: string;
+          items?: number;
+          sent_at?: string;
+          user_id?: string;
         };
         Relationships: [];
       };
@@ -530,9 +555,14 @@ export type Database = {
       delete_account: { Args: { p_account_id: string }; Returns: undefined };
       delete_card: { Args: { p_card_id: string }; Returns: undefined };
       delete_category: { Args: { p_id: string; p_move_to?: string }; Returns: undefined };
+      dispatch_reminders: { Args: Record<PropertyKey, never>; Returns: number };
       ensure_rollover: { Args: Record<PropertyKey, never>; Returns: number };
       export_my_data: { Args: Record<PropertyKey, never>; Returns: Json };
       kash_today: { Args: Record<PropertyKey, never>; Returns: string };
+      mark_reminder_sent: {
+        Args: { p_day: string; p_items: number; p_user_id: string };
+        Returns: undefined;
+      };
       month_key: { Args: { d: string }; Returns: string };
       move_plan_to_card: { Args: { p_card_id: string; p_plan_id: string }; Returns: undefined };
       pay_bill: { Args: { p_bill_id: string; p_date?: string }; Returns: string };
@@ -543,6 +573,15 @@ export type Database = {
       record_goal_deposit: {
         Args: { p_account_id?: string; p_amount: number; p_date?: string; p_goal_id: string };
         Returns: undefined;
+      };
+      reminder_digest: {
+        Args: { p_day?: string };
+        Returns: {
+          email: string;
+          items: Json;
+          name: string;
+          user_id: string;
+        }[];
       };
       rollover_all: { Args: Record<PropertyKey, never>; Returns: number };
       seed_default_categories: { Args: { p_uid: string }; Returns: undefined };

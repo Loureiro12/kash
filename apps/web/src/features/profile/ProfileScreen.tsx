@@ -65,8 +65,15 @@ export function ProfileScreen() {
             <GroupRow title="Tema escuro" trailing={<Switch checked={dark} onChange={(on) => void actions.updateSettings({ theme: on ? 'dark' : 'light' })} label="Tema escuro" testID="profile-theme-switch" />} />
             <GroupRow
               title="Lembrete de contas"
-              subtitle="E-mail 2 dias antes do vencimento"
-              trailing={<Switch checked={settings.billReminder} onChange={(on) => void actions.updateSettings({ billReminder: on }, on ? 'Lembretes ligados' : 'Lembretes desligados')} label="Lembrete de contas por e-mail" testID="profile-reminder-switch" />}
+              subtitle={settings.emailReminder ? `E-mail para ${user.email}, 2 dias antes do vencimento` : 'E-mail 2 dias antes do vencimento'}
+              trailing={
+                <Switch
+                  checked={settings.emailReminder}
+                  onChange={(on) => void actions.updateSettings({ emailReminder: on }, on ? `Lembretes por e-mail ligados: chegam às 9h em ${user.email}` : 'Lembretes por e-mail desligados')}
+                  label="Lembrete de contas por e-mail"
+                  testID="profile-reminder-switch"
+                />
+              }
             />
             <GroupRow title="Moeda" value="Real (R$)" href={routes.currency} testID="profile-currency" />
           </Group>

@@ -101,6 +101,7 @@ export function toSettings(row: ProfileRow): Settings {
     theme: row.theme as Settings['theme'],
     hideValues: row.hide_values,
     billReminder: row.bill_reminder,
+    emailReminder: row.email_reminder,
     monthlyBudget: num(row.monthly_budget),
     biometrics: row.biometrics,
     currency: 'BRL',

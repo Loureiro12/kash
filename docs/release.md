@@ -21,6 +21,25 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
 5. **[você]** No dashboard, Authentication → SMTP: configure um provedor (Resend, Postmark…). O SMTP padrão do Supabase limita a poucos e-mails por hora e não serve para usuários reais.
 6. Confira no SQL Editor que a virada de mês está agendada: `select * from cron.job;` deve listar o job diário (criado pela migração inicial; `pg_cron` já vem habilitado nos projetos hospedados).
 7. **[você]** Em Settings → API copie `Project URL` e `anon public key` (vão para o EAS no passo 2.3).
+8. **Lembretes por e-mail** (Edge Function `send-reminders`, cron `kash-email-reminders` às 09:00 de Brasília). Depois do deploy das funções, uma vez só:
+   ```bash
+   SECRET=$(openssl rand -hex 32)   # mesmo valor nos dois lugares abaixo
+   supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" \
+     RESEND_API_KEY=re_... \
+     REMINDERS_FROM='Kash <nao-responda@mail.kash.app.br>' \
+     APP_URL=https://www.kash.app.br \
+     REMINDERS_CRON_SECRET="$SECRET"
+   echo "$SECRET"
+   ```
+   No SQL Editor (troque `<SECRET>` pelo valor impresso):
+   ```sql
+   select vault.create_secret('https://<ref>.supabase.co', 'kash_project_url');
+   select vault.create_secret('<SECRET>', 'kash_reminders_secret');
+   ```
+   - A API key do Resend precisa poder enviar pelo domínio do `REMINDERS_FROM` (ver o erro 550 do SMTP). Pode ser a mesma do SMTP.
+   - Testar sem enviar: `curl -X POST https://<ref>.supabase.co/functions/v1/send-reminders -H "x-kash-cron: $SECRET" -d '{"dryRun":true}'` (lista quem receberia hoje). Sem o `dryRun`, envia de verdade.
+   - Sem os segredos do Vault o cron não faz nada; sem `RESEND_API_KEY` a função responde 503.
+   - Só recebe quem ligou "Lembrete de contas" no Perfil do Kash web (`profiles.email_reminder`, desligado por padrão). Um e-mail por pessoa por dia (`reminder_emails`).
 
 ## 2. Expo / EAS — app
 

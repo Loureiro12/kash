@@ -248,12 +248,19 @@ test.describe('Kash web — com o Supabase local', () => {
     await expect(page.getByTestId('accounts-total')).toHaveText('R$ ••••');
     await page.getByRole('button', { name: /Mostrar valores/ }).filter({ visible: true }).click();
     await open(page, '/app/perfil');
+    // lembrete por e-mail: opt-in, desligado por padrão
+    const reminder = page.getByTestId('profile-reminder-switch');
+    await expect(reminder).toHaveAttribute('aria-checked', 'false');
+    await reminder.click();
+    await expect(page.getByTestId('toast-message')).toContainText('Lembretes por e-mail ligados');
+    await expect(reminder).toHaveAttribute('aria-checked', 'true');
     await page.getByTestId('profile-theme-switch').click();
     await expect(page.locator('.kash-app')).toHaveAttribute('data-theme', 'light');
     await page.waitForLoadState('networkidle');
     await page.reload();
     await expect(page.getByTestId('page-title')).toBeVisible();
     await expect(page.locator('.kash-app')).toHaveAttribute('data-theme', 'light');
+    await expect(page.getByTestId('profile-reminder-switch')).toHaveAttribute('aria-checked', 'true');
     expect(await seriousA11y(page)).toEqual([]);
 
     // limite mensal

@@ -44,7 +44,8 @@ jobs:
       - name: Migrações
         run: supabase db push --linked
       - name: Edge Functions
-        run: supabase functions deploy delete-account --project-ref "$SUPABASE_PROJECT_REF"
+        # sem nome: publica todas as funções de supabase/functions (verify_jwt vem do config.toml)
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
       - name: Config de auth (templates, redirects)
         # KASH_SMTP=1 (variável do environment) envia também os templates de e-mail; exige SMTP próprio
         run: KASH_SMTP="${{ vars.KASH_SMTP || 0 }}" scripts/config-push.sh
