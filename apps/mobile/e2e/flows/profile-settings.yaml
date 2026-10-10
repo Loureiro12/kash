@@ -26,6 +26,25 @@ name: Perfil — dados pessoais, segurança, limite, moeda e ajuda
     id: "profile-reminder-switch"
     checked: true
 
+# Lembrete por e-mail: opt-in (começa desligado), independente do push
+- assertVisible:
+    id: "profile-email-reminder-switch"
+    checked: false
+- tapOn:
+    id: "profile-email-reminder-switch"
+- assertVisible: "Lembretes por e-mail ligados.*"
+- assertVisible:
+    id: "profile-email-reminder-switch"
+    checked: true
+- assertVisible:
+    id: "profile-reminder-switch"
+    checked: true
+- tapOn:
+    id: "profile-email-reminder-switch"
+- assertVisible:
+    id: "profile-email-reminder-switch"
+    checked: false
+
 # Dados pessoais via "Editar"
 - tapOn:
     id: "profile-edit"

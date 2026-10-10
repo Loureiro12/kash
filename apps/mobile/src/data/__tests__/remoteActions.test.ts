@@ -101,10 +101,12 @@ describe('ações remotas', () => {
   });
   it('preferências e perfil persistem; virada de mês vira RPC sem rodar localmente', async () => {
     useKashStore.getState().toggleTheme();
+    useKashStore.getState().toggleEmailReminder();
     useKashStore.getState().setMonthlyBudget(2000);
     useKashStore.getState().updateUser({ name: 'Lara M.' });
     await flush();
     expect(mocked.updateSettings).toHaveBeenCalledWith(expect.anything(), { theme: 'light' });
+    expect(mocked.updateSettings).toHaveBeenCalledWith(expect.anything(), { emailReminder: true });
     expect(mocked.updateSettings).toHaveBeenCalledWith(expect.anything(), { monthlyBudget: 2000 });
     expect(mocked.updateUser).toHaveBeenCalledWith(expect.anything(), { name: 'Lara M.', phone: undefined });
     useKashStore.getState().rolloverIfNeeded();

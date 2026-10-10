@@ -185,6 +185,8 @@ export interface KashState {
   toggleTheme: () => void;
   toggleHideValues: () => void;
   toggleBillReminder: () => void;
+  /** lembrete por e-mail (opt-in; o envio é do servidor) */
+  toggleEmailReminder: () => void;
   /** liga/desliga o bloqueio por biometria neste aparelho (a confirmação biométrica fica no hook da tela) */
   setBiometrics: (enabled: boolean) => void;
   lock: () => void;
@@ -428,6 +430,7 @@ export const useKashStore = create<KashState>((set, get) => ({
   toggleTheme: () => set((s) => ({ settings: { ...s.settings, theme: s.settings.theme === 'dark' ? 'light' : 'dark' } })),
   toggleHideValues: () => set((s) => ({ settings: { ...s.settings, hideValues: !s.settings.hideValues } })),
   toggleBillReminder: () => set((s) => ({ settings: { ...s.settings, billReminder: !s.settings.billReminder } })),
+  toggleEmailReminder: () => set((s) => ({ settings: { ...s.settings, emailReminder: !s.settings.emailReminder } })),
   setBiometrics: (enabled) => {
     void biometricLockPreference.set(enabled);
     set((s) => ({ settings: { ...s.settings, biometrics: enabled } }));

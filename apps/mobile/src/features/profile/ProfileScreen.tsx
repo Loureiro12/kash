@@ -15,6 +15,13 @@ export function ProfileScreen() {
   const categoryCount = useKashStore((s) => s.categories.length);
   const toggleTheme = useKashStore((s) => s.toggleTheme);
   const toggleBillReminder = useToggleBillReminder();
+  const toggleEmail = useKashStore((s) => s.toggleEmailReminder);
+  const showToast = useKashStore((s) => s.showToast);
+  const toggleEmailReminder = () => {
+    const on = !settings.emailReminder;
+    toggleEmail();
+    showToast(on ? `Lembretes por e-mail ligados: chegam às 9h em ${user.email}` : 'Lembretes por e-mail desligados');
+  };
   const logout = useKashStore((s) => s.logout);
   const openSheet = useKashStore((s) => s.openSheet);
   const { exportData, exporting } = useExportData();
@@ -45,10 +52,17 @@ export function ProfileScreen() {
         <ListRow title="Tema escuro" trailing={<Switch value={settings.theme === 'dark'} onValueChange={toggleTheme} testID="profile-theme-switch" accessibilityLabel="Tema escuro" />} onPress={toggleTheme} testID="profile-theme" />
         <ListRow
           title="Lembrete de contas"
-          subtitle="Aviso 2 dias antes do vencimento"
+          subtitle="Notificação 2 dias antes do vencimento"
           trailing={<Switch value={settings.billReminder} onValueChange={(v) => void toggleBillReminder(v)} testID="profile-reminder-switch" accessibilityLabel="Lembrete de contas" />}
           onPress={() => void toggleBillReminder()}
           testID="profile-reminder"
+        />
+        <ListRow
+          title="Lembrete por e-mail"
+          subtitle={settings.emailReminder ? `Às 9h em ${user.email}` : 'E-mail às 9h, 2 dias antes do vencimento'}
+          trailing={<Switch value={settings.emailReminder} onValueChange={toggleEmailReminder} testID="profile-email-reminder-switch" accessibilityLabel="Lembrete por e-mail" />}
+          onPress={toggleEmailReminder}
+          testID="profile-email-reminder"
         />
         <ListRow title="Moeda" value="Real (R$)" divider={false} onPress={() => router.push('/profile/currency')} testID="profile-currency" />
       </Group>

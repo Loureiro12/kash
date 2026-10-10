@@ -149,6 +149,7 @@ export function installRemoteActions() {
   wrap('toggleTheme', (_args, _before, after) => api.updateSettings(db, { theme: after.settings.theme }));
   wrap('toggleHideValues', (_args, _before, after) => api.updateSettings(db, { hideValues: after.settings.hideValues }));
   wrap('toggleBillReminder', (_args, _before, after) => api.updateSettings(db, { billReminder: after.settings.billReminder }));
+  wrap('toggleEmailReminder', (_args, _before, after) => api.updateSettings(db, { emailReminder: after.settings.emailReminder }));
   // biometria é preferência do aparelho (não sincroniza)
 }
 
