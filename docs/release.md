@@ -92,6 +92,17 @@ Compilado e validado localmente no emulador Pixel 7 (debug, dev client): ícone 
 
 O Face ID adicionou um módulo nativo (`expo-local-authentication`). A versão subiu para **1.0.1**, o que muda a `runtimeVersion`: updates OTA publicados a partir daqui só chegam a binários 1.0.1. Para entregar, gere e envie um build novo (`eas build -p ios --profile production` e `eas submit -p ios --latest`); quem está no 1.0.0 continua recebendo só updates do 1.0.0.
 
+## 5.2 Versão 1.1.0 (em preparação — sai junto com as próximas melhorias)
+
+As mudanças do app vão se acumulando em `apps/mobile/CHANGELOG.md` › "Próxima versão". A versão em `app.json` já está em **1.1.0**, então nenhum `eas update` alcança quem está no 1.0.1 por engano. **Não publique updates até o build 1.1.0 estar nas lojas.**
+
+Quando decidir lançar:
+1. Backend primeiro (o app 1.1.0 usa `email_reminder`): merge em `main` ou `pnpm deploy:backend`, e os segredos dos lembretes (item 1.8).
+2. Builds: `cd apps/mobile && eas build -p all --profile production` (build number / version code sobem sozinhos).
+3. Envio: `eas submit -p ios --latest` e `eas submit -p android --latest` (Android na faixa de teste interno primeiro).
+4. Nas lojas, cole o texto de "Novidades" do CHANGELOG.
+5. Depois de publicado: renomeie a seção do CHANGELOG para "1.1.0" e abra uma nova "Próxima versão". Correções só de JS para o 1.1.0 voltam a poder ir por `eas update --branch production --environment production`.
+
 ## 6. Fluxo do dia a dia
 
 1. Mudou o banco? Nova migração em `supabase/migrations`, `pnpm db:reset`, `pnpm db:types`, testes; o merge em `main` aplica em produção.

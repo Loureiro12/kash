@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kash",
     "slug": "kash",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "scheme": "kash",
     "orientation": "portrait",
     "icon": "./assets/brand/icon-1024.png",

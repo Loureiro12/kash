@@ -4,6 +4,9 @@ import { ProfileScreen } from '@/features/profile/ProfileScreen';
 import { useKashStore } from '@/store';
 import { renderWithTheme } from '@/test/render';
 
+// no Jest o expo-constants não traz o app.json; no aparelho, expoConfig vem do build/update
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: jest.requireActual('../../../app.json').expo.version } } }));
+
 beforeEach(() => {
   useKashStore.getState().reset();
   useKashStore.setState({ auth: 'app', userId: 'u-1' });
@@ -31,5 +34,13 @@ describe('Lembrete por e-mail (Perfil)', () => {
     const before = useKashStore.getState().settings.billReminder;
     await fireEvent.press(screen.getByTestId('profile-email-reminder'));
     expect(useKashStore.getState().settings.billReminder).toBe(before);
+  });
+});
+
+describe('Versão no Perfil', () => {
+  it('vem do app.json (não fica escrita à mão)', async () => {
+    await renderWithTheme(<ProfileScreen />);
+    const { version } = require('../../../app.json').expo as { version: string };
+    expect(screen.getByText(version)).toBeTruthy();
   });
 });

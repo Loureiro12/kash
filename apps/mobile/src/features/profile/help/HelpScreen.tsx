@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Linking, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { Card, Icon, ListRow, PageHeader, Pressable, Screen, Text, useTheme } from '@/design-system';
+import { APP_VERSION } from '@/lib/appVersion';
 import { useKashStore } from '@/store';
 
 const FAQ = [
@@ -75,7 +76,7 @@ export function HelpScreen() {
         <ListRow title="Reportar um problema" subtitle="Conta o que aconteceu e a gente resolve" onPress={() => contact('Problema no Kash')} divider={false} testID="help-report" />
       </Card>
       <Text variant="meta" color="muted" align="center" style={{ marginTop: 24 }}>
-        Kash 1.0.0
+        Kash {APP_VERSION}
       </Text>
     </Screen>
   );

@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { Avatar, Button, Card, ListRow, PageHeader, Screen, Switch, Text } from '@/design-system';
 import { formatBRL } from '@kash/domain';
 import { useToggleBillReminder } from '@/features/notifications';
+import { APP_VERSION } from '@/lib/appVersion';
 import { useKashStore } from '@/store';
 import { useExportData } from './useExportData';
 
@@ -73,7 +74,7 @@ export function ProfileScreen() {
         <ListRow title="Política de privacidade" onPress={() => router.push('/privacy')} testID="profile-privacy" />
         <ListRow title="Exportar meus dados" subtitle={exporting ? 'Preparando o arquivo…' : 'Arquivo JSON com tudo que você lançou'} onPress={() => void exportData()} testID="profile-export" />
         <ListRow title="Ajuda e suporte" onPress={() => router.push('/profile/help')} testID="profile-help" />
-        <ListRow title="Versão" value="1.0.0" chevron={false} divider={false} testID="profile-version" />
+        <ListRow title="Versão" value={APP_VERSION} chevron={false} divider={false} testID="profile-version" />
       </Group>
 
       <View style={{ gap: 10, marginTop: 24 }}>
