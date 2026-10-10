@@ -18,7 +18,17 @@ export function AccountsScreen() {
 
   return (
     <>
-      <PageHeader title="Contas bancárias" subtitle="O saldo de todas as suas contas num lugar só." />
+      <PageHeader
+        title="Contas bancárias"
+        subtitle="O saldo de todas as suas contas num lugar só."
+        actions={
+          accounts.length >= 2 ? (
+            <Button variant="soft" size="sm" onClick={() => openModal({ name: 'transfer' })} testID="accounts-transfer">
+              ⇄ Transferir
+            </Button>
+          ) : null
+        }
+      />
       {accounts.length === 0 ? (
         <Card>
           <EmptyState

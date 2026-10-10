@@ -8,6 +8,7 @@ import { Modal, modalStyles as m } from '@/components/app/Modal';
 import { Button, Chip, ChipGroup, Field, Segmented, Stepper, TextInput, uiStyles } from '@/components/app/ui';
 import { useKashActions } from '@/kash/actions';
 import { useKash } from '@/kash/data';
+import { useUi } from '@/kash/ui';
 import { amountFromDigits, digitsFrom } from '@/kash/money';
 import { sourcesView } from '@/kash/views';
 import { routes } from '@/features/app/nav';
@@ -31,6 +32,7 @@ export function TransactionModal({ txId, initialKind = 'expense', onClose }: { t
   const thisMonth = monthKey(now);
   const editing = txId ? (snap.txs.find((t) => t.id === txId) ?? null) : null;
   const plan = editing?.planId ? (snap.plans.find((p) => p.id === editing.planId) ?? null) : null;
+  const openModal = useUi((st) => st.openModal);
   const sources = useMemo(() => sourcesView(snap), [snap]);
   const accountSources = sources.filter((s) => !s.isCard);
   const names = snap.categories.map((c) => c.name);
@@ -116,16 +118,21 @@ export function TransactionModal({ txId, initialKind = 'expense', onClose }: { t
       testID="modal-transaction"
       headerExtra={
         !editing ? (
-          <Segmented<TxKind>
+          <Segmented<TxKind | 'transfer'>
             label="Tipo de lançamento"
             value={kind}
             onChange={(k) => {
+              if (k === 'transfer') {
+                openModal({ name: 'transfer' });
+                return;
+              }
               setKind(k);
               if (k === 'income' && srcIsCard) setSourceId(accountSources[0]?.id ?? '');
             }}
             options={[
               { value: 'expense', label: 'Gasto', testID: 'tx-kind-expense' },
               { value: 'income', label: 'Entrada', testID: 'tx-kind-income' },
+              { value: 'transfer', label: 'Transferência', testID: 'tx-kind-transfer' },
             ]}
             testID="tx-kind"
           />

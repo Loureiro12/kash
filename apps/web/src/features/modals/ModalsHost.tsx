@@ -8,11 +8,14 @@ import { CategoryModal } from './CategoryModal';
 import { GoalModal } from './GoalModal';
 import { ChangePasswordModal, DeleteAccountModal, DepositModal, PayInvoiceModal } from './SmallModals';
 import { TransactionModal } from './TransactionModal';
+import { TransferModal } from './TransferModal';
 
 function renderModal(modal: ModalState, onClose: () => void) {
   switch (modal.name) {
     case 'transaction':
       return <TransactionModal txId={modal.txId} initialKind={modal.kind} onClose={onClose} />;
+    case 'transfer':
+      return <TransferModal transferId={modal.transferId} fromId={modal.fromId} onClose={onClose} />;
     case 'card':
       return <CardModal id={modal.id} onClose={onClose} />;
     case 'account':

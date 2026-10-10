@@ -19,6 +19,7 @@ export const termsDoc = {
 export const helpFaq = [
   { q: 'O Kash acessa minha conta do banco?', a: 'Não. Você lança tudo manualmente; não pedimos senha de banco nem usamos Open Finance.' },
   { q: 'Como funciona o parcelamento no cartão?', a: 'Ao lançar um gasto no cartão você escolhe o número de parcelas. A primeira entra no mês da compra e as outras aparecem na Previsão, mês a mês. Dá pra lançar uma compra antiga: as parcelas que já passaram contam como pagas.' },
+  { q: 'Como registro dinheiro que passei de uma conta pra outra?', a: 'Use Transferir (em Contas bancárias ou na opção Transferência do Lançar gasto). O saldo sai de uma conta e entra na outra, e não conta como gasto nem como entrada.' },
   { q: 'O que acontece quando marco uma conta fixa como paga?', a: 'O Kash cria o lançamento do mês: na fatura, se a conta for cobrada no cartão, ou debitando o saldo, se for na conta.' },
   { q: 'Uso o Kash no celular e no computador. Os dados são os mesmos?', a: 'Sim. Entre com o mesmo e-mail e tudo aparece nos dois lugares.' },
   { q: 'Tem atalhos de teclado?', a: 'Tem: aperte N em qualquer tela para lançar um gasto e Esc para fechar janelas.' },

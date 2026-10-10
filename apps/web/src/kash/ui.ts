@@ -3,6 +3,7 @@ import { create } from 'zustand';
 /** Modais do app. Cada um carrega o que precisa para abrir (id em edição, alvo…). */
 export type ModalState =
   | { name: 'transaction'; txId?: string; kind?: 'expense' | 'income' }
+  | { name: 'transfer'; transferId?: string; fromId?: string }
   | { name: 'card'; id?: string }
   | { name: 'account'; id?: string }
   | { name: 'bill'; id?: string }

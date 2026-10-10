@@ -37,6 +37,9 @@ export function TransactionsScreen() {
             <Button variant="soft" size="sm" onClick={() => openModal({ name: 'transaction', kind: 'income' })} testID="tx-new-income">
               + Entrada
             </Button>
+            <Button variant="secondary" size="sm" onClick={() => openModal({ name: 'transfer' })} testID="tx-new-transfer">
+              ⇄ Transferir
+            </Button>
           </div>
         }
       />
@@ -57,15 +60,16 @@ export function TransactionsScreen() {
           <Segmented<TxKindFilter>
             label="Tipo"
             value={filters.kind}
-            onChange={(kind) => set({ kind, category: kind === 'income' ? null : filters.category })}
+            onChange={(kind) => set({ kind, category: kind === 'income' || kind === 'transfer' ? null : filters.category })}
             options={[
               { value: 'all', label: 'Tudo', testID: 'tx-kind-all' },
               { value: 'expense', label: 'Gastos', testID: 'tx-filter-expense' },
               { value: 'income', label: 'Entradas', testID: 'tx-filter-income' },
+              { value: 'transfer', label: 'Transferências', testID: 'tx-filter-transfer' },
             ]}
           />
         </div>
-        {filters.kind !== 'income' ? (
+        {filters.kind === 'all' || filters.kind === 'expense' ? (
           <div className={uiStyles.chips} role="group" aria-label="Categoria" data-testid="tx-categories">
             <ToggleChip label="Todas" pressed={filters.category === null} onToggle={() => set({ category: null })} testID="tx-cat-all" />
             {snap.categories.map((c) => (

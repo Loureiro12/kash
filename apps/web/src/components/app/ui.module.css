@@ -351,6 +351,9 @@ a.card.cardAccent:hover {
 /* ---------- segmentado ---------- */
 .segmented {
   display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
   padding: 4px;
   gap: 4px;
   border-radius: 14px;
@@ -609,6 +612,9 @@ a.card.cardAccent:hover {
 }
 .pos {
   color: var(--accentText);
+}
+.neutral {
+  color: var(--muted);
 }
 
 .group {

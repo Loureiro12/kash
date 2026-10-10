@@ -323,6 +323,63 @@ test.describe('Kash web — com o Supabase local', () => {
     await expect(page.getByTestId('accounts-total')).toHaveText('R$ 350,00', { timeout: 10_000 });
   });
 
+  test('transferência entre contas: cria, aparece numa linha só, não conta como gasto, edita e exclui', async ({ page }, info) => {
+    const email = await createUser(info, 'transferencia');
+    const db = createKashClient({ url: url!, anonKey: anon!, options: { auth: { persistSession: false } } });
+    await signIn(db, { email, password: PASSWORD });
+    await createAccount(db, { name: 'Corrente', kind: 'Conta corrente', institution: '', balance: 1000, color: '#C6F432' });
+    const poup = await createAccount(db, { name: 'Poupança', kind: 'Poupança', institution: '', balance: 0, color: '#6BC5FF' });
+    await login(page, email);
+
+    await open(page, '/app/contas');
+    await page.getByTestId('accounts-transfer').click();
+    await expect(page.getByTestId('transfer-save')).toBeDisabled();
+    await page.getByTestId('transfer-amount').pressSequentially('20000');
+    await page.getByRole('radio', { name: 'Poupança' }).last().click();
+    await expect(page.getByTestId('transfer-preview')).toHaveText('Corrente fica com R$ 800,00 · Poupança fica com R$ 200,00.');
+    await page.getByTestId('transfer-note').fill('Reserva');
+    await save(page, 'transfer-save', 'modal-transfer');
+    await expect(page.getByTestId('toast-message')).toHaveText('R$ 200,00 transferidos');
+    await expect(page.getByTestId(`account-${poup.id}`)).toContainText('R$ 200,00');
+    await expect(page.getByTestId('accounts-total')).toHaveText('R$ 1.000,00');
+
+    // não é gasto nem entrada
+    await open(page, '/app');
+    await expect(page.getByTestId('home-income')).toHaveText('↑ R$ 0,00 entrou');
+    await expect(page.getByTestId('home-spent')).toHaveText('↓ R$ 0,00 saiu');
+    const row = page.getByRole('button', { name: /^Reserva, Hoje · Transferência · Corrente → Poupança, R\$ 200,00/ });
+    await expect(row).toHaveCount(1);
+
+    // filtro e edição (as duas pernas mudam juntas)
+    await open(page, '/app/lancamentos');
+    await page.getByTestId('tx-filter-transfer').click();
+    await expect(page.getByTestId('tx-count')).toHaveText('1 lançamento');
+    await page.getByRole('button', { name: /^Reserva,/ }).click();
+    await expect(page.getByRole('heading', { name: 'Editar transferência' })).toBeVisible();
+    await page.getByTestId('transfer-amount').fill('');
+    await page.getByTestId('transfer-amount').pressSequentially('5000');
+    await expect(page.getByTestId('transfer-preview')).toHaveText('Corrente fica com R$ 950,00 · Poupança fica com R$ 50,00.');
+    await save(page, 'transfer-save', 'modal-transfer');
+    await expect(page.getByTestId('toast-message')).toHaveText('Transferência atualizada');
+    await expect(page.getByRole('button', { name: /^Reserva,.*R\$ 50,00/ })).toBeVisible();
+
+    // excluir leva as duas pernas; desfazer traz de volta
+    await page.getByRole('button', { name: /^Reserva,/ }).click();
+    await page.getByTestId('transfer-delete').click();
+    await page.getByTestId('confirm-yes').click();
+    await expect(page.getByTestId('toast-message')).toHaveText('Transferência excluída');
+    await expect(page.getByTestId('tx-empty')).toBeVisible();
+    await page.getByTestId('toast-action').click();
+    await expect(page.getByRole('button', { name: /^Reserva,/ })).toBeVisible();
+    expect(await noOverflow(page)).toBeLessThanOrEqual(0);
+
+    // também pelo "Lançar gasto"
+    await page.keyboard.press('n');
+    await page.getByTestId('tx-kind-transfer').click();
+    await expect(page.getByRole('dialog', { name: 'Transferir entre contas' })).toBeVisible();
+    expect(await seriousA11y(page)).toEqual([]);
+  });
+
   test('teclado: foco preso no modal, Esc fecha e devolve o foco', async ({ page }, info) => {
     await login(page, await createUser(info, 'teclado'));
     await open(page, '/app/cartoes');

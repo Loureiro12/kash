@@ -37,6 +37,7 @@ import {
   totalSaved,
   txTotals,
   txView,
+  txViews,
   upcomingBills,
   type TxFilters,
 } from '@kash/domain';
@@ -58,7 +59,7 @@ export function homeView(s: Snap, now: Date) {
     budgetStatus: budgetStatus(spent, s.settings.monthlyBudget),
     forecastHeights: forecastHeights(months, 10),
     nextMonth: months[0] ?? null,
-    recent: s.txs.slice(0, 8).map((t) => txView(t, s.accounts, s.cards, now, colors)),
+    recent: txViews(s.txs, s.accounts, s.cards, now, colors).slice(0, 8),
     bills: upcomingBills(s.bills),
     invoices: openInvoices(s.invoices).map((i) => invoiceView(i, s.cards)),
     goals: s.goals.map((g) => ({ goal: g, progress: goalProgress(g) })),

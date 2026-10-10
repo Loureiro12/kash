@@ -112,7 +112,7 @@ export function createActions(qc: QueryClient) {
       const group = await run(() => api.softDeleteTransaction(db(), tx.id, scope));
       if (!group) return false;
       lastDeleteGroup = group;
-      toast(scope === 'plan' ? 'Parcelamento excluído' : 'Lançamento excluído', {
+      toast(tx.transferId ? 'Transferência excluída' : scope === 'plan' ? 'Parcelamento excluído' : 'Lançamento excluído', {
         label: 'Desfazer',
         onPress: () => {
           const g = lastDeleteGroup;
@@ -122,6 +122,13 @@ export function createActions(qc: QueryClient) {
         },
       });
       return true;
+    },
+
+    // transferências entre contas (as duas pernas vão juntas no servidor)
+    async saveTransfer(transferId: string | null, input: api.TransferInput) {
+      const label = `${formatBRL(input.amount)} transferidos`;
+      if (transferId) return ok(await run(() => api.updateTransfer(db(), transferId, input), 'Transferência atualizada'));
+      return ok(await run(() => api.createTransfer(db(), input), label));
     },
 
     // cartões
