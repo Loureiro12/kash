@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 import { Sora } from 'next/font/google';
 import { site } from '@/content/site';
@@ -36,8 +37,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Pular para o conteúdo
         </a>
         {children}
-        {/* visitas e páginas vistas (Vercel Web Analytics: sem cookies, sem dados pessoais); só na Vercel */}
-        {process.env.VERCEL ? <Analytics /> : null}
+        {/* visitas e páginas vistas (Web Analytics) e Core Web Vitals (Speed Insights): sem cookies,
+            sem dados pessoais; só no build da Vercel (local/CI não têm os scripts /_vercel/*) */}
+        {process.env.VERCEL ? (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        ) : null}
       </body>
     </html>
   );

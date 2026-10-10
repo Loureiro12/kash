@@ -34,7 +34,7 @@ export const privacySections: PolicySection[] = [
       'Dados de cadastro: nome, e-mail e, se você informar, número de celular.',
       'Dados financeiros que você mesmo lança: gastos, entradas, cartões (apelido, últimos 4 dígitos, limite e datas), contas bancárias (apelido e saldo), contas fixas e metas.',
       'Dados técnicos: tipo de aparelho, sistema operacional, versão do app e registros de erro, para manter o serviço estável.',
-      'Estatísticas de visita do site e do Kash web: páginas vistas, de onde veio a visita, país, tipo de aparelho e navegador, contadas de forma agregada e sem cookies (Vercel Web Analytics). Não usamos isso para identificar você nem para anúncios.',
+      'Estatísticas de visita e de desempenho do site e do Kash web: páginas vistas, de onde veio a visita, país, tipo de aparelho e navegador, e o tempo de carregamento das páginas, contados de forma agregada e sem cookies (Vercel Web Analytics e Speed Insights). Não usamos isso para identificar você nem para anúncios.',
     ],
   },
   {
