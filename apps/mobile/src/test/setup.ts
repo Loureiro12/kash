@@ -25,7 +25,7 @@ jest.mock('expo-linear-gradient', () => {
 });
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), navigate: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: jest.fn(), navigate: jest.fn(), replace: jest.fn(), back: jest.fn() }),
   usePathname: () => '/',
 }));
 

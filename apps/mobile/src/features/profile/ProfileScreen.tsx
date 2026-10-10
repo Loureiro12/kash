@@ -17,6 +17,7 @@ export function ProfileScreen() {
   const toggleTheme = useKashStore((s) => s.toggleTheme);
   const toggleBillReminder = useToggleBillReminder();
   const toggleEmail = useKashStore((s) => s.toggleEmailReminder);
+  const setChecklistHidden = useKashStore((s) => s.setChecklistHidden);
   const showToast = useKashStore((s) => s.showToast);
   const toggleEmailReminder = () => {
     const on = !settings.emailReminder;
@@ -74,6 +75,17 @@ export function ProfileScreen() {
         <ListRow title="Política de privacidade" onPress={() => router.push('/privacy')} testID="profile-privacy" />
         <ListRow title="Exportar meus dados" subtitle={exporting ? 'Preparando o arquivo…' : 'Arquivo JSON com tudo que você lançou'} onPress={() => void exportData()} testID="profile-export" />
         <ListRow title="Ajuda e suporte" onPress={() => router.push('/profile/help')} testID="profile-help" />
+        {settings.checklistHidden ? (
+          <ListRow
+            title="Primeiros passos"
+            subtitle="Mostrar de novo o guia no Início"
+            onPress={() => {
+              setChecklistHidden(false);
+              router.navigate('/');
+            }}
+            testID="profile-show-checklist"
+          />
+        ) : null}
         <ListRow title="Versão" value={APP_VERSION} chevron={false} divider={false} testID="profile-version" />
       </Group>
 

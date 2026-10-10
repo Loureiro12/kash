@@ -48,6 +48,13 @@ tags: [critical]
 - assertVisible: "Senha forte"
 # "concluído" no teclado envia o formulário
 - pressKey: Enter
+# conta nova cai nas boas-vindas do primeiro acesso (coberto em onboarding.yaml); aqui pula
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 10000
+- tapOn:
+    id: "welcome-skip"
 - extendedWaitUntil:
     visible:
       id: "home-screen"

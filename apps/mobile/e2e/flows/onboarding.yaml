@@ -1,0 +1,87 @@
+appId: ${APP_ID}
+name: Primeiro acesso — criar conta, boas-vindas em 3 passos e primeiros passos no Início
+---
+- runFlow: ../subflows/launch-fresh.yaml
+- tapOn:
+    id: "onboarding-cta"
+- tapOn:
+    id: "login-signup"
+- assertVisible:
+    id: "signup-screen"
+- tapOn:
+    id: "signup-terms"
+- tapOn:
+    id: "signup-name"
+- inputText: "Bia Souza"
+- pressKey: Enter
+- inputText: "bia@email.com"
+- pressKey: Enter
+- inputText: "Senha123"
+- pressKey: Enter
+
+# passo 1: conta (pelo sheet de sempre)
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 15000
+- assertVisible: "Boas-vindas, Bia!"
+- assertVisible: "Passo 1 de 3"
+- assertNotVisible:
+    id: "tab-bar"
+- tapOn:
+    id: "welcome-add-account"
+- assertVisible:
+    id: "sheet-add-account"
+- tapOn:
+    id: "add-account-name"
+- inputText: "Corrente"
+- pressKey: Enter
+- pressKey: Enter
+- inputText: "150000"
+- tapOn:
+    id: "add-account-save"
+- assertVisible: "Conta “Corrente” adicionada"
+- assertVisible: "R$ 1.500,00"
+- tapOn:
+    id: "welcome-next"
+
+# passo 2: sem cartão
+- assertVisible: "Passo 2 de 3"
+- tapOn: "Não uso cartão"
+
+# passo 3: limite
+- assertVisible: "Passo 3 de 3"
+- tapOn:
+    id: "welcome-budget-3000"
+- tapOn:
+    id: "welcome-finish"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000
+- assertVisible: "Tudo pronto, Bia! Agora lance seu primeiro gasto."
+
+# primeiros passos: conta feita; o próximo é o gasto
+- assertVisible:
+    id: "checklist"
+- assertVisible: "1 de 4 feitos"
+- tapOn:
+    id: "checklist-expense-action"
+- assertVisible:
+    id: "sheet-expense"
+- tapOn:
+    id: "key-2"
+- tapOn:
+    id: "key-5"
+- tapOn:
+    id: "key-00"
+- tapOn:
+    id: "expense-save"
+- extendedWaitUntil:
+    visible: "2 de 4 feitos"
+    timeout: 8000
+# esconder some do Início
+- tapOn:
+    id: "checklist-hide"
+- assertNotVisible:
+    id: "checklist"

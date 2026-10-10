@@ -34,3 +34,4 @@ maestro test e2e/flows/expense.yaml --env APP_ID=com.andreloureiro.kash   # sem 
 - Valores assertados vêm do seed em `src/store/seed.ts`; se o seed mudar, atualize os fluxos.
 - Nomes de mês nas asserções dependem da data atual apenas na Previsão (evitamos assertá-los).
 - O fluxo `realtime.yaml` simula outro aparelho: `scripts/remote-expense.js` entra como a Lara pela API do Supabase local e lança um gasto; o app, parado na Início, precisa mostrar o lançamento sem nenhum toque.
+- O fluxo `onboarding.yaml` cria uma conta nova no app e passa pelas boas-vindas (conta, sem cartão, limite) até o card Primeiros passos marcar o 1º gasto. Contas novas sempre caem nas boas-vindas: fluxos que criam conta e não testam isso tocam em `welcome-skip`.

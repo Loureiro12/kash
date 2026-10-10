@@ -199,6 +199,10 @@ export interface KashState {
   toggleBillReminder: () => void;
   /** lembrete por e-mail (opt-in; o envio é do servidor) */
   toggleEmailReminder: () => void;
+  /** conclui (ou pula) as boas-vindas do primeiro acesso; com limite, grava o limite mensal junto */
+  finishOnboarding: (monthlyBudget?: number) => void;
+  /** esconde/mostra o card "Primeiros passos" do Início */
+  setChecklistHidden: (hidden: boolean) => void;
   /** liga/desliga o bloqueio por biometria neste aparelho (a confirmação biométrica fica no hook da tela) */
   setBiometrics: (enabled: boolean) => void;
   lock: () => void;
@@ -447,6 +451,9 @@ export const useKashStore = create<KashState>((set, get) => ({
   toggleHideValues: () => set((s) => ({ settings: { ...s.settings, hideValues: !s.settings.hideValues } })),
   toggleBillReminder: () => set((s) => ({ settings: { ...s.settings, billReminder: !s.settings.billReminder } })),
   toggleEmailReminder: () => set((s) => ({ settings: { ...s.settings, emailReminder: !s.settings.emailReminder } })),
+  finishOnboarding: (monthlyBudget) =>
+    set((s) => ({ settings: { ...s.settings, onboardingDone: true, ...(monthlyBudget && monthlyBudget > 0 ? { monthlyBudget: round2(monthlyBudget) } : {}) } })),
+  setChecklistHidden: (hidden) => set((s) => ({ settings: { ...s.settings, checklistHidden: hidden } })),
   setBiometrics: (enabled) => {
     void biometricLockPreference.set(enabled);
     set((s) => ({ settings: { ...s.settings, biometrics: enabled } }));

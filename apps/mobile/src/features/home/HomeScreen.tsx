@@ -18,6 +18,7 @@ import {
 import { forecastHeights, formatBRL, greetingFor } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useForecast, useHomeSummary, useKashStore, useMoney, useOpenInvoices, useRecentTxs, useUpcomingBills } from '@/store';
+import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
 import { TxRow } from '../transactions/TxRow';
 
 /** Tela 3 — Início. */
@@ -66,6 +67,8 @@ export function HomeScreen() {
 
   return (
     <Screen testID="home-screen" header={header}>
+      <ChecklistCard />
+
       {/* Saldo total */}
       <Card radius="cardXl" padding={[22, 20]} style={{ marginTop: 10, gap: 6 }} testID="home-balance-card">
         <Text variant="metaMedium" color="muted">

@@ -156,6 +156,8 @@ export function installRemoteActions() {
   wrap('toggleTheme', (_args, _before, after) => api.updateSettings(db, { theme: after.settings.theme }));
   wrap('toggleHideValues', (_args, _before, after) => api.updateSettings(db, { hideValues: after.settings.hideValues }));
   wrap('toggleBillReminder', (_args, _before, after) => api.updateSettings(db, { billReminder: after.settings.billReminder }));
+  wrap('finishOnboarding', ([budget]) => api.updateSettings(db, { onboardingDone: true, ...(budget && budget > 0 ? { monthlyBudget: Math.round(budget * 100) / 100 } : {}) }));
+  wrap('setChecklistHidden', ([hidden]) => api.updateSettings(db, { checklistHidden: hidden }));
   wrap('toggleEmailReminder', (_args, _before, after) => api.updateSettings(db, { emailReminder: after.settings.emailReminder }));
   // biometria é preferência do aparelho (não sincroniza)
 }
