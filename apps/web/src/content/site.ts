@@ -27,7 +27,7 @@ export const site = {
   webApp: '/entrar' as string | null,
   /** página de termos de uso; null enquanto não existe */
   termsUrl: null as string | null,
-  privacyUpdatedAt: '2026-10-01',
+  privacyUpdatedAt: '2026-10-10',
 } as const;
 
 export type Site = typeof site;

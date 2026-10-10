@@ -54,6 +54,7 @@ tests/unit · tests/e2e
 **Decisões**
 - Páginas 100% estáticas e componentes de servidor: quase nenhum JavaScript no navegador. O FAQ usa `<details name="faq">` (uma pergunta aberta por vez, sem JS) e o índice da política vira um bloco recolhível no celular.
 - CSS do celular para cima: breakpoints em 640, 720 e 900 px; nada de rolagem horizontal (testado).
+- Analytics: **Vercel Web Analytics** (`@vercel/analytics`) no layout raiz — conta visitas e páginas do site e do Kash web, sem cookies e sem dados pessoais (as rotas do app não têm ids na URL). Só carrega quando `VERCEL` está definido (no build da Vercel); local e CI ficam sem. Ative em *Vercel › projeto › Analytics › Enable*. A política de privacidade (seção 2) menciona.
 - Imagens com `next/image` (AVIF/WebP, `preload` só no hero, `lazy` no resto).
 - `site.ts` liga e desliga o que ainda não existe: com `stores.*.available = false`, os botões das lojas mostram "Em breve"; com `webApp = null`, somem os links "Usar no navegador" e os textos que prometem a versão web; com `termsUrl = null`, o link de termos não aparece.
 

@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
 import { Sora } from 'next/font/google';
 import { site } from '@/content/site';
@@ -35,6 +36,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Pular para o conteúdo
         </a>
         {children}
+        {/* visitas e páginas vistas (Vercel Web Analytics: sem cookies, sem dados pessoais); só na Vercel */}
+        {process.env.VERCEL ? <Analytics /> : null}
       </body>
     </html>
   );

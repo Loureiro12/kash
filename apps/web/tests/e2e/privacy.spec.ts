@@ -8,7 +8,7 @@ test.describe('política de privacidade', () => {
 
   test('título, data, resumo e 11 seções', async ({ page }) => {
     await expect(page).toHaveTitle('Política de privacidade · Kash');
-    await expect(page.getByText('Última atualização: 1 de outubro de 2026')).toBeVisible();
+    await expect(page.getByText('Última atualização: 10 de outubro de 2026')).toBeVisible();
     await expect(page.getByText('Resumo rápido')).toBeVisible();
     await expect(page.locator('article section h2')).toHaveCount(11);
   });
