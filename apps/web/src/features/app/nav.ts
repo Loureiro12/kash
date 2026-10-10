@@ -13,6 +13,7 @@ export const routes = {
   signup: '/criar-conta',
   forgot: '/esqueci-senha',
   home: '/app',
+  welcome: '/app/boas-vindas',
   transactions: '/app/lancamentos',
   cards: '/app/cartoes',
   accounts: '/app/contas',

@@ -85,6 +85,14 @@ export function ProfileScreen() {
             <GroupRow title="Política de privacidade" href={routes.privacy} testID="profile-privacy" />
             <GroupRow title="Exportar meus dados" subtitle={exporting ? 'Preparando o arquivo…' : 'Arquivo JSON com tudo que você lançou'} onClick={() => void exportData()} testID="profile-export" />
             <GroupRow title="Ajuda e suporte" href={routes.help} testID="profile-help" />
+            {settings.checklistHidden ? (
+              <GroupRow
+                title="Primeiros passos"
+                subtitle="Mostrar de novo o guia no Início"
+                onClick={() => void actions.updateSettings({ checklistHidden: false }).then((ok) => ok && router.push(routes.home))}
+                testID="profile-show-checklist"
+              />
+            ) : null}
             <GroupRow title="Versão" value={`Web ${WEB_VERSION}`} testID="profile-version" />
           </Group>
           <div className={p.buttons}>

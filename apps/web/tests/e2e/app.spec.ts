@@ -14,11 +14,13 @@ const hasBackend = !!(url && anon && service);
 const MAILPIT = process.env.MAILPIT_URL ?? 'http://127.0.0.1:54324';
 const PASSWORD = 'senha-123456';
 
-async function createUser(info: TestInfo, prefix: string, name = 'Lara Mendes') {
+/** Usuário confirmado. Por padrão já passou pelas boas-vindas (os testes de tela começam no Início). */
+async function createUser(info: TestInfo, prefix: string, name = 'Lara Mendes', { onboarded = true } = {}) {
   const admin = createClient(url!, service!, { auth: { persistSession: false } });
   const email = `${prefix}-${info.project.name}-${Date.now()}-${Math.round(Math.random() * 1e4)}@kash.test`;
-  const { error } = await admin.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true, user_metadata: { name } });
+  const { data, error } = await admin.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true, user_metadata: { name } });
   expect(error).toBeNull();
+  if (onboarded) await admin.from('profiles').update({ onboarding_done_at: new Date().toISOString() }).eq('id', data.user!.id);
   return email;
 }
 
@@ -45,6 +47,9 @@ async function seriousA11y(page: Page) {
   const results = await new AxeBuilder({ page }).analyze();
   return results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id}: ${v.nodes[0]?.target} ${v.nodes[0]?.any[0]?.message ?? ""}`);
 }
+
+/** espera a gravação do perfil terminar (antes de recarregar a página) */
+const profileSaved = (page: Page) => page.waitForResponse((r) => r.url().includes('/rest/v1/profiles') && r.request().method() === 'PATCH' && r.ok());
 
 const noOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
@@ -76,7 +81,7 @@ test.describe('Kash web — sem sessão', () => {
 test.describe('Kash web — com o Supabase local', () => {
   test.skip(!hasBackend, 'Supabase local não está rodando');
 
-  test('criar conta leva ao início com o nome na saudação', async ({ page }, info) => {
+  test('primeiro acesso: criar conta → boas-vindas em 3 passos → Início com os primeiros passos', async ({ page }, info) => {
     await page.goto('/criar-conta');
     await page.getByTestId('signup-name').fill('Bia Souza');
     await page.getByTestId('signup-email').fill(`signup-${info.project.name}-${Date.now()}@kash.test`);
@@ -85,8 +90,71 @@ test.describe('Kash web — com o Supabase local', () => {
     await expect(page.getByText('Precisa aceitar os termos pra continuar.')).toBeVisible();
     await page.getByTestId('signup-terms').check();
     await page.getByTestId('signup-submit').click();
+
+    // passo 1: conta (pelo mesmo modal do app)
+    await expect(page).toHaveURL(/\/app\/boas-vindas$/);
+    await expect(page.getByText('Boas-vindas, Bia!')).toBeVisible();
+    await expect(page.getByTestId('welcome-step')).toHaveText('Passo 1 de 3');
+    await expect(page.getByTestId('sidebar')).toHaveCount(0);
+    expect(await seriousA11y(page)).toEqual([]);
+    await page.getByTestId('welcome-add-account').click();
+    await page.getByTestId('add-account-name').fill('Corrente');
+    await page.getByTestId('add-account-balance').pressSequentially('150000');
+    await save(page, 'add-account-save', 'modal-account');
+    await expect(page.getByTestId('welcome-accounts')).toContainText('R$ 1.500,00');
+    await page.getByTestId('welcome-next').click();
+
+    // passo 2: não usa cartão
+    await expect(page.getByTestId('welcome-step')).toHaveText('Passo 2 de 3');
+    await page.getByRole('button', { name: 'Não uso cartão' }).click();
+
+    // passo 3: limite mensal
+    await expect(page.getByTestId('welcome-step')).toHaveText('Passo 3 de 3');
+    await page.getByTestId('welcome-budget-3000').click();
+    await expect(page.getByTestId('welcome-budget')).toHaveValue('R$ 3.000,00');
+    await page.getByTestId('welcome-finish').click();
     await expect(page.getByTestId('home-title')).toHaveText(/, Bia$/);
-    await expect(page.getByTestId('home-txs-empty')).toBeVisible();
+    await expect(page.getByTestId('toast-message')).toHaveText('Tudo pronto, Bia! Agora lance seu primeiro gasto.');
+
+    // primeiros passos: conta feita, próximo é o gasto; marca sozinho
+    await expect(page.getByTestId('checklist-count')).toHaveText('1 de 4 feitos');
+    await expect(page.getByTestId('checklist-account')).toHaveAttribute('data-done', 'true');
+    await page.getByTestId('checklist-expense-action').click();
+    await page.getByTestId('expense-amount').pressSequentially('2500');
+    await save(page, 'expense-save', 'modal-transaction');
+    await expect(page.getByTestId('checklist-count')).toHaveText('2 de 4 feitos');
+    await expect(page.getByTestId('home-month-spent')).toHaveText('R$ 25,00');
+    await expect(page.getByTestId('home-budget-card')).toContainText('de R$ 3.000,00');
+    expect(await seriousA11y(page)).toEqual([]);
+
+    // esconder vale depois de recarregar; o perfil traz de volta
+    const hidden = profileSaved(page);
+    await page.getByTestId('checklist-hide').click();
+    await expect(page.getByTestId('checklist')).toHaveCount(0);
+    await hidden;
+    await page.reload();
+    await expect(page.getByTestId('home-title')).toBeVisible();
+    await expect(page.getByTestId('checklist')).toHaveCount(0);
+    await open(page, '/app/perfil');
+    await page.getByTestId('profile-show-checklist').click();
+    await expect(page.getByTestId('checklist')).toBeVisible();
+  });
+
+  test('boas-vindas: "Pular" vai direto ao Início e não volta mais', async ({ page }, info) => {
+    const email = await createUser(info, 'pular', 'Caio', { onboarded: false });
+    await page.goto('/entrar');
+    await page.getByTestId('login-email').fill(email);
+    await page.getByTestId('login-password').fill(PASSWORD);
+    await page.getByTestId('login-submit').click();
+    await expect(page).toHaveURL(/\/app\/boas-vindas$/);
+    const skipped = profileSaved(page);
+    await page.getByTestId('welcome-skip').click();
+    await skipped;
+    await expect(page.getByTestId('home-title')).toBeVisible();
+    await expect(page.getByTestId('checklist-count')).toHaveText('0 de 4 feitos');
+    await page.goto('/app');
+    await expect(page.getByTestId('home-title')).toBeVisible();
+    await expect(page).toHaveURL(/\/app$/);
   });
 
   test('fluxo completo: conta, cartão, gasto, parcelado, editar, excluir e desfazer', async ({ page }, info) => {
@@ -254,9 +322,10 @@ test.describe('Kash web — com o Supabase local', () => {
     await reminder.click();
     await expect(page.getByTestId('toast-message')).toContainText('Lembretes por e-mail ligados');
     await expect(reminder).toHaveAttribute('aria-checked', 'true');
+    const themeSaved = profileSaved(page);
     await page.getByTestId('profile-theme-switch').click();
     await expect(page.locator('.kash-app')).toHaveAttribute('data-theme', 'light');
-    await page.waitForLoadState('networkidle');
+    await themeSaved;
     await page.reload();
     await expect(page.getByTestId('page-title')).toBeVisible();
     await expect(page.locator('.kash-app')).toHaveAttribute('data-theme', 'light');

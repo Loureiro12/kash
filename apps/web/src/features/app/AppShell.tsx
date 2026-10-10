@@ -1,5 +1,6 @@
 'use client';
 
+import { onboardingStatus } from '@kash/domain';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
@@ -23,6 +24,7 @@ import s from './AppShell.module.css';
 export function AppShell({ children }: { children: React.ReactNode }) {
   const session = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const query = useSnapshotQuery(session.userId);
   useRealtimeSync(session.userId);
   const setTheme = useTheme((st) => st.setTheme);
@@ -31,6 +33,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (session.status === 'signedOut') router.replace(routes.login);
   }, [session.status, router]);
+
+  // primeiro acesso: quem chega no Início sem nenhuma conta (e não pulou) vai para as boas-vindas
+  const showWelcome = query.data ? onboardingStatus(query.data).showWelcome : false;
+  useEffect(() => {
+    if (showWelcome && pathname === routes.home) router.replace(routes.welcome);
+  }, [showWelcome, pathname, router]);
 
   useEffect(() => {
     if (!theme) return;
@@ -53,6 +61,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       );
     return <LoadingScreen />;
   }
+
+  // boas-vindas: tela focada, sem sidebar (os modais de cadastro continuam disponíveis)
+  if (pathname === routes.welcome) {
+    return (
+      <KashDataProvider value={query.data}>
+        {children}
+        <ModalsHost />
+      </KashDataProvider>
+    );
+  }
+  if (showWelcome && pathname === routes.home) return <LoadingScreen />;
 
   return (
     <KashDataProvider value={query.data}>

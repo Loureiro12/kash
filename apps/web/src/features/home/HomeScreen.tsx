@@ -12,6 +12,7 @@ import { routes } from '@/features/app/nav';
 import { PageHeader } from '@/features/app/PageHeader';
 import { TxRow } from '@/features/app/TxRow';
 import s from '@/features/app/screens.module.css';
+import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
 
 /** Início: saldo, gastos do mês, previsão, lançamentos, próximas contas e metas. */
 export function HomeScreen() {
@@ -25,6 +26,7 @@ export function HomeScreen() {
   return (
     <>
       <PageHeader title={`${greetingFor(now).replace(',', '')}, ${firstName}`} subtitle="Aqui está o resumo do seu mês." testID="home-title" />
+      <ChecklistCard />
 
       <div className={s.grid3}>
         <Card className={s.cardCol} testID="home-balance-card">

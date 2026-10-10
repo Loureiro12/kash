@@ -65,7 +65,8 @@ O app completo no navegador, com a mesma conta, os mesmos dados e as mesmas regr
 | Rota | Tela |
 |---|---|
 | `/entrar` · `/criar-conta` · `/esqueci-senha` | login, cadastro e recuperação por código de e-mail (painel verde do handoff) |
-| `/app` | Início: saldo, gastos do mês × limite, mini-previsão, lançamentos, próximas contas (e faturas fechadas), metas |
+| `/app/boas-vindas` | primeiro acesso: 3 passos (contas, cartão, limite mensal), tela focada sem sidebar; abre sozinha para quem chega no Início sem nenhuma conta |
+| `/app` | Início: card **Primeiros passos** (conta, 1º gasto, cartão opcional, conta fixa, meta; marca sozinho pelos dados, pode esconder e voltar pelo Perfil) + saldo, gastos do mês × limite, mini-previsão, lançamentos, próximas contas (e faturas fechadas), metas |
 | `/app/lancamentos` | lista completa por mês, com busca, filtro de tipo e de categoria |
 | `/app/cartoes` | cartões, limite, fatura fechada + **pagar fatura**, parcelas em aberto, cobranças recorrentes, lançamentos |
 | `/app/contas` · `/app/contas-fixas` | contas bancárias (com **Transferir** entre contas); contas fixas (clique marca como paga, lápis edita) |
@@ -76,6 +77,8 @@ O app completo no navegador, com a mesma conta, os mesmos dados e as mesmas regr
 Modais: lançar gasto/entrada (parcelado 1–24x, compra antiga com "1ª parcela em", valor total ou da parcela, data), editar/excluir lançamento (com **Desfazer**), cartão (4 gradientes + cor personalizada), conta, conta fixa, meta, depósito, pagar fatura, categoria (excluir movendo os registros), alterar senha, excluir conta.
 
 **Como funciona.** A sessão do Supabase fica no `localStorage` (`kash-web-auth`); `AppShell` só mostra as telas com sessão e com o snapshot carregado (o mesmo `loadSnapshot` do app, depois do `ensure_rollover`). As escritas vão direto para o servidor (que calcula saldos, parcelas e faturas) e o snapshot é refeito; marcar conta como paga, guardar R$ 50 e as preferências atualizam a tela na hora (otimista). Tema e "ocultar valores" são do perfil, então valem no app e na web.
+
+**Primeiro acesso guiado.** Regras em `@kash/domain` (`onboardingStatus`); estado no perfil (`onboarding_done_at`, `checklist_hidden_at`; migração `onboarding`), então vale em qualquer navegador e o app pode adotar depois. Quem já tinha contas foi marcado como concluído na migração.
 
 **Transferência entre contas.** Duas pernas ligadas por `transfer_id` (saída na origem, entrada no destino) com a categoria de sistema "Transferência" (migração `transfers`; RPCs `create_transfer`, `update_transfer`, e `soft_delete_transaction` apaga as duas). Saldos vêm da soma; `@kash/domain` tira a categoria de gasto, entrada, relatório e totais (`isTransfer`) e as listas mostram uma linha só (`collapseTransfers`/`txViews`).
 
