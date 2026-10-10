@@ -7,6 +7,7 @@ import { Icon } from '@/components/app/Icon';
 import { Avatar, Button } from '@/components/app/ui';
 import { rememberTheme } from '@/kash/actions';
 import { KashDataProvider, useSnapshotQuery } from '@/kash/data';
+import { useRealtimeSync } from '@/kash/realtime';
 import { useSession } from '@/kash/session';
 import { useTheme } from '@/kash/theme';
 import { useUi } from '@/kash/ui';
@@ -23,6 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const session = useSession();
   const router = useRouter();
   const query = useSnapshotQuery(session.userId);
+  useRealtimeSync(session.userId);
   const setTheme = useTheme((st) => st.setTheme);
   const theme = query.data?.settings.theme;
 

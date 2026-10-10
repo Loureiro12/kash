@@ -308,6 +308,21 @@ test.describe('Kash web — com o Supabase local', () => {
     }
   });
 
+  test('tempo real: o que muda em outro aparelho aparece sem recarregar', async ({ page }, info) => {
+    const email = await createUser(info, 'tempo-real');
+    await login(page, email);
+    await open(page, '/app/contas');
+    await expect(page.getByTestId('accounts-empty-state')).toBeVisible();
+    // "outro aparelho": o mesmo usuário escrevendo pela API
+    const other = createKashClient({ url: url!, anonKey: anon!, options: { auth: { persistSession: false } } });
+    await signIn(other, { email, password: PASSWORD });
+    const acc = await createAccount(other, { name: 'Poupança do celular', kind: 'Poupança', institution: '', balance: 250, color: '#6BC5FF' });
+    await expect(page.getByTestId('accounts-total')).toHaveText('R$ 250,00', { timeout: 10_000 });
+    await expect(page.getByText('Poupança do celular')).toBeVisible();
+    await createTransaction(other, { title: 'Pix recebido', category: 'Entrada', amount: 100, date: new Date().toISOString().slice(0, 10), sourceType: 'account', sourceId: acc.id });
+    await expect(page.getByTestId('accounts-total')).toHaveText('R$ 350,00', { timeout: 10_000 });
+  });
+
   test('teclado: foco preso no modal, Esc fecha e devolve o foco', async ({ page }, info) => {
     await login(page, await createUser(info, 'teclado'));
     await open(page, '/app/cartoes');

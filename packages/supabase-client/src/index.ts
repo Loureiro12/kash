@@ -15,3 +15,4 @@ export * from './repositories/export';
 export * from './repositories/profile';
 export * from './repositories/transactions';
 export * from './snapshot';
+export * from './realtime';

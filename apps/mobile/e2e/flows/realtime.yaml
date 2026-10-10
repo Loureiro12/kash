@@ -1,0 +1,12 @@
+appId: ${APP_ID}
+name: Tempo real — lançamento feito em outro aparelho aparece sem recarregar
+---
+- runFlow: ../subflows/login.yaml
+- assertNotVisible:
+    text: "Compra pelo navegador"
+# outro aparelho (API) lança um gasto; o app só está aberto na Início
+- runScript: ../scripts/remote-expense.js
+- extendedWaitUntil:
+    visible:
+      id: "tx-${output.remoteTxId}"
+    timeout: 10000

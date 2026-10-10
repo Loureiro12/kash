@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/services/supabase';
 import { useKashStore } from '@/store';
 import { queryKeys } from './keys';
+import { useRealtimeSync } from './useRealtimeSync';
 
 import { DATA_SOURCE } from './source';
 
@@ -23,6 +24,7 @@ export function useServerSync(userId: string | null) {
     queryFn: () => loadSnapshot(supabase),
     enabled,
   });
+  useRealtimeSync(userId, enabled);
 
   useEffect(() => {
     if (!enabled) return;
