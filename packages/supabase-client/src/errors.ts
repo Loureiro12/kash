@@ -17,7 +17,7 @@ export class KashApiError extends Error {
 const NETWORK_MESSAGE = 'Sem conexão. Confere sua internet e tenta de novo.';
 
 export function fromPostgrestError(error: PostgrestError): KashApiError {
-  if (error.code === 'PGRST116') return new KashApiError('not_found', 'Não encontramos esse registro.', error);
+  if (error.code === 'PGRST116' || error.code === 'P0002') return new KashApiError('not_found', 'Não encontramos esse registro.', error);
   if (error.code === '23505') return new KashApiError('conflict', 'Já existe um registro igual.', error);
   if (error.code === '23514' || error.code === '22P02' || error.code === '23502') return new KashApiError('validation', 'Alguns dados não são válidos.', error);
   if (error.code === '42501' || error.code === 'PGRST301') return new KashApiError('unauthorized', 'Você precisa entrar de novo.', error);

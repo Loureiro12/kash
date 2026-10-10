@@ -57,6 +57,7 @@ export function toTx(row: TxRow): Tx {
     sourceId: row.source_id,
     sourceType: row.source_type,
     planId: row.plan_id ?? undefined,
+    transferId: row.transfer_id ?? undefined,
   };
 }
 

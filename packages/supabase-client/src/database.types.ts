@@ -457,6 +457,7 @@ export type Database = {
           source_id: string;
           source_type: Database['public']['Enums']['source_type'];
           title: string;
+          transfer_id: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -473,6 +474,7 @@ export type Database = {
           source_id: string;
           source_type: Database['public']['Enums']['source_type'];
           title: string;
+          transfer_id?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -488,6 +490,7 @@ export type Database = {
           source_id?: string;
           source_type?: Database['public']['Enums']['source_type'];
           title?: string;
+          transfer_id?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -552,6 +555,10 @@ export type Database = {
         };
         Returns: string;
       };
+      create_transfer: {
+        Args: { p_amount: number; p_date?: string; p_from: string; p_title?: string; p_to: string };
+        Returns: string;
+      };
       delete_account: { Args: { p_account_id: string }; Returns: undefined };
       delete_card: { Args: { p_card_id: string }; Returns: undefined };
       delete_category: { Args: { p_id: string; p_move_to?: string }; Returns: undefined };
@@ -590,6 +597,17 @@ export type Database = {
       unpay_bill: { Args: { p_bill_id: string }; Returns: undefined };
       update_category: {
         Args: { p_color: string; p_id: string; p_name: string };
+        Returns: undefined;
+      };
+      update_transfer: {
+        Args: {
+          p_amount: number;
+          p_date: string;
+          p_from: string;
+          p_title?: string;
+          p_to: string;
+          p_transfer_id: string;
+        };
         Returns: undefined;
       };
     };

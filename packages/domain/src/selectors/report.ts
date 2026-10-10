@@ -1,5 +1,5 @@
 import { CATEGORY_COLORS, UNKNOWN_CATEGORY_COLOR } from '../categories';
-import type { Category, Tx } from '../types';
+import { isTransfer, type Category, type Tx } from '../types';
 import { monthKey, monthName, parseISODate } from '../dates';
 import { round2 } from '../money';
 import { monthSpent, monthTxs } from './balance';
@@ -16,7 +16,7 @@ export interface CategorySlice {
 export function categoryBreakdown(txs: Tx[], now: Date, colors: Readonly<Record<string, string>> = CATEGORY_COLORS): CategorySlice[] {
   const byCat = new Map<Category, number>();
   for (const t of monthTxs(txs, now)) {
-    if (t.amount >= 0 || t.category === 'Entrada' || t.category === 'Fatura') continue;
+    if (t.amount >= 0 || t.category === 'Entrada' || t.category === 'Fatura' || isTransfer(t)) continue;
     byCat.set(t.category, (byCat.get(t.category) ?? 0) + Math.abs(t.amount));
   }
   const total = [...byCat.values()].reduce((a, b) => a + b, 0);
@@ -44,7 +44,7 @@ export function previousMonthsSpent(txs: Tx[], now: Date, count = 5): number[] {
   const keys = Array.from({ length: count }, (_, i) => monthKey(new Date(now.getFullYear(), now.getMonth() - (count - i), 1)));
   const totals = new Map(keys.map((k) => [k, 0]));
   for (const t of txs) {
-    if (t.amount >= 0 || t.category === 'Fatura') continue;
+    if (t.amount >= 0 || t.category === 'Fatura' || isTransfer(t)) continue;
     const key = monthKey(parseISODate(t.date));
     if (totals.has(key)) totals.set(key, totals.get(key)! + Math.abs(t.amount));
   }

@@ -58,9 +58,14 @@ export interface Tx {
   sourceType?: SourceType;
   /** parcela de um plano de parcelamento */
   planId?: ID;
+  /** perna de uma transferência entre contas (a outra perna tem o mesmo id, com o sinal oposto) */
+  transferId?: ID;
 }
 
 export const txKind = (tx: Pick<Tx, 'amount'>): TxKind => (tx.amount < 0 ? 'expense' : 'income');
+
+/** Perna de transferência entre contas: muda saldos, mas não é gasto nem entrada. */
+export const isTransfer = (tx: Pick<Tx, 'category' | 'transferId'>): boolean => !!tx.transferId || tx.category === 'Transferência';
 
 /** Conta fixa mensal (recorrente). */
 export interface Bill {

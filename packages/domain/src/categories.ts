@@ -18,7 +18,9 @@ export const CATEGORY_COLORS: Readonly<Record<string, string>> = Object.fromEntr
 export type CategoryName = string;
 
 /** Categorias de sistema: só aparecem em lançamentos e não podem ser criadas pelo usuário. */
-export const SYSTEM_CATEGORIES = ['Entrada', 'Fatura'] as const;
+export const SYSTEM_CATEGORIES = ['Entrada', 'Fatura', 'Transferência'] as const;
+/** Categoria das duas pernas de uma transferência entre contas (não é gasto nem entrada). */
+export const TRANSFER_CATEGORY = 'Transferência';
 export const CATEGORY_NAME_MAX = 24;
 /** Cor de uma categoria que não está mais na lista (ex.: lançamento restaurado depois de excluí-la). */
 export const UNKNOWN_CATEGORY_COLOR = '#AAB2BF';
@@ -30,6 +32,8 @@ export type CardGradientId = (typeof CARD_GRADIENT_IDS)[number];
 export const BRAND_GREEN = '#C6F432';
 /** Cor neutra do pagamento de fatura nas listas. */
 export const INVOICE_COLOR = '#AAB2BF';
+/** Cor da transferência entre contas nas listas. */
+export const TRANSFER_COLOR = '#6BC5FF';
 
 /** Normaliza uma cor digitada para `#RRGGBB` maiúsculo (aceita "#abc", "abc", "aabbcc"); null se inválida. */
 export function normalizeHexColor(input: string): string | null {

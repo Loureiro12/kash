@@ -14,5 +14,6 @@ export * from './repositories/plans';
 export * from './repositories/export';
 export * from './repositories/profile';
 export * from './repositories/transactions';
+export * from './repositories/transfers';
 export * from './snapshot';
 export * from './realtime';
