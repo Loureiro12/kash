@@ -48,3 +48,16 @@ export async function extractPdfText(file: File, password?: string): Promise<str
   await doc.destroy();
   return pages.join('\n\n');
 }
+
+/** O PDF pede senha? (abre no navegador só para checar; nada é enviado) */
+export async function isPdfLocked(file: File): Promise<boolean> {
+  try {
+    const pdfjs = await import('pdfjs-dist');
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+    await doc.destroy();
+    return false;
+  } catch (err) {
+    return (err as { name?: string }).name === 'PasswordException';
+  }
+}

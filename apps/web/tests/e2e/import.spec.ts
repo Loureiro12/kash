@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { createClient } from '@supabase/supabase-js';
 import { createAccount, createCard, createKashClient, signIn } from '@kash/supabase-client';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { createHash } from 'node:crypto';
 import WebSocket from 'ws';
 
 if (!('WebSocket' in globalThis)) Object.assign(globalThis, { WebSocket });
@@ -41,8 +42,67 @@ async function seriousA11y(page: Page) {
   return results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id}: ${v.nodes[0]?.target} ${v.nodes[0]?.any[0]?.message ?? ''}`);
 }
 
-/** PDF mínimo de verdade (uma página, texto simples) para o pdf.js ler no navegador */
-function makePdf(lines: string[]): Buffer {
+/** RC4 (cifra do "Standard security handler" R2 do PDF) */
+function rc4(key: Buffer, data: Buffer): Buffer {
+  const s = Array.from({ length: 256 }, (_, i) => i);
+  for (let i = 0, j = 0; i < 256; i++) {
+    j = (j + s[i]! + key[i % key.length]!) & 255;
+    [s[i], s[j]] = [s[j]!, s[i]!];
+  }
+  const out = Buffer.alloc(data.length);
+  for (let n = 0, i = 0, j = 0; n < data.length; n++) {
+    i = (i + 1) & 255;
+    j = (j + s[i]!) & 255;
+    [s[i], s[j]] = [s[j]!, s[i]!];
+    out[n] = data[n]! ^ s[(s[i]! + s[j]!) & 255]!;
+  }
+  return out;
+}
+const md5 = (...parts: Buffer[]) => createHash('md5').update(Buffer.concat(parts)).digest();
+const PAD = Buffer.from('28BF4E5E4E758A4164004E56FFFA01082E2E00B6D0683E802F0CA9FE6453697A', 'hex');
+const padPassword = (pw: string) => Buffer.concat([Buffer.from(pw, 'latin1'), PAD]).subarray(0, 32);
+
+/** PDF mínimo de verdade (uma página, texto simples) para o pdf.js ler no navegador; com `password`, protegido (RC4 40 bits) */
+function makePdf(lines: string[], password?: string): Buffer {
+  if (password) return makeEncryptedPdf(lines, password);
+  return makePlainPdf(lines);
+}
+
+function makeEncryptedPdf(lines: string[], password: string): Buffer {
+  const id = Buffer.from('0123456789abcdef0123456789abcdef', 'hex');
+  const P = -4;
+  const pBytes = Buffer.alloc(4);
+  pBytes.writeInt32LE(P);
+  const O = rc4(md5(padPassword('dono-' + password)).subarray(0, 5), padPassword(password));
+  const fileKey = md5(padPassword(password), O, pBytes, id).subarray(0, 5);
+  const U = rc4(fileKey, PAD);
+  const esc = (s: string) => s.replace(/[()\\]/g, (m) => `\\${m}`);
+  const content = Buffer.from(`BT /F1 11 Tf 40 780 Td ${lines.map((l, i) => `${i ? '0 -16 Td ' : ''}(${esc(l)}) Tj`).join(' ')} ET`, 'latin1');
+  const objKey = md5(fileKey, Buffer.from([4, 0, 0, 0, 0])).subarray(0, 10);
+  const stream = rc4(objKey, content);
+  const objs: Buffer[] = [
+    Buffer.from('<< /Type /Catalog /Pages 2 0 R >>'),
+    Buffer.from('<< /Type /Pages /Kids [3 0 R] /Count 1 >>'),
+    Buffer.from('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>'),
+    Buffer.concat([Buffer.from(`<< /Length ${stream.length} >>\nstream\n`, 'latin1'), stream, Buffer.from('\nendstream')]),
+    Buffer.from('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'),
+    Buffer.from(`<< /Filter /Standard /V 1 /R 2 /O <${O.toString('hex')}> /U <${U.toString('hex')}> /P ${P} >>`),
+  ];
+  const chunks: Buffer[] = [Buffer.from('%PDF-1.4\n')];
+  let size = chunks[0]!.length;
+  const offsets: number[] = [];
+  objs.forEach((o, i) => {
+    offsets.push(size);
+    const chunk = Buffer.concat([Buffer.from(`${i + 1} 0 obj\n`), o, Buffer.from('\nendobj\n')]);
+    chunks.push(chunk);
+    size += chunk.length;
+  });
+  const xref = `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objs.length + 1} /Root 1 0 R /Encrypt 6 0 R /ID [<${id.toString('hex')}> <${id.toString('hex')}>] >>\nstartxref\n${size}\n%%EOF`;
+  chunks.push(Buffer.from(xref, 'latin1'));
+  return Buffer.concat(chunks);
+}
+
+function makePlainPdf(lines: string[]): Buffer {
   const esc = (s: string) => s.replace(/[()\\]/g, (m) => `\\${m}`);
   const content = `BT /F1 11 Tf 40 780 Td ${lines.map((l, i) => `${i ? '0 -16 Td ' : ''}(${esc(l)}) Tj`).join(' ')} ET`;
   const objs = [
@@ -208,5 +268,34 @@ test.describe('importar fatura e extrato', () => {
     // valor que não está no documento fica marcado para conferir
     await expect(page.getByTestId('import-row-2')).toContainText('conferir valor');
     await expect(page.getByTestId('import-row-1')).not.toContainText('conferir valor');
+  });
+
+  test('PDF com senha: pede a senha ao escolher o arquivo, Enter lê, senha errada avisa e sugere alternativas', async ({ page }, info) => {
+    const { email, db } = await setup(info, 'imp-senha');
+    await createCard(db, { name: 'Roxinho', last4: '1670', limit: 6400, closingDay: 5, dueDay: 13, gradientId: 'purple' });
+    await login(page, email);
+    const due = thisMonth(13);
+    const locked = makePdf([`Vencimento ${br(due)}`, `${br(prev(13))} EBW*Spotify - NuPay R$ 23,90`], '12345');
+    let sentText = '';
+    await page.route('**/functions/v1/import-assist', async (route) => {
+      sentText = (route.request().postDataJSON() as { text: string }).text;
+      await route.fulfill({ json: { statement: { kind: 'card', format: 'pdf', dueDate: due, cardLast4s: [], lines: [{ date: prev(13), description: 'EBW*Spotify - NuPay', amount: 23.9, kind: 'purchase' }] } } });
+    });
+    await page.goto('/app/importar');
+    await page.getByTestId('import-file').setInputFiles({ name: 'fatura.pdf', mimeType: 'application/pdf', buffer: locked });
+    // pergunta a senha já ao escolher o arquivo, com o cursor no campo
+    await expect(page.getByTestId('import-pdf-password')).toBeFocused();
+    await page.getByTestId('import-ai-consent').check();
+    for (let i = 0; i < 3; i++) {
+      await page.getByTestId('import-pdf-password').fill(`999${i}`);
+      await page.getByTestId('import-pdf-password').press('Enter');
+      await expect(page.getByTestId('import-error')).toHaveText('Senha incorreta. Confira e tente de novo.');
+    }
+    await expect(page.getByTestId('import-pdf-alternatives')).toContainText('OFX/CSV');
+    await page.getByTestId('import-pdf-password').fill('12345');
+    await page.getByTestId('import-pdf-password').press('Enter');
+    await expect(page.getByTestId('import-summary')).toBeVisible();
+    expect(sentText).toContain('EBW*Spotify - NuPay R$ 23,90');
+    expect(sentText).not.toContain('12345');
   });
 });

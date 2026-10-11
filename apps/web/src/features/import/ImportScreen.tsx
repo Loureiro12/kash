@@ -31,7 +31,7 @@ import { useSession } from '@/kash/session';
 import { useUi } from '@/kash/ui';
 import { routes } from '@/features/app/nav';
 import { PageHeader } from '@/features/app/PageHeader';
-import { extractPdfText, PdfPasswordError } from './pdf';
+import { extractPdfText, isPdfLocked, PdfPasswordError } from './pdf';
 import s from './import.module.css';
 
 type TargetType = 'card' | 'account';
@@ -57,6 +57,8 @@ export function ImportScreen() {
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [needsPassword, setNeedsPassword] = useState(false);
+  /** tentativas de senha erradas (a partir da 3ª, mostra as alternativas) */
+  const [wrongPasswords, setWrongPasswords] = useState(0);
   // a tela só renderiza no navegador (depois da sessão), então dá pra ler o consentimento já no início
   const [aiConsent, setAiConsent] = useState(() => {
     try {
@@ -152,7 +154,8 @@ export function ImportScreen() {
         } catch (err) {
           if (err instanceof PdfPasswordError) {
             setNeedsPassword(true);
-            setError(err.wrong ? 'Senha incorreta. Tente de novo.' : 'Esse PDF tem senha. Em geral são os primeiros dígitos do seu CPF (veja no e-mail do banco).');
+            if (err.wrong) setWrongPasswords((n) => n + 1);
+            setError(err.wrong ? 'Senha incorreta. Confira e tente de novo.' : 'Esse PDF tem senha. Digite a senha da fatura para continuar.');
             return;
           }
           throw err;
@@ -208,6 +211,7 @@ export function ImportScreen() {
     setStatement(null);
     setPassword('');
     setNeedsPassword(false);
+    setWrongPasswords(0);
     setError(null);
     setResult(null);
     setCsv(null);
@@ -261,12 +265,16 @@ export function ImportScreen() {
                 accept=".pdf,.ofx,.csv,.txt,application/pdf,text/csv"
                 className={s.fileInput}
                 onChange={(e) => {
-                  setFile(e.target.files?.[0] ?? null);
+                  const picked = e.target.files?.[0] ?? null;
+                  setFile(picked);
                   setError(null);
                   setNeedsPassword(false);
+                  setWrongPasswords(0);
                   setPassword('');
                   setCsv(null);
                   setNeedsMapping(false);
+                  // fatura de cartão quase sempre tem senha: já pergunta, sem esperar o "Ler arquivo"
+                  if (picked && formatOf(picked.name) === 'pdf') void isPdfLocked(picked).then((locked) => locked && setNeedsPassword(true));
                 }}
                 data-testid="import-file"
               />
@@ -292,7 +300,31 @@ export function ImportScreen() {
                     Ler o PDF com IA. O texto da fatura vai para a IA da Anthropic <b>sem</b> CPF, endereço, número do cartão e código de barras, só para identificar os lançamentos. Veja a <Link href={routes.privacy}>política de privacidade</Link>.
                   </span>
                 </label>
-                {needsPassword ? <PasswordInput label="Senha do PDF" value={password} onChange={(e) => setPassword(e.target.value)} hint="Em geral são os primeiros dígitos do seu CPF." testID="import-pdf-password" /> : null}
+                {needsPassword ? (
+                  <form
+                    className={s.passwordBox}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void read();
+                    }}
+                    data-testid="import-pdf-locked"
+                  >
+                    <PasswordInput
+                      label="Senha do PDF"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoFocus
+                      autoComplete="off"
+                      hint="Em geral são os primeiros dígitos do seu CPF; o e-mail do banco com a fatura costuma dizer qual é. A senha só abre o arquivo aqui no seu navegador: não é enviada nem salva."
+                      testID="import-pdf-password"
+                    />
+                    {wrongPasswords >= 3 ? (
+                      <p className={uiStyles.hint} data-testid="import-pdf-alternatives">
+                        Não lembra a senha? No app do banco dá pra baixar a fatura de novo (algumas vêm sem senha) ou exportar em OFX/CSV, que o Kash lê sem senha.
+                      </p>
+                    ) : null}
+                  </form>
+                ) : null}
               </>
             ) : null}
 
