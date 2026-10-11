@@ -290,10 +290,12 @@ export type Database = {
       imports: {
         Row: {
           balance_adjustment: number;
+          counterpart_adjustments: NonNullable<Json>;
           created_at: string;
           file_name: string;
           format: string;
           id: string;
+          linked: NonNullable<Json>;
           plan_count: number;
           skipped_count: number;
           source_id: string;
@@ -306,10 +308,12 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           balance_adjustment?: number;
+          counterpart_adjustments?: NonNullable<Json>;
           created_at?: string;
           file_name?: string;
           format: string;
           id?: string;
+          linked?: NonNullable<Json>;
           plan_count?: number;
           skipped_count?: number;
           source_id: string;
@@ -321,10 +325,12 @@ export type Database = {
         };
         Update: {
           balance_adjustment?: number;
+          counterpart_adjustments?: NonNullable<Json>;
           created_at?: string;
           file_name?: string;
           format?: string;
           id?: string;
+          linked?: NonNullable<Json>;
           plan_count?: number;
           skipped_count?: number;
           source_id?: string;
