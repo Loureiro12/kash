@@ -7,7 +7,7 @@ import { Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge, Button, Card, CheckCircle, Chip, Input, PageHeader, Pressable, Screen, SegmentedControl, Switch, Text, useTheme } from '@/design-system';
 import { formatBRL, monthKey, monthKeyName } from '@kash/domain';
-import { amountInText, buildImportPlan, learnedRules, redactStatementText, toAccountItems, toCardItems, type CsvMapping, type CsvTable, type ImportMode, type ParsedStatement, type ReviewRow } from '@kash/importers';
+import { amountInText, applyRowEdit, buildImportPlan, csvSignature, importCountsLabel, learnedRules, mappingFits, redactStatementText, toAccountItems, toCardItems, type CsvMapping, type CsvTable, type ImportMode, type ParsedStatement, type ReviewRow, type RowEdit } from '@kash/importers';
 import { toKashError } from '@kash/supabase-client';
 import { now as clockNow } from '@/lib/clock';
 import { useKashStore } from '@/store';
@@ -17,7 +17,6 @@ import { nameWithExtension } from './openWith';
 import { formatOf, readMappedCsv, readTextStatement, type TargetType } from './readStatement';
 
 type Step = 'file' | 'review' | 'done';
-type RowEdit = Partial<Pick<ReviewRow, 'title' | 'category' | 'include'>>;
 interface PickedFile {
   uri: string;
   name: string;
@@ -25,6 +24,9 @@ interface PickedFile {
 }
 
 const AI_CONSENT_KEY = 'kash.import.aiConsent';
+/** colunas indicadas para cada "cara" de CSV (só neste aparelho) */
+const CSV_MAPPINGS_KEY = 'kash.import.csvMappings';
+type SavedMappings = Record<string, CsvMapping>;
 const fileNameOf = (uri: string) => decodeURIComponent(uri.split('?')[0]!.split('/').pop() ?? '') || 'arquivo';
 
 /** arquivo aberto de outro app: nome, tipo e tamanho vêm do sistema (content:// não tem nome na URL) */
@@ -76,7 +78,8 @@ export function ImportScreen() {
   const [keepBalance, setKeepBalance] = useState(true);
   const [edits, setEdits] = useState<Record<string, RowEdit>>({});
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{ id: string; txs: number; plans: number } | null>(null);
+  const [result, setResult] = useState<{ id: string; txs: number; plans: number; transfers: number } | null>(null);
+  const [savedMappings, setSavedMappings] = useState<SavedMappings>({});
   // outro arquivo compartilhado com a tela já aberta: recomeça com ele
   const [lastParamFile, setLastParamFile] = useState(params.file);
   if (params.file !== lastParamFile) {
@@ -101,6 +104,9 @@ export function ImportScreen() {
   const history = useImportHistory(userId);
 
   useEffect(() => {
+    void AsyncStorage.getItem(CSV_MAPPINGS_KEY)
+      .then((v) => v && setSavedMappings(JSON.parse(v) as SavedMappings))
+      .catch(() => undefined);
     void AsyncStorage.getItem(AI_CONSENT_KEY)
       .then((v) => v === '1' && setAiConsent(true))
       .catch(() => undefined);
@@ -149,14 +155,30 @@ export function ImportScreen() {
 
   const plan = useMemo(() => {
     if (!statement || !targetId) return null;
-    return buildImportPlan({ statement, target: { type: targetType, id: targetId }, mode, today, statementMonth: month ?? undefined, categories, rules: rulesQuery.data ?? [], existing: { plans: storePlans, txs: storeTxs } });
-  }, [statement, targetType, targetId, mode, month, today, categories, rulesQuery.data, storePlans, storeTxs]);
+    return buildImportPlan({
+      statement,
+      target: { type: targetType, id: targetId },
+      mode,
+      today,
+      statementMonth: month ?? undefined,
+      categories,
+      rules: rulesQuery.data ?? [],
+      existing: { plans: storePlans, txs: storeTxs },
+      accounts,
+      ownNames: [userName],
+    });
+  }, [statement, targetType, targetId, mode, month, today, categories, rulesQuery.data, storePlans, storeTxs, accounts, userName]);
 
-  const rows = useMemo(() => (plan ? plan.rows.map((r) => ({ ...r, ...edits[r.key] })) : []), [plan, edits]);
+  const rows = useMemo(() => (plan ? plan.rows.map((r) => applyRowEdit(r, edits[r.key])) : []), [plan, edits]);
   const included = rows.filter((r) => r.include && r.section !== 'ignored');
-  const sum = included.reduce((a, r) => a + (r.section === 'income' ? r.amount : targetType === 'account' ? -r.amount : r.amount), 0);
+  const sum = included.reduce((a, r) => a + (targetType === 'account' ? (r.inflow ? r.amount : -r.amount) : r.amount), 0);
   const planCount = included.filter((r) => r.section === 'installment').length;
-  const txCount = included.length - planCount;
+  const transferCount = included.filter((r) => r.section === 'transfer').length;
+  const txCount = included.length - planCount - transferCount;
+  /** extrato: contas para onde a linha pode ser transferência */
+  const transferTargets = useMemo(() => (targetType === 'account' ? accounts.filter((a) => a.id !== targetId).map((a) => ({ id: a.id, label: a.name })) : []), [targetType, targetId, accounts]);
+  const accountNames = useMemo(() => Object.fromEntries(accounts.map((a) => [a.id, a.name])), [accounts]);
+  const outCategories = useMemo(() => [...categories, 'Fatura'], [categories]);
   const monthOptions = useMemo(() => Array.from({ length: 13 }, (_, i) => monthKey(new Date(today.getFullYear(), today.getMonth() - i, 1))), [today]);
 
   const edit = (key: string, patch: RowEdit) => setEdits((e) => ({ ...e, [key]: { ...e[key], ...patch } }));
@@ -197,14 +219,22 @@ export function ImportScreen() {
     setError(null);
     if (csv) {
       const res = readMappedCsv(csv.table, csv.mapping, targetType);
-      if (res.kind === 'ok') accept(res.statement);
+      if (res.kind === 'ok') {
+        const next = { ...savedMappings, [csvSignature(csv.table)]: csv.mapping };
+        setSavedMappings(next);
+        void AsyncStorage.setItem(CSV_MAPPINGS_KEY, JSON.stringify(next)).catch(() => undefined);
+        accept(res.statement);
+      }
       else if (res.kind === 'error') setError(res.message);
       return;
     }
     setReading(true);
     try {
       if (format !== 'pdf') {
-        const res = readTextStatement(format, await new File(file.uri).text(), targetType);
+        const res = readTextStatement(format, await new File(file.uri).text(), targetType, (table) => {
+          const m = savedMappings[csvSignature(table)];
+          return mappingFits(table, m) ? m : null;
+        });
         if (res.kind === 'ok') accept(res.statement);
         else if (res.kind === 'mapping') setCsv(res.csv);
         else setError(res.message);
@@ -244,7 +274,7 @@ export function ImportScreen() {
     try {
       const items = targetType === 'card' ? toCardItems(rows) : toAccountItems(rows);
       const id = await saveImport({ target: { type: targetType, id: targetId }, fileName: file.name, format, statementMonth: plan.statementMonth, items, keepBalance }, learnedRules(rows, plan.rows));
-      setResult({ id, txs: txCount, plans: planCount });
+      setResult({ id, txs: txCount, plans: planCount, transfers: transferCount });
       setStep('done');
     } catch (err) {
       showToast(toKashError(err).message);
@@ -414,8 +444,21 @@ export function ImportScreen() {
             </Card>
 
             <RowsSection title="Parcelamentos" rows={rows.filter((r) => r.section === 'installment')} categories={categories} sourceText={sourceText} onEdit={edit} testID="import-installments" />
-            <RowsSection title={targetType === 'card' ? 'Compras e encargos' : 'Saídas'} rows={rows.filter((r) => r.section === 'purchase')} categories={[...categories, ...(targetType === 'account' ? ['Fatura'] : [])]} sourceText={sourceText} onEdit={edit} testID="import-purchases" />
-            {targetType === 'account' ? <RowsSection title="Entradas" rows={rows.filter((r) => r.section === 'income')} categories={['Entrada']} sourceText={sourceText} onEdit={edit} testID="import-incomes" /> : null}
+            {targetType === 'account' ? (
+              <RowsSection
+                title="Transferências entre suas contas"
+                hint="Não contam como gasto nem entrada; a outra conta recebe o lado dela."
+                rows={rows.filter((r) => r.section === 'transfer')}
+                categories={outCategories}
+                transferTargets={transferTargets}
+                accountNames={accountNames}
+                sourceText={sourceText}
+                onEdit={edit}
+                testID="import-transfers"
+              />
+            ) : null}
+            <RowsSection title={targetType === 'card' ? 'Compras e encargos' : 'Saídas'} rows={rows.filter((r) => r.section === 'purchase')} categories={targetType === 'account' ? outCategories : categories} transferTargets={transferTargets} accountNames={accountNames} sourceText={sourceText} onEdit={edit} testID="import-purchases" />
+            {targetType === 'account' ? <RowsSection title="Entradas" rows={rows.filter((r) => r.section === 'income')} categories={outCategories} transferTargets={transferTargets} accountNames={accountNames} sourceText={sourceText} onEdit={edit} testID="import-incomes" /> : null}
             <Ignored rows={rows.filter((r) => r.section === 'ignored')} />
           </View>
         ) : null}
@@ -424,9 +467,7 @@ export function ImportScreen() {
           <Card padding={[20, 18]} style={{ gap: 12 }} testID="import-done">
             <Text variant="titleLg">Importação concluída</Text>
             <Text variant="body" color="muted">
-              {result.plans ? `${result.plans} ${result.plans === 1 ? 'parcelamento criado' : 'parcelamentos criados'}` : ''}
-              {result.plans && result.txs ? ' e ' : ''}
-              {result.txs ? `${result.txs} ${result.txs === 1 ? 'lançamento' : 'lançamentos'}` : ''}. Os nomes que você mudou viram regra para as próximas importações.
+              {importCountsLabel(result)} no Kash. Os nomes que você mudou viram regra para as próximas importações.
             </Text>
             <Button
               label={`Ver ${targetType === 'card' ? 'cartão' : 'conta'}`}
@@ -445,7 +486,7 @@ export function ImportScreen() {
       {step === 'review' && plan ? (
         <ReviewFooter
           bottom={insets.bottom}
-          text={`${planCount ? `${planCount} ${planCount === 1 ? 'parcelamento' : 'parcelamentos'}` : ''}${planCount && txCount ? ' e ' : ''}${txCount ? `${txCount} ${txCount === 1 ? 'lançamento' : 'lançamentos'}` : ''}${included.length ? ` · ${formatBRL(Math.abs(sum))}` : 'Nada selecionado'}`}
+          text={`${importCountsLabel({ plans: planCount, txs: txCount, transfers: transferCount })}${included.length ? ` · ${formatBRL(Math.abs(sum))}` : 'Nada selecionado'}`}
           onBack={restart}
           onSave={() => void save()}
           disabled={included.length === 0}
@@ -482,15 +523,41 @@ function ReviewFooter({ bottom, text, onBack, onSave, disabled, saving }: { bott
   );
 }
 
-function RowsSection({ title, rows, categories, sourceText, onEdit, testID }: { title: string; rows: ReviewRow[]; categories: string[]; sourceText: string; onEdit: (key: string, patch: RowEdit) => void; testID: string }) {
+function RowsSection({
+  title,
+  hint,
+  rows,
+  categories,
+  transferTargets = [],
+  accountNames = {},
+  sourceText,
+  onEdit,
+  testID,
+}: {
+  title: string;
+  hint?: string;
+  rows: ReviewRow[];
+  categories: string[];
+  transferTargets?: { id: string; label: string }[];
+  accountNames?: Record<string, string>;
+  sourceText: string;
+  onEdit: (key: string, patch: RowEdit) => void;
+  testID: string;
+}) {
   const { colors } = useTheme();
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
   if (rows.length === 0) return null;
   const selected = rows.filter((r) => r.include).length;
+  const isAccount = rows.some((r) => r.inflow !== undefined);
+  // categoria em lote: só para saídas marcadas (entrada é sempre "Entrada"; transferência não tem categoria)
+  const bulkRows = rows.filter((r) => r.include && !r.inflow && r.section !== 'transfer');
+  const canBulk = bulkRows.length > 1 && categories.length > 1;
+  const labelOf = (r: ReviewRow) => (r.section === 'transfer' && r.transfer?.accountId ? `⇄ ${r.inflow ? 'De' : 'Para'} ${accountNames[r.transfer.accountId] ?? 'outra conta'}` : r.category);
   return (
     <Card padding={[14, 16]} testID={testID}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <Text variant="titleBold">
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, gap: 8 }}>
+        <Text variant="titleBold" style={{ flex: 1 }}>
           {title}{' '}
           <Text variant="meta" color="muted">
             ({selected} de {rows.length})
@@ -502,8 +569,44 @@ function RowsSection({ title, rows, categories, sourceText, onEdit, testID }: { 
           </Text>
         </Pressable>
       </View>
+      {hint ? (
+        <Text variant="meta" color="muted" style={{ marginBottom: 4 }}>
+          {hint}
+        </Text>
+      ) : null}
+      {canBulk ? (
+        <View style={{ gap: 6, marginBottom: 4 }}>
+          <Pressable onPress={() => setBulkOpen(!bulkOpen)} accessibilityRole="button" accessibilityState={{ expanded: bulkOpen }} testID={`${testID}-bulk-category`} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
+            <Text variant="chip" color="accentText">
+              Categoria das marcadas {bulkOpen ? '▾' : '▸'}
+            </Text>
+          </Pressable>
+          {bulkOpen ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {categories.map((c) => (
+                <Chip
+                  key={c}
+                  label={c}
+                  height={30}
+                  tone="soft"
+                  onPress={() => {
+                    for (const r of bulkRows) onEdit(r.key, { category: c });
+                    setBulkOpen(false);
+                  }}
+                  testID={`${testID}-bulk-${c}`}
+                />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       {rows.map((r, i) => {
         const check = !!sourceText && !amountInText(r.amount, sourceText);
+        const choices = r.inflow ? ['Entrada'] : categories;
+        const pick = (patch: RowEdit) => {
+          onEdit(r.key, patch);
+          setOpenCategory(null);
+        };
         return (
           <View key={r.key} style={{ flexDirection: 'row', gap: 12, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line, opacity: r.include ? 1 : 0.55 }} testID={`import-row-${r.key}`}>
             <Pressable onPress={() => onEdit(r.key, { include: !r.include })} accessibilityRole="checkbox" accessibilityState={{ checked: r.include }} accessibilityLabel={`Importar ${r.originalTitle}`} testID={`import-row-${r.key}-include`} hitSlop={8} style={{ paddingTop: 12 }}>
@@ -519,31 +622,35 @@ function RowsSection({ title, rows, categories, sourceText, onEdit, testID }: { 
                 <Text variant="meta" color="muted">
                   {r.kashDate.split('-').reverse().join('/')}
                 </Text>
-                {categories.length > 1 ? (
-                  <Chip label={r.category} height={28} selected={openCategory === r.key} onPress={() => setOpenCategory(openCategory === r.key ? null : r.key)} testID={`import-row-${r.key}-category`} />
+                {isAccount || categories.length > 1 ? (
+                  <Chip label={labelOf(r)} height={28} selected={openCategory === r.key} onPress={() => setOpenCategory(openCategory === r.key ? null : r.key)} testID={`import-row-${r.key}-category`} />
                 ) : null}
               </View>
               {openCategory === r.key ? (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }} testID={`import-row-${r.key}-categories`}>
-                  {categories.map((c) => (
+                  {choices.map((c) => (
+                    <Chip key={c} label={c} height={30} tone="soft" selected={r.section !== 'transfer' && r.category === c} onPress={() => pick(isAccount ? { transferAccountId: null, category: c } : { category: c })} testID={`import-row-${r.key}-cat-${c}`} />
+                  ))}
+                  {transferTargets.map((t) => (
                     <Chip
-                      key={c}
-                      label={c}
+                      key={t.id}
+                      label={`⇄ ${r.inflow ? 'De' : 'Para'} ${t.label}`}
                       height={30}
                       tone="soft"
-                      selected={r.category === c}
-                      onPress={() => {
-                        onEdit(r.key, { category: c });
-                        setOpenCategory(null);
-                      }}
-                      testID={`import-row-${r.key}-cat-${c}`}
+                      selected={r.section === 'transfer' && r.transfer?.accountId === t.id}
+                      onPress={() => pick({ transferAccountId: t.id })}
+                      testID={`import-row-${r.key}-transfer-${t.id}`}
                     />
                   ))}
                 </View>
               ) : null}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {r.installment ? <Badge tone="pos" label={`${r.installment.currentNow}/${r.installment.total} agora · ${r.installment.remaining === 1 ? 'última' : `faltam ${r.installment.remaining} até ${r.installment.lastMonth}`}`} /> : null}
-                {r.duplicate ? <Badge tone="neg" label="possível duplicado" /> : null}
+                {r.duplicate ? <Badge tone="neg" label={r.duplicateNote ?? 'possível duplicado'} /> : null}
+                {r.section === 'transfer' && r.transfer?.linkTxId ? (
+                  <Badge tone="pos" label={`junta com ${r.inflow ? 'a saída' : 'a entrada'} de ${accountNames[r.transfer.accountId ?? ''] ?? 'outra conta'} em ${r.transfer.linkDate?.split('-').reverse().slice(0, 2).join('/')}`} />
+                ) : null}
+                {r.section !== 'transfer' && r.transfer && !r.transfer.accountId ? <Badge label="parece transferência: escolha a conta" testID={`import-row-${r.key}-transfer-hint`} /> : null}
                 {check ? <Badge tone="neg" label="conferir valor" /> : null}
               </View>
             </View>

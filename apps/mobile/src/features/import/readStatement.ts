@@ -12,9 +12,9 @@ const EMPTY = 'Não encontramos lançamentos nesse arquivo.';
 
 /**
  * Lê OFX/CSV (texto já carregado do arquivo) para o destino escolhido. CSV com colunas que não
- * reconhecemos volta como `mapping` para a pessoa dizer qual coluna é qual.
+ * reconhecemos (nem lembramos de antes) volta como `mapping` para a pessoa dizer qual coluna é qual.
  */
-export function readTextStatement(format: 'ofx' | 'csv', text: string, targetType: TargetType): ReadResult {
+export function readTextStatement(format: 'ofx' | 'csv', text: string, targetType: TargetType, savedMapping?: (table: CsvTable) => CsvMapping | null): ReadResult {
   let statement: ParsedStatement;
   if (format === 'ofx') {
     statement = parseOfx(text);
@@ -23,7 +23,8 @@ export function readTextStatement(format: 'ofx' | 'csv', text: string, targetTyp
     }
   } else {
     const table = readCsv(text);
-    const mapping = guessCsvMapping(table, targetType);
+    // colunas reconhecidas, senão as que a pessoa indicou da última vez para esse banco
+    const mapping = guessCsvMapping(table, targetType) ?? savedMapping?.(table) ?? null;
     if (!mapping) return { kind: 'mapping', csv: { table, mapping: { date: 0, description: 1, amount: 2, expensesArePositive: targetType === 'card' } } };
     statement = parseCsv(table, mapping, targetType);
   }

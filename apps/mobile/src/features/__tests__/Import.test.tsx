@@ -178,6 +178,63 @@ describe('Importar fatura (CSV)', () => {
   });
 });
 
+describe('Importar extrato (transferências, categoria em lote e colunas lembradas)', () => {
+  const csv = ['Quando;Histórico;Quanto', '02/10/2026;APLICACAO POUPANCA;-500,00', '03/10/2026;TED MESMA TITULARIDADE;300,00', '04/10/2026;PADARIA PAO BOM;-20,00', '05/10/2026;LANCHONETE X;-50,00'].join('\n');
+
+  beforeEach(() => {
+    const color = '#C6F432';
+    useKashStore.setState({
+      accounts: [
+        { id: 'acc-cc', name: 'Corrente', kind: 'Conta corrente', balance: 1000, color },
+        { id: 'acc-pp', name: 'Poupança', kind: 'Poupança', balance: 2000, color },
+        { id: 'acc-nu', name: 'Nubank', kind: 'Conta corrente · Nubank', balance: 300, color },
+      ],
+    });
+  });
+
+  it('aplicação vira transferência para a poupança; a TED pede a conta; saídas ganham categoria de uma vez', async () => {
+    (api.importAccountStatement as jest.Mock).mockResolvedValueOnce('imp-acc');
+    mockParams = { type: 'account', id: 'acc-cc' };
+    await renderWithTheme(<ImportScreen />);
+    pick('extrato.csv', csv);
+    await fireEvent.press(screen.getByTestId('import-pick'));
+    await fireEvent.press(screen.getByTestId('import-read'));
+    // colunas desconhecidas: pergunta uma vez
+    expect(screen.getByTestId('import-mapping')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('import-read'));
+    await waitFor(() => expect(screen.getByTestId('import-transfers')).toBeTruthy());
+
+    expect(screen.getByTestId('import-row-0-category')).toHaveTextContent('⇄ Para Poupança');
+    expect(screen.getByTestId('import-row-1-transfer-hint')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('import-row-1-category'));
+    await fireEvent.press(screen.getByTestId('import-row-1-transfer-acc-nu'));
+    expect(screen.getByTestId('import-row-1-category')).toHaveTextContent('⇄ De Nubank');
+
+    await fireEvent.press(screen.getByTestId('import-purchases-bulk-category'));
+    await fireEvent.press(screen.getByTestId('import-purchases-bulk-Comida'));
+    expect(screen.getByTestId('import-row-2-category')).toHaveTextContent('Comida');
+    expect(screen.getByTestId('import-row-3-category')).toHaveTextContent('Comida');
+    expect(screen.getByTestId('import-total')).toHaveTextContent('2 transferências e 2 lançamentos · R$ 270,00');
+
+    await fireEvent.press(screen.getByTestId('import-save'));
+    await waitFor(() => expect(screen.getByTestId('import-done')).toBeTruthy());
+    const call = (api.importAccountStatement as jest.Mock).mock.calls[0]![1];
+    expect(call.items).toEqual([
+      expect.objectContaining({ type: 'transfer', amount: -500, counterpart_account_id: 'acc-pp' }),
+      expect.objectContaining({ type: 'transfer', amount: 300, counterpart_account_id: 'acc-nu' }),
+      expect.objectContaining({ type: 'tx', amount: -20, category: 'Comida' }),
+      expect.objectContaining({ type: 'tx', amount: -50, category: 'Comida' }),
+    ]);
+
+    // mesmo banco de novo: as colunas já vêm lidas
+    await fireEvent.press(screen.getByTestId('import-another'));
+    pick('extrato2.csv', ['Quando;Histórico;Quanto', '06/10/2026;FARMACIA;-30,00'].join('\n'));
+    await fireEvent.press(screen.getByTestId('import-pick'));
+    await fireEvent.press(screen.getByTestId('import-read'));
+    await waitFor(() => expect(screen.getByTestId('import-summary')).toBeTruthy());
+  });
+});
+
 describe('Importar fatura (PDF com senha)', () => {
   it('pede a senha ao escolher, avisa senha errada e manda à IA só o texto limpo', async () => {
     (api.readStatementWithAi as jest.Mock).mockResolvedValueOnce({ kind: 'card', format: 'pdf', dueDate: '2026-10-13', total: 90, cardLast4s: [], lines: [{ date: '2026-09-05', description: 'Mercadolivre*Mercadol - Parcela 1/3', amount: 90, kind: 'installment', installment: { current: 1, total: 3 } }] });
