@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
-import { Card, PageHeader, ProgressBar, Screen, Text, useTheme } from '@/design-system';
+import { Card, PageHeader, Pressable, ProgressBar, Screen, Text, useTheme } from '@/design-system';
 import { monthName } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useMoney, useReport } from '@/store';
@@ -40,20 +40,30 @@ export function ReportScreen() {
       <Text variant="section" style={{ marginTop: 24 }}>
         Por categoria
       </Text>
+      <Text variant="meta" color="muted" style={{ marginTop: 2 }}>
+        Toque numa categoria pra ver os gastos dela mês a mês.
+      </Text>
       <View style={{ gap: 14, marginTop: 14 }} testID="report-categories">
         {categories.map((c) => (
-          <View key={c.name} style={{ gap: 7 }} testID={`report-cat-${c.name}`}>
+          <Pressable
+            key={c.name}
+            onPress={() => router.push({ pathname: '/category/[name]', params: { name: c.name } })}
+            accessibilityRole="button"
+            accessibilityLabel={`${c.name}: ${money(c.amount)}, ${c.pct}% dos gastos. Ver detalhes`}
+            style={{ gap: 7 }}
+            testID={`report-cat-${c.name}`}
+          >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: c.color }} />
                 <Text variant="bodySemibold">{c.name}</Text>
               </View>
               <Text variant="body" color="muted">
-                {money(c.amount)} · {c.pct}%
+                {money(c.amount)} · {c.pct}% ›
               </Text>
             </View>
             <ProgressBar pct={c.pct} height={8} fillColor={c.color} />
-          </View>
+          </Pressable>
         ))}
       </View>
     </Screen>

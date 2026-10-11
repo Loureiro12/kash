@@ -1,0 +1,34 @@
+appId: ${APP_ID}
+name: Gastos por categoria — do Relatório para a categoria, mês a mês, e troca pelos chips
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "home-budget-card"
+- assertVisible:
+    id: "report-screen"
+- scrollUntilVisible:
+    element:
+      id: "report-cat-Comida"
+    direction: DOWN
+- tapOn:
+    id: "report-cat-Comida"
+- assertVisible:
+    id: "category-screen"
+- assertVisible:
+    id: "category-month-heading"
+    text: "Comida em .*"
+- takeScreenshot: category-comida
+- tapOn:
+    id: "category-month--1"
+- assertVisible:
+    id: "category-month-heading"
+    text: "Comida em .*"
+- tapOn:
+    id: "category-chip-Mercado"
+- assertVisible:
+    id: "category-month-heading"
+    text: "Mercado em .*"
+- tapOn:
+    id: "category-back"
+- assertVisible:
+    id: "report-screen"

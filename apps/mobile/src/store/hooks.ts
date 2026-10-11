@@ -4,7 +4,7 @@
  */
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { activePlans, billSourceName, budgetSplit, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, onboardingStatus, openInvoices, previousMonthsSpent, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, txViews, upcomingBills, type TxFilters } from '@kash/domain';
+import { activePlans, billSourceName, budgetSplit, categoryDetail, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, onboardingStatus, openInvoices, previousMonthsSpent, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, txViews, upcomingBills, type TxFilters } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useKashStore } from './useKashStore';
 
@@ -136,6 +136,17 @@ export function useReport() {
     const previous = previousMonthsSpent(txs, today);
     return { spent: monthSpent(txs, today), history: monthlyHistory(txs, today, previous), delta: monthDelta(txs, today, previous), categories: categoryBreakdown(txs, today, colors) };
   }, [txs, colors]);
+}
+
+/** Detalhe de uma categoria (barras dos últimos meses, onde mais gastou e os lançamentos do mês escolhido). */
+export function useCategoryDetail(category: string, offset: number) {
+  const { txs, accounts, cards } = useKashStore(useShallow((s) => ({ txs: s.txs, accounts: s.accounts, cards: s.cards })));
+  const { colors } = useCategories();
+  return useMemo(() => {
+    const today = now();
+    const detail = categoryDetail(txs, category, today, offset, { colors });
+    return { ...detail, groups: groupTxsByDay(detail.txs, accounts, cards, today, colors) };
+  }, [txs, accounts, cards, colors, category, offset]);
 }
 
 /** Lista completa de lançamentos de um mês, filtrada e agrupada por dia. */

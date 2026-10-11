@@ -26,6 +26,7 @@ export default function AppLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="welcome" options={{ gestureEnabled: false, animation: 'fade' }} />
         <Stack.Screen name="report" />
+        <Stack.Screen name="category/[name]" />
         <Stack.Screen name="transactions" />
         <Stack.Screen name="import" />
         <Stack.Screen name="forecast" />
