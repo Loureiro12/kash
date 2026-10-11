@@ -13,7 +13,38 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.andreloureiro.kash",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Fatura ou extrato",
+            "CFBundleTypeRole": "Viewer",
+            "LSHandlerRank": "Alternate",
+            "LSItemContentTypes": [
+              "com.adobe.pdf",
+              "public.comma-separated-values-text",
+              "com.intuit.ofx"
+            ]
+          }
+        ],
+        "UTImportedTypeDeclarations": [
+          {
+            "UTTypeIdentifier": "com.intuit.ofx",
+            "UTTypeDescription": "Extrato OFX",
+            "UTTypeConformsTo": [
+              "public.data",
+              "public.text"
+            ],
+            "UTTypeTagSpecification": {
+              "public.filename-extension": [
+                "ofx"
+              ],
+              "public.mime-type": [
+                "application/x-ofx"
+              ]
+            }
+          }
+        ],
+        "LSSupportsOpeningDocumentsInPlace": false
       },
       "icon": {
         "light": "./assets/brand/icon-1024.png",
@@ -27,7 +58,37 @@
         "backgroundColor": "#C6F432",
         "monochromeImage": "./assets/brand/icon-432-android-adaptive-mono.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": [
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "content",
+              "mimeType": "application/pdf"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "text/csv"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "text/comma-separated-values"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "application/x-ofx"
+            },
+            {
+              "scheme": "file",
+              "mimeType": "application/pdf"
+            }
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/brand/favicon.png",

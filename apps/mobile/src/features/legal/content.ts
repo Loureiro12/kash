@@ -23,10 +23,14 @@ export const LEGAL_DOCS = {
   },
   privacy: {
     title: 'Privacidade',
-    updatedAt: 'Atualizado em 1 de outubro de 2026',
+    updatedAt: 'Atualizado em 11 de outubro de 2026',
     sections: [
       { heading: 'Quais dados coletamos', body: 'Nome, e-mail e os lançamentos que você cadastra. Não coletamos dados bancários nem localização.' },
       { heading: 'Como usamos', body: 'Apenas para mostrar seus relatórios, metas e lembretes dentro do app. Não vendemos nem compartilhamos com anunciantes.' },
+      {
+        heading: 'Importação com IA (opcional)',
+        body: 'Quando você pede para o Kash ler o PDF de uma fatura e autoriza o uso da IA, o texto dos lançamentos é enviado à Anthropic, fornecedora do modelo de IA, só para identificar data, descrição, valor e parcelas. Antes do envio, o Kash tira do texto CPF, endereço, número do cartão, código de barras e o seu nome. O arquivo PDF e a senha dele não saem do seu aparelho, e arquivos OFX e CSV são lidos sem IA.',
+      },
       { heading: 'Onde ficam', body: 'Em servidores criptografados no Brasil, conforme a LGPD.' },
       { heading: 'Seus direitos', body: 'Você pode exportar ou apagar seus dados quando quiser, direto no app.' },
     ],

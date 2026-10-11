@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 import { Button, Card, CheckCircle, DashedButton, EmptyState, Pressable, Screen, SegmentedControl, Text, TileIcon } from '@/design-system';
@@ -33,6 +34,7 @@ function BankAccounts() {
   const openSheet = useKashStore((s) => s.openSheet);
   const openEdit = useKashStore((s) => s.openEdit);
   const openTransfer = useKashStore((s) => s.openTransfer);
+  const router = useRouter();
   if (accounts.length === 0) {
     return (
       <View testID="accounts-bank">
@@ -74,6 +76,7 @@ function BankAccounts() {
           </Pressable>
         ))}
         {accounts.length >= 2 ? <Button label="⇄ Transferir entre contas" variant="soft" size="md" onPress={() => openTransfer()} testID="accounts-transfer" /> : null}
+        {accounts.length > 0 ? <Button label="Importar extrato (OFX/CSV)" variant="secondary" size="md" onPress={() => router.push({ pathname: '/import', params: { type: 'account' } })} testID="accounts-import" /> : null}
         <DashedButton label="+ Adicionar conta" onPress={() => openSheet('addAccount')} testID="accounts-add" />
       </View>
     </View>

@@ -27,6 +27,7 @@ export default function AppLayout() {
         <Stack.Screen name="welcome" options={{ gestureEnabled: false, animation: 'fade' }} />
         <Stack.Screen name="report" />
         <Stack.Screen name="transactions" />
+        <Stack.Screen name="import" />
         <Stack.Screen name="forecast" />
         <Stack.Screen name="profile/index" />
         <Stack.Screen name="profile/personal" />

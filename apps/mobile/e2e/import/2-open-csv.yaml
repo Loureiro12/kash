@@ -1,0 +1,44 @@
+appId: ${APP_ID}
+name: Importação (2/2) — CSV aberto de fora vira parcelamento no cartão
+---
+# o mesmo caminho do "Abrir com o Kash": o sistema entrega um file:// e o app abre a importação
+# (esquema do bundle id, não kash://: um build antigo no simulador pode responder pelo kash://)
+- openLink: ${APP_ID}://import?file=__FILE__
+- tapOn:
+    text: "Abrir|Open"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "import-screen"
+    timeout: 10000
+- assertVisible:
+    id: "import-file-name"
+    text: "fatura-e2e.csv"
+- tapOn:
+    id: "import-target-c0000000-0000-4000-8000-000000000001"
+- tapOn:
+    id: "import-read"
+- extendedWaitUntil:
+    visible:
+      id: "import-summary"
+    timeout: 5000
+# "Só parceladas" por padrão: só o parcelamento entra
+- assertVisible:
+    id: "import-total"
+    text: "1 parcelamento · R\\$ 22,90"
+- tapOn:
+    id: "import-save"
+- extendedWaitUntil:
+    visible:
+      id: "import-done"
+    timeout: 10000
+- tapOn:
+    id: "import-view-target"
+- extendedWaitUntil:
+    visible:
+      id: "cards-screen"
+    timeout: 5000
+- scrollUntilVisible:
+    element: "Streamingx"
+    direction: DOWN
+    timeout: 10000

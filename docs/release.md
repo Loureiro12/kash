@@ -108,7 +108,8 @@ O Face ID adicionou um módulo nativo (`expo-local-authentication`). A versão s
 As mudanças do app vão se acumulando em `apps/mobile/CHANGELOG.md` › "Próxima versão". A versão em `app.json` já está em **1.1.0**, então nenhum `eas update` alcança quem está no 1.0.1 por engano. **Não publique updates até o build 1.1.0 estar nas lojas.**
 
 Quando decidir lançar:
-1. Backend primeiro (o app 1.1.0 usa `email_reminder`): merge em `main` ou `pnpm deploy:backend`, e os segredos dos lembretes (item 1.8).
+1. Backend primeiro (o app 1.1.0 usa `email_reminder` e a importação): merge em `main` ou `pnpm deploy:backend`, os segredos dos lembretes (item 1.8) e o da IA da importação (item 1.9).
+   - Antes do build, teste num aparelho de verdade o "Abrir com o Kash" (PDF do e-mail do banco no iOS; "Abrir com" no Android) e um PDF com senha: o leitor do PDF vem da CDN (jsdelivr, `pdfjs-dist@4.10.38`), então precisa de internet.
 2. Builds: `cd apps/mobile && eas build -p all --profile production` (build number / version code sobem sozinhos).
 3. Envio: `eas submit -p ios --latest` e `eas submit -p android --latest` (Android na faixa de teste interno primeiro).
 4. Nas lojas, cole o texto de "Novidades" do CHANGELOG.

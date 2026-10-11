@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -36,6 +37,7 @@ export function CardsScreen() {
   const selectCard = useKashStore((s) => s.selectCard);
   const openSheet = useKashStore((s) => s.openSheet);
   const openEdit = useKashStore((s) => s.openEdit);
+  const router = useRouter();
 
   return (
     <Screen testID="cards-screen" header={<ScreenTitle title="Cartões" subtitle="Toque num cartão pra ver a fatura." testID="cards-title" />}>
@@ -72,6 +74,16 @@ export function CardsScreen() {
         </Pressable>
       </ScrollView>
       )}
+      {list.length > 0 ? (
+        <Button
+          label="Importar fatura"
+          variant="soft"
+          size="md"
+          style={{ marginTop: 14 }}
+          onPress={() => router.push({ pathname: '/import', params: { type: 'card', ...(selected ? { id: selected.card.id } : {}) } })}
+          testID="cards-import"
+        />
+      ) : null}
 
       {selected ? (
         <>

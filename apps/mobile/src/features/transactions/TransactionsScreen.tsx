@@ -87,6 +87,11 @@ export function TransactionsScreen() {
           </View>
         ))
       )}
+      <Pressable onPress={() => router.push('/import')} accessibilityRole="button" testID="tx-import" style={{ alignSelf: 'center', marginTop: 24, padding: 8 }}>
+        <Text variant="chip" color="accentText">
+          Importar fatura ou extrato
+        </Text>
+      </Pressable>
       <View style={{ height: 1, backgroundColor: colors.bg }} />
     </Screen>
   );
