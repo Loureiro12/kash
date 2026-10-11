@@ -7,6 +7,7 @@ import {
   billSourceName,
   billsSummary,
   billsTotal,
+  budgetSplit,
   budgetStatus,
   cardBills,
   cardDates,
@@ -57,6 +58,8 @@ export function homeView(s: Snap, now: Date) {
     spent,
     budget: s.settings.monthlyBudget,
     budgetStatus: budgetStatus(spent, s.settings.monthlyBudget),
+    /** limite dividido em cartão e restante (null sem divisão) */
+    budgetSplit: budgetSplit(s.txs, s.cards.map((c) => c.id), s.settings, now),
     forecastHeights: forecastHeights(months, 10),
     nextMonth: months[0] ?? null,
     recent: txViews(s.txs, s.accounts, s.cards, now, colors).slice(0, 8),

@@ -1,11 +1,11 @@
 'use client';
 
-import { budgetStatus, formatBRL, monthSpent } from '@kash/domain';
+import { budgetSplit, budgetStatus, formatBRL } from '@kash/domain';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Icon } from '@/components/app/Icon';
-import { Avatar, Badge, Button, Card, DashedButton, Group, GroupRow, MoneyInput, ProgressBar, TextInput, uiStyles } from '@/components/app/ui';
+import { Avatar, Badge, Button, Card, DashedButton, Group, GroupRow, MoneyInput, ProgressBar, Switch, TextInput, uiStyles } from '@/components/app/ui';
 import { readableInk } from '@/components/app/colors';
 import { privacyContact, privacyIntro, privacySections, formatLongDate } from '@/content/privacy';
 import { helpFaq, SUPPORT_EMAIL, termsDoc } from '@/content/terms';
@@ -89,22 +89,62 @@ export function SecurityScreen() {
 
 /* ---------- Limite mensal ---------- */
 
+/** Prévia de uma meta: gasto do mês, barra e quanto sobra. */
+function BudgetPreview({ title, spent, limit, testID }: { title: string; spent: number; limit: number; testID: string }) {
+  const st = budgetStatus(spent, limit);
+  return (
+    <div className={p.budgetPreview} data-testid={testID}>
+      <div className={s.between}>
+        <b>{title}</b>
+        <span className={s.meta}>
+          {formatBRL(spent)} · {limit > 0 ? st.pct : 0}%
+        </span>
+      </div>
+      <ProgressBar pct={limit > 0 ? st.pct : 0} label={`${title} em relação ao limite`} />
+      <span className={limit > 0 && st.left > 0 ? s.meta : `${s.meta} ${s.neg}`} data-testid={`${testID}-message`}>
+        {limit > 0 ? st.message : 'Digite um valor maior que zero'}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Limite do mês. Pode ser dividido em cartão (a fatura do mês de todos os cartões) e restante
+ * (débito, Pix, dinheiro); o total é a soma. Pagar a fatura não conta no restante.
+ */
 export function BudgetScreen() {
-  const { settings, txs } = useKash();
+  const { settings, txs, cards } = useKash();
   const now = useNow();
   const actions = useKashActions();
   const router = useRouter();
-  const [value, setValue] = useState(settings.monthlyBudget);
+  const savedCard = Math.min(settings.cardBudget || 0, settings.monthlyBudget);
+  const [split, setSplit] = useState(savedCard > 0);
+  const [total, setTotal] = useState(settings.monthlyBudget);
+  const [card, setCard] = useState(savedCard);
+  const [rest, setRest] = useState(settings.monthlyBudget - savedCard);
   const [saving, setSaving] = useState(false);
-  const spent = useMemo(() => monthSpent(txs, now), [txs, now]);
-  const preview = budgetStatus(spent, value);
-  const canSave = value > 0 && value !== settings.monthlyBudget;
+  const spent = useMemo(() => budgetSplit(txs, cards.map((c) => c.id), { monthlyBudget: 1, cardBudget: 1 }, now), [txs, cards, now]);
+
+  const nextCard = split ? card : 0;
+  const nextTotal = split ? Math.round((card + rest) * 100) / 100 : total;
+  const valid = nextTotal > 0 && (!split || card > 0);
+  const canSave = valid && (nextTotal !== settings.monthlyBudget || nextCard !== savedCard);
+
+  const toggleSplit = (on: boolean) => {
+    setSplit(on);
+    // dividir começa com tudo no restante; juntar volta a um total só (a soma)
+    if (on) {
+      setCard(0);
+      setRest(total);
+    } else setTotal(nextTotal);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSave) return;
     setSaving(true);
-    const ok = await actions.updateSettings({ monthlyBudget: Math.round(value * 100) / 100 }, `Limite mensal: ${formatBRL(value)}`);
+    const message = split ? `Limite: ${formatBRL(card)} no cartão + ${formatBRL(rest)} no restante` : `Limite mensal: ${formatBRL(nextTotal)}`;
+    const ok = await actions.updateSettings({ monthlyBudget: nextTotal, cardBudget: Math.round(nextCard * 100) / 100 }, message);
     setSaving(false);
     if (ok) router.push(routes.profile);
   };
@@ -114,17 +154,31 @@ export function BudgetScreen() {
       <PageHeader title="Limite mensal" subtitle="Quanto você quer gastar por mês, no máximo. O Kash usa esse valor no Início, no Relatório e na Previsão." back={backToProfile} />
       <form className={p.narrow} onSubmit={(e) => void onSubmit(e)} noValidate>
         <Card as="div" className={p.form}>
-          <MoneyInput label="Limite por mês" value={value} onChangeValue={setValue} testID="budget-input" className={p.budgetValue} style={{ height: 64 }} />
-          <div className={s.between}>
-            <b>Gasto até agora</b>
-            <span className={s.meta}>
-              {formatBRL(spent)} · {value > 0 ? preview.pct : 0}%
+          <div className={p.splitRow}>
+            <span className={p.splitText}>
+              <b>Separar cartão e o restante</b>
+              <span className={s.meta}>Uma meta para a fatura dos cartões e outra para débito, Pix e dinheiro. Pagar a fatura não conta duas vezes.</span>
             </span>
+            <Switch checked={split} onChange={toggleSplit} label="Separar cartão e o restante" testID="budget-split" />
           </div>
-          <ProgressBar pct={value > 0 ? preview.pct : 0} label="Gasto do mês em relação ao limite" />
-          <span className={value > 0 && preview.left > 0 ? s.meta : `${s.meta} ${s.neg}`} data-testid="budget-preview-message">
-            {value > 0 ? preview.message : 'Digite um valor maior que zero'}
-          </span>
+          {split ? (
+            <>
+              <div className={p.splitInputs}>
+                <MoneyInput label="Cartão (fatura do mês)" value={card} onChangeValue={setCard} testID="budget-card-input" />
+                <MoneyInput label="Restante (débito, Pix, dinheiro)" value={rest} onChangeValue={setRest} testID="budget-rest-input" />
+              </div>
+              <span className={s.meta} data-testid="budget-total">
+                Total do mês: {formatBRL(nextTotal)}
+              </span>
+              <BudgetPreview title="Cartão até agora" spent={spent.card!.spent} limit={card} testID="budget-preview-card" />
+              <BudgetPreview title="Restante até agora" spent={spent.rest!.spent} limit={rest} testID="budget-preview-rest" />
+            </>
+          ) : (
+            <>
+              <MoneyInput label="Limite por mês" value={total} onChangeValue={setTotal} testID="budget-input" className={p.budgetValue} style={{ height: 64 }} />
+              <BudgetPreview title="Gasto até agora" spent={spent.total.spent} limit={total} testID="budget-preview" />
+            </>
+          )}
         </Card>
         <Button type="submit" disabled={!canSave} loading={saving} testID="budget-save">
           Salvar limite

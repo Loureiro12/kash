@@ -1,0 +1,19 @@
+.budgetSplit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--track-on-accent);
+}
+.budgetPart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.budgetHint {
+  font-weight: 500;
+  opacity: 0.75;
+}

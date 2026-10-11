@@ -1,6 +1,6 @@
 'use client';
 
-import { formatBRL, greetingFor } from '@kash/domain';
+import { formatBRL, greetingFor, type BudgetPart } from '@kash/domain';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Badge, Button, Card, CardHeader, CardLink, EmptyState, ProgressBar, uiStyles } from '@/components/app/ui';
@@ -13,6 +13,7 @@ import { PageHeader } from '@/features/app/PageHeader';
 import { TxRow } from '@/features/app/TxRow';
 import s from '@/features/app/screens.module.css';
 import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
+import h from './home.module.css';
 
 /** Início: saldo, gastos do mês, previsão, lançamentos, próximas contas e metas. */
 export function HomeScreen() {
@@ -59,6 +60,12 @@ export function HomeScreen() {
           <span style={{ fontSize: 12, fontWeight: 600 }} data-testid="home-budget-message">
             {v.budgetStatus.message}
           </span>
+          {v.budgetSplit.card && v.budgetSplit.rest ? (
+            <span className={h.budgetSplit} data-testid="home-budget-split">
+              <BudgetPartRow label="Cartão" hint="fatura do mês" part={v.budgetSplit.card} money={money} testID="home-budget-card-part" />
+              <BudgetPartRow label="Restante" hint="débito, Pix, dinheiro" part={v.budgetSplit.rest} money={money} testID="home-budget-rest-part" />
+            </span>
+          ) : null}
         </CardLink>
 
         <CardLink href={routes.forecast} className={s.cardColLg} testID="home-forecast-card" label="Previsão de gastos. Ver previsão">
@@ -184,5 +191,23 @@ export function HomeScreen() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Uma das metas do limite dividido (no card verde do Início). */
+function BudgetPartRow({ label, hint, part, money, testID }: { label: string; hint: string; part: BudgetPart; money: (v: number) => string; testID: string }) {
+  return (
+    <span className={h.budgetPart} data-testid={testID}>
+      <span className={s.between}>
+        <span>
+          <b>{label}</b> <span className={h.budgetHint}>{hint}</span>
+        </span>
+        <span>
+          {money(part.spent)} de {formatBRL(part.budget)}
+          {part.status.left < 0 ? ' · passou' : ''}
+        </span>
+      </span>
+      <ProgressBar pct={part.status.pct} height={6} color="var(--ink)" track="var(--track-on-accent)" label={`${label}: ${part.status.message}`} />
+    </span>
   );
 }

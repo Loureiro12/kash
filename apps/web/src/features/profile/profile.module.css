@@ -140,3 +140,25 @@
   font-size: 34px;
   letter-spacing: -0.03em;
 }
+
+.splitRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.splitText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.splitInputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 12px;
+}
+.budgetPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

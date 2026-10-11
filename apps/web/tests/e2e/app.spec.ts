@@ -340,6 +340,39 @@ test.describe('Kash web — com o Supabase local', () => {
     await expect(page.getByTestId('profile-budget')).toContainText('R$ 2.500,00');
   });
 
+  test('limite dividido entre cartão e restante: o pagamento da fatura não conta no restante', async ({ page }, info) => {
+    const email = await createUser(info, 'split');
+    const db = createKashClient({ url: url!, anonKey: anon!, options: { auth: { persistSession: false } } });
+    await signIn(db, { email, password: PASSWORD });
+    const acc = await createAccount(db, { name: 'Corrente', kind: 'Conta corrente', institution: '', balance: 3000, color: '#6BC5FF' });
+    const card = await createCard(db, { name: 'Roxo', last4: '4821', limit: 5000, closingDay: 28, dueDay: 5, gradientId: 'purple' });
+    const day = new Date().toISOString().slice(0, 10);
+    await createTransaction(db, { title: 'Mercado', category: 'Mercado', amount: 300, date: day, sourceType: 'card', sourceId: card.id });
+    await createTransaction(db, { title: 'Padaria', category: 'Comida', amount: 80, date: day, sourceType: 'account', sourceId: acc.id });
+    // pagamento da fatura pela conta: já está no cartão, não entra no restante
+    await createTransaction(db, { title: 'Fatura Roxo', category: 'Fatura', amount: 900, date: day, sourceType: 'account', sourceId: acc.id });
+    await login(page, email);
+
+    await open(page, '/app/perfil/limite');
+    await page.getByTestId('budget-split').click();
+    await expect(page.getByTestId('budget-rest-input')).toHaveValue('R$ 1.800,00');
+    await expect(page.getByTestId('budget-save')).toBeDisabled();
+    await page.getByTestId('budget-card-input').fill('');
+    await page.getByTestId('budget-card-input').pressSequentially('150000');
+    await page.getByTestId('budget-rest-input').fill('');
+    await page.getByTestId('budget-rest-input').pressSequentially('50000');
+    await expect(page.getByTestId('budget-total')).toHaveText('Total do mês: R$ 2.000,00');
+    await expect(page.getByTestId('budget-preview-rest-message')).toHaveText('Sobram R$ 420,00 pra fechar o mês no verde');
+    expect(await seriousA11y(page)).toEqual([]);
+    await page.getByTestId('budget-save').click();
+    await expect(page.getByTestId('profile-budget')).toContainText('R$ 2.000,00 · dividido');
+
+    await open(page, '/app');
+    await expect(page.getByTestId('home-budget-card-part')).toContainText('R$ 300,00 de R$ 1.500,00');
+    await expect(page.getByTestId('home-budget-rest-part')).toContainText('R$ 80,00 de R$ 500,00');
+    await expect(page.getByTestId('home-budget-card')).toContainText('de R$ 2.000,00');
+  });
+
   test('acessibilidade com dados, nos dois temas, e sem rolagem lateral', async ({ page }, info) => {
     test.setTimeout(90_000);
     const email = await createUser(info, 'a11y');

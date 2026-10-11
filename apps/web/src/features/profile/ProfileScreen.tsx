@@ -57,7 +57,7 @@ export function ProfileScreen() {
           <Group title="Conta">
             <GroupRow title="Dados pessoais" value="Nome, e-mail, celular" href={routes.personal} testID="profile-personal" />
             <GroupRow title="Segurança" value="Senha" href={routes.security} testID="profile-security" />
-            <GroupRow title="Limite mensal" value={formatBRL(settings.monthlyBudget)} href={routes.budget} testID="profile-budget" />
+            <GroupRow title="Limite mensal" value={`${formatBRL(settings.monthlyBudget)}${settings.cardBudget > 0 ? ' · dividido' : ''}`} href={routes.budget} testID="profile-budget" />
             <GroupRow title="Categorias" value={`${categories.length}`} href={routes.categories} testID="profile-categories" />
           </Group>
 
