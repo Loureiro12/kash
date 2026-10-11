@@ -1,6 +1,7 @@
 export * from './balance';
 export * from './bills';
 export * from './budget';
+export * from './categoryDetail';
 export * from './cards';
 export * from './forecast';
 export * from './goals';
