@@ -2,6 +2,7 @@
 
 import { formatBRL, monthKey, monthKeyName } from '@kash/domain';
 import {
+  aiNameRequests,
   amountInText,
   applyRowEdit,
   buildImportPlan,
@@ -22,8 +23,9 @@ import {
   type ParsedStatement,
   type ReviewRow,
   type RowEdit,
+  withAiNames,
 } from '@kash/importers';
-import { listImports, listMerchantRules, readStatementWithAi, toKashError } from '@kash/supabase-client';
+import { listImports, listMerchantRules, readStatementWithAi, suggestNamesWithAi, toKashError } from '@kash/supabase-client';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -103,6 +105,9 @@ export function ImportScreen() {
   const [keepBalance, setKeepBalance] = useState(true);
   const [edits, setEdits] = useState<Record<string, RowEdit>>({});
   const [saving, setSaving] = useState(false);
+  /** sugestão de nomes com IA para OFX/CSV (roda depois de abrir a revisão, sem travar a tela) */
+  const [aiNames, setAiNames] = useState<{ status: 'idle' | 'loading' | 'done' | 'error'; count: number }>({ status: 'idle', count: 0 });
+  const aiRun = useRef(0);
   const [result, setResult] = useState<{ id: string; txs: number; plans: number; transfers: number } | null>(null);
   const cardsBefore = useRef(snap.cards.map((c) => c.id));
   const accountsBefore = useRef(snap.accounts.map((a) => a.id));
@@ -161,6 +166,22 @@ export function ImportScreen() {
 
   const edit = (key: string, patch: RowEdit) => setEdits((e) => ({ ...e, [key]: { ...e[key], ...patch } }));
 
+  const suggestNames = (parsed: ParsedStatement) => {
+    const run = ++aiRun.current;
+    if (!aiConsent) return setAiNames({ status: 'idle', count: 0 });
+    const items = aiNameRequests(parsed, { rules: rulesQuery.data ?? [], ownNames: [snap.user.name] });
+    if (items.length === 0) return setAiNames({ status: 'idle', count: 0 });
+    setAiNames({ status: 'loading', count: items.length });
+    suggestNamesWithAi(requireKashClient(), { items, categories }).then(
+      (suggestions) => {
+        if (run !== aiRun.current) return;
+        setStatement((cur) => (cur === parsed ? withAiNames(parsed, suggestions) : cur));
+        setAiNames({ status: 'done', count: Object.keys(suggestions).length });
+      },
+      () => run === aiRun.current && setAiNames({ status: 'error', count: 0 }),
+    );
+  };
+
   const read = async () => {
     if (!file || !format || !targetId) return;
     setError(null);
@@ -213,6 +234,7 @@ export function ImportScreen() {
       setMonth(null);
       setMode('installments');
       setStep('review');
+      if (format !== 'pdf') suggestNames(parsed);
     } catch (err) {
       setError(toKashError(err).message);
     } finally {
@@ -232,6 +254,7 @@ export function ImportScreen() {
     setStatement(parsed);
     setEdits({});
     setStep('review');
+    suggestNames(parsed);
   };
 
   const save = async () => {
@@ -247,6 +270,8 @@ export function ImportScreen() {
   };
 
   const restart = () => {
+    aiRun.current++;
+    setAiNames({ status: 'idle', count: 0 });
     setStep('file');
     setFile(null);
     setStatement(null);
@@ -322,26 +347,34 @@ export function ImportScreen() {
               />
             </Field>
 
-            {format === 'pdf' ? (
-              <>
-                <label className={s.consent}>
-                  <input
-                    type="checkbox"
-                    checked={aiConsent}
-                    onChange={(e) => {
-                      setAiConsent(e.target.checked);
-                      try {
-                        localStorage.setItem(AI_CONSENT_KEY, e.target.checked ? '1' : '0');
-                      } catch {
-                        // sem armazenamento
-                      }
-                    }}
-                    data-testid="import-ai-consent"
-                  />
+            {format ? (
+              <label className={s.consent}>
+                <input
+                  type="checkbox"
+                  checked={aiConsent}
+                  onChange={(e) => {
+                    setAiConsent(e.target.checked);
+                    try {
+                      localStorage.setItem(AI_CONSENT_KEY, e.target.checked ? '1' : '0');
+                    } catch {
+                      // sem armazenamento
+                    }
+                  }}
+                  data-testid="import-ai-consent"
+                />
+                {format === 'pdf' ? (
                   <span>
                     Ler o PDF com IA. O texto da fatura vai para a IA da Anthropic <b>sem</b> CPF, endereço, número do cartão e código de barras, só para identificar os lançamentos. Veja a <Link href={routes.privacy}>política de privacidade</Link>.
                   </span>
-                </label>
+                ) : (
+                  <span>
+                    Sugerir nomes e categorias com IA (opcional). Só o nome das compras que o Kash ainda não conhece vai para a IA da Anthropic, <b>sem</b> CPF, número do cartão e o seu nome; Pix e transferências não vão. Veja a <Link href={routes.privacy}>política de privacidade</Link>.
+                  </span>
+                )}
+              </label>
+            ) : null}
+            {format === 'pdf' ? (
+              <>
                 {needsPassword ? (
                   <form
                     className={s.passwordBox}
@@ -437,6 +470,17 @@ export function ImportScreen() {
                 : null}
               {plan.check.statementTotal ? ` Total da fatura no banco: ${formatBRL(plan.check.statementTotal)}.` : ''}
             </p>
+            {aiNames.status !== 'idle' ? (
+              <p className={uiStyles.hint} role="status" data-testid="import-ai-names">
+                {aiNames.status === 'loading'
+                  ? `Sugerindo nomes com IA para ${aiNames.count} ${aiNames.count === 1 ? 'estabelecimento' : 'estabelecimentos'}…`
+                  : aiNames.status === 'done'
+                    ? aiNames.count
+                      ? `A IA sugeriu ${aiNames.count === 1 ? '1 nome' : `${aiNames.count} nomes`} (marcados com "IA"). Confira: os que você importar viram regra e não vão mais para a IA.`
+                      : 'A IA não teve sugestões para esses nomes.'
+                    : 'Não deu pra sugerir nomes com IA agora; os nomes ficam como no arquivo.'}
+              </p>
+            ) : null}
           </Card>
 
           <RowsSection title="Parcelamentos" rows={rows.filter((r) => r.section === 'installment')} categories={categories} sourceText={sourceText} onEdit={edit} testID="import-installments" />
@@ -476,7 +520,7 @@ export function ImportScreen() {
         <Card className={s.done} testID="import-done">
           <h2 className={uiStyles.cardTitle}>Importação concluída</h2>
           <p className={uiStyles.hint}>
-            {importCountsLabel(result)} no Kash. Os nomes que você mudou viram regra para as próximas importações.
+            {importCountsLabel(result)} no Kash. Os nomes que você mudou ou aceitou da IA viram regra para as próximas importações.
           </p>
           <div className={s.doneActions}>
             <Link href={targetType === 'card' ? routes.cards : routes.accounts} className={`${uiStyles.btn} ${uiStyles.primary} ${uiStyles.md}`} onClick={() => targetType === 'card' && useUi.getState().selectCard(targetId)}>
@@ -582,6 +626,7 @@ function RowsSection({
                       {r.installment.currentNow}/{r.installment.total} agora · {r.installment.remaining === 1 ? 'última' : `faltam ${r.installment.remaining} até ${r.installment.lastMonth}`}
                     </Badge>
                   ) : null}
+                  {r.fromAi ? <Badge>IA</Badge> : null}
                   {r.duplicate ? <Badge tone="neg">{r.duplicateNote ?? 'possível duplicado'}</Badge> : null}
                   {r.section === 'transfer' && r.transfer?.linkTxId ? (
                     <Badge tone="pos">

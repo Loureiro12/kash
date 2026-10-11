@@ -145,7 +145,8 @@ export function createActions(qc: QueryClient) {
         await api.saveMerchantRules(db(), rules).catch(() => undefined);
         return importId;
       });
-      await qc.invalidateQueries({ queryKey: ['imports'] });
+      // regras novas (nomes trocados e os da IA aceitos) já valem no próximo arquivo
+      await Promise.all([qc.invalidateQueries({ queryKey: ['imports'] }), qc.invalidateQueries({ queryKey: ['rules'] })]);
       return typeof id === 'string' ? id : null;
     },
     async undoImport(importId: string) {

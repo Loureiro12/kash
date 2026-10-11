@@ -268,6 +268,43 @@ test.describe('importar fatura e extrato', () => {
     expect(await seriousA11y(page)).toEqual([]);
   });
 
+  test('CSV com IA: só os nomes desconhecidos vão, a sugestão entra marcada como IA', async ({ page }, info) => {
+    const { email, db } = await setup(info, 'imp-ai-names');
+    const card = await createCard(db, { name: 'Nubank', last4: '1670', limit: 5000, closingDay: 5, dueDay: 13, gradientId: 'purple' });
+    await login(page, email);
+    let sent: { mode?: string; items?: { id: string; description: string }[] } = {};
+    await page.route('**/functions/v1/import-assist', async (route) => {
+      sent = route.request().postDataJSON() as typeof sent;
+      await route.fulfill({ json: { suggestions: { [sent.items![0]!.id]: { title: 'Loja do João', category: 'Lazer' } } } });
+    });
+    const csv = ['date,title,amount', `${prev(5)},MP*LOJADOJOAO - Parcela 2/5,50.00`, `${prev(6)},EBW*Spotify - NuPay - Parcela 2/3,23.90`, `${prev(7)},Pagamento recebido,-100.00`].join('\n');
+    await page.goto('/app/importar');
+    await page.getByTestId(`import-target-${card.id}`).click();
+    await page.getByTestId('import-file').setInputFiles({ name: 'fatura.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+    await page.getByTestId('import-ai-consent').check();
+    await page.getByTestId('import-read').click();
+    await expect(page.getByTestId('import-ai-names')).toContainText('A IA sugeriu 1 nome');
+    // Spotify é marca conhecida e pagamento não é compra: só a loja foi
+    expect(sent.mode).toBe('names');
+    expect(sent.items).toEqual([{ id: expect.any(String), description: 'MP*LOJADOJOAO - Parcela 2/5' }]);
+    await expect(page.getByTestId('import-row-0-title')).toHaveValue('Loja do João');
+    await expect(page.getByTestId('import-row-0')).toContainText('IA');
+    await expect(page.getByTestId('import-row-0-category')).toHaveValue('Lazer');
+    await expect(page.getByTestId('import-row-1-title')).toHaveValue('Spotify');
+
+    // importou: o nome aceito vira regra e, no próximo arquivo, vem sem IA
+    await page.getByTestId('import-save').click();
+    await expect(page.getByTestId('import-done')).toContainText('aceitou da IA viram regra');
+    sent = {};
+    await page.getByTestId('import-another').click();
+    await page.getByTestId(`import-target-${card.id}`).click();
+    await page.getByTestId('import-file').setInputFiles({ name: 'fatura2.csv', mimeType: 'text/csv', buffer: Buffer.from(['date,title,amount', `${prev(8)},MP*LOJADOJOAO - Parcela 1/2,80.00`].join('\n')) });
+    await page.getByTestId('import-read').click();
+    await expect(page.getByTestId('import-row-0-title')).toHaveValue('Loja do João');
+    await expect(page.getByTestId('import-ai-names')).toHaveCount(0);
+    expect(sent).toEqual({});
+  });
+
   test('PDF: lê no navegador, manda só o texto limpo para a IA e confere os valores', async ({ page }, info) => {
     const { email, db } = await setup(info, 'imp-pdf');
     const card = await createCard(db, { name: 'Roxinho', last4: '1670', limit: 6400, closingDay: 5, dueDay: 13, gradientId: 'purple' });
