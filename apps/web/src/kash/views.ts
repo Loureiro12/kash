@@ -8,6 +8,7 @@ import {
   billsSummary,
   billsTotal,
   budgetSplit,
+  categoryDetail,
   budgetStatus,
   cardBills,
   cardDates,
@@ -113,6 +114,13 @@ export function reportView(s: Snap, now: Date) {
     delta: monthDelta(s.txs, now, previous),
     categories: categoryBreakdown(s.txs, now, categoryColors(s)),
   };
+}
+
+/** Gastos de uma categoria: últimos 6 meses, o mês escolhido, onde mais gastou e os lançamentos por dia. */
+export function categoryView(s: Snap, category: string, offset: number, now: Date) {
+  const colors = categoryColors(s);
+  const detail = categoryDetail(s.txs, category, now, offset, { colors });
+  return { ...detail, groups: groupTxsByDay(detail.txs, s.accounts, s.cards, now, colors) };
 }
 
 export function forecastView(s: Snap, now: Date) {

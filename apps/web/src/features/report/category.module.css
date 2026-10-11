@@ -1,0 +1,32 @@
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+.chips > * {
+  flex: none;
+}
+.day {
+  margin: 14px 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.catLink {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 12px;
+  margin: -6px;
+  padding: 6px;
+}
+.catLink:hover {
+  background: var(--surface2);
+}
+.catLink:focus-visible {
+  outline: 2px solid var(--accentText);
+}

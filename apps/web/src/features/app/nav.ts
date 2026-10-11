@@ -21,6 +21,8 @@ export const routes = {
   bills: '/app/contas-fixas',
   goals: '/app/metas',
   report: '/app/relatorio',
+  /** gastos de uma categoria (barras dos últimos meses e lançamentos) */
+  category: (name: string) => `/app/relatorio/${encodeURIComponent(name)}`,
   forecast: '/app/previsao',
   profile: '/app/perfil',
   personal: '/app/perfil/dados',

@@ -373,6 +373,45 @@ test.describe('Kash web — com o Supabase local', () => {
     await expect(page.getByTestId('home-budget-card')).toContainText('de R$ 2.000,00');
   });
 
+  test('gastos por categoria: do Relatório para a categoria, mês a mês, e troca pelos chips', async ({ page }, info) => {
+    const email = await createUser(info, 'category');
+    const db = createKashClient({ url: url!, anonKey: anon!, options: { auth: { persistSession: false } } });
+    await signIn(db, { email, password: PASSWORD });
+    const acc = await createAccount(db, { name: 'Corrente', kind: 'Conta corrente', institution: '', balance: 3000, color: '#6BC5FF' });
+    const now = new Date();
+    const iso = (monthsAgo: number, day: number) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - monthsAgo, day);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const day = Math.min(now.getDate(), 2);
+    for (const [title, amount] of [['iFood', 60], ['Padaria', 20], ['iFood', 40]] as const) {
+      await createTransaction(db, { title, category: 'Comida', amount, date: iso(0, day), sourceType: 'account', sourceId: acc.id });
+    }
+    await createTransaction(db, { title: 'Restaurante', category: 'Comida', amount: 150, date: iso(1, 10), sourceType: 'account', sourceId: acc.id });
+    await createTransaction(db, { title: 'Mercado', category: 'Mercado', amount: 280, date: iso(0, day), sourceType: 'account', sourceId: acc.id });
+    await login(page, email);
+
+    await open(page, '/app/relatorio');
+    await page.getByTestId('report-cat-Comida').click();
+    await expect(page).toHaveURL(/\/app\/relatorio\/Comida$/);
+    await expect(page.getByTestId('category-total')).toHaveText('R$ 120,00');
+    await expect(page.getByTestId('category-delta')).toContainText('20% a menos que');
+    await expect(page.getByTestId('category-stats')).toHaveText('30% dos seus gastos do mês · 3 lançamentos · média de R$ 40,00');
+    await expect(page.getByTestId('category-place-0')).toContainText('iFood');
+    await expect(page.getByTestId('category-place-0')).toContainText('R$ 100,00 · 83%');
+    expect(await seriousA11y(page)).toEqual([]);
+
+    // mês anterior pela barra
+    await page.getByTestId('category-month--1').click();
+    await expect(page.getByTestId('category-total')).toHaveText('R$ 150,00');
+    await expect(page.getByTestId('category-txs')).toContainText('Restaurante');
+
+    // outra categoria pelos chips
+    await page.getByTestId('category-chip-Mercado').click();
+    await expect(page).toHaveURL(/\/app\/relatorio\/Mercado$/);
+    await expect(page.getByTestId('category-total')).toHaveText('R$ 280,00');
+  });
+
   test('acessibilidade com dados, nos dois temas, e sem rolagem lateral', async ({ page }, info) => {
     test.setTimeout(90_000);
     const email = await createUser(info, 'a11y');

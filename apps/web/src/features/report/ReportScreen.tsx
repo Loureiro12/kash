@@ -1,12 +1,15 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo } from 'react';
 import { Card, ProgressBar, uiStyles } from '@/components/app/ui';
 import { useKash } from '@/kash/data';
 import { reportView } from '@/kash/views';
 import { useMoney, useNow } from '@/features/app/hooks';
+import { routes } from '@/features/app/nav';
 import { PageHeader } from '@/features/app/PageHeader';
 import s from '@/features/app/screens.module.css';
+import r from './category.module.css';
 
 /** Relatório: gasto do mês, variação, 6 meses e por categoria. */
 export function ReportScreen() {
@@ -39,22 +42,25 @@ export function ReportScreen() {
 
         <Card className={s.stack} testID="report-categories">
           <h2 className={uiStyles.cardTitle}>Por categoria</h2>
+          <p className={s.meta} style={{ margin: '-6px 0 0' }}>
+            Clique numa categoria pra ver os gastos dela mês a mês.
+          </p>
           {v.categories.length === 0 ? (
             <p className={s.emptyLine}>Nenhum gasto neste mês ainda.</p>
           ) : (
             v.categories.map((c) => (
-              <div key={c.name} className={s.catRow} data-testid={`report-cat-${c.name}`}>
+              <Link key={c.name} href={routes.category(c.name)} className={`${s.catRow} ${r.catLink}`} aria-label={`${c.name}: ${money(c.amount)}, ${c.pct}% dos gastos. Ver detalhes`} data-testid={`report-cat-${c.name}`}>
                 <div className={s.catHead}>
                   <span className={s.catName}>
                     <span className={s.legendSwatch} style={{ background: c.color }} aria-hidden="true" />
                     {c.name}
                   </span>
                   <span className={s.catValue}>
-                    {money(c.amount)} · {c.pct}%
+                    {money(c.amount)} · {c.pct}% <span aria-hidden="true">›</span>
                   </span>
                 </div>
                 <ProgressBar pct={c.pct} color={c.color} label={`${c.name}: ${c.pct}% dos gastos`} />
-              </div>
+              </Link>
             ))
           )}
         </Card>
