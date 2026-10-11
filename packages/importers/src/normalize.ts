@@ -83,6 +83,12 @@ const BRANDS: Array<[RegExp, string, string?]> = [
   [/cineart|cinemark/, 'Cinema', 'Lazer'],
 ];
 
+/** É uma marca que o Kash já conhece (nome bonito sem IA)? */
+export function knownBrand(description: string): boolean {
+  const key = normalizeMerchant(description);
+  return BRANDS.some(([re]) => re.test(key));
+}
+
 const titleCase = (s: string) =>
   s
     .toLowerCase()

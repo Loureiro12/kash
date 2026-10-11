@@ -60,6 +60,8 @@ export interface ReviewRow {
    * está no Kash (lançado à mão ou importado antes) e vira a outra perna, em vez de criar uma nova.
    */
   transfer?: { accountId: string | null; linkTxId?: string; linkDate?: string };
+  /** nome ou categoria vieram da IA (a pessoa confere na revisão) */
+  fromAi?: boolean;
 }
 
 /** O que a pessoa mudou numa linha da revisão. `transferAccountId`: '' / null desfaz a transferência. */
@@ -135,7 +137,8 @@ function nameAndCategory(line: ParsedLine & { suggestedTitle?: string; suggested
   const ruleCategory = rule?.category && (categories.includes(rule.category) || rule.category === 'Fatura') ? rule.category : null;
   const aiCategory = line.suggestedCategory && categories.includes(line.suggestedCategory) ? line.suggestedCategory : null;
   const category = ruleCategory ?? aiCategory ?? (line.kind === 'fee' && categories.includes('Outros') ? 'Outros' : guessCategory(line.description, categories, fallback));
-  return { pattern, title, category };
+  const fromAi = !rule && (!!line.suggestedTitle || !!aiCategory);
+  return { pattern, title, category, ...(fromAi ? { fromAi } : {}) };
 }
 
 /**
@@ -161,7 +164,7 @@ export function buildImportPlan(input: ImportPlanInput): ImportPlan {
     const otherIds = new Set(others.map((a) => a.id));
     const usedLinks = new Set<string>();
     statement.lines.forEach((line, i) => {
-      const { pattern, title, category } = nameAndCategory(line, rules, categories, fallback);
+      const { pattern, title, category, fromAi } = nameAndCategory(line, rules, categories, fallback);
       const amount = Math.abs(line.amount);
       const isIncome = line.amount < 0;
       /** valor como fica na conta importada: entrada +, saída − */
@@ -198,6 +201,7 @@ export function buildImportPlan(input: ImportPlanInput): ImportPlan {
         externalId,
         inflow: isIncome,
         ...(transfer && others.length ? { transfer } : {}),
+        ...(fromAi && !isIncome ? { fromAi } : {}),
       });
     });
     const included = round2(rows.filter((r) => r.include && r.section !== 'ignored').reduce((a, r) => a + (r.inflow ? r.amount : -r.amount), 0));
@@ -223,8 +227,8 @@ export function buildImportPlan(input: ImportPlanInput): ImportPlan {
   });
 
   statement.lines.forEach((line, i) => {
-    const { pattern, title, category } = nameAndCategory(line, rules, categories, fallback);
-    const base = { key: String(i), date: line.date, originalTitle: line.description, title, category, amount: Math.abs(line.amount), pattern };
+    const { pattern, title, category, fromAi } = nameAndCategory(line, rules, categories, fallback);
+    const base = { key: String(i), date: line.date, originalTitle: line.description, title, category, amount: Math.abs(line.amount), pattern, ...(fromAi ? { fromAi } : {}) };
     const ignored = (reason: string): ReviewRow => ({ ...base, section: 'ignored', reason, include: false, selectable: false, kashDate: line.date, duplicate: false, externalId: '' });
 
     if (refunded.has(i)) return rows.push(ignored('Compra estornada na mesma fatura'));
@@ -304,7 +308,10 @@ export function toAccountItems(rows: readonly ReviewRow[]) {
     });
 }
 
-/** Regras novas: o que a pessoa renomeou ou recategorizou em relação à sugestão automática. */
+/**
+ * Regras novas: o que a pessoa renomeou ou recategorizou em relação à sugestão automática, e os
+ * nomes da IA que ela importou (aceitar é confirmar; na próxima vez o nome vem da regra, sem IA).
+ */
 export function learnedRules(rows: readonly ReviewRow[], suggested: readonly ReviewRow[]): MerchantRule[] {
   const byKey = new Map(suggested.map((r) => [r.key, r]));
   const out = new Map<string, MerchantRule>();
@@ -313,7 +320,9 @@ export function learnedRules(rows: readonly ReviewRow[], suggested: readonly Rev
     if (!r.include || !before || !r.pattern) continue;
     // transferência: só o nome vira regra (a conta do outro lado sai do texto a cada importação)
     const categoryChanged = r.section !== 'transfer' && before.section !== 'transfer' && r.category !== before.category;
-    if (r.title.trim() !== before.title || categoryChanged) {
+    const edited = r.title.trim() !== before.title || categoryChanged;
+    // nome da IA só aceito não passa por cima do que a pessoa editou em outra linha do mesmo estabelecimento
+    if (edited || (before.fromAi && !out.has(r.pattern))) {
       out.set(r.pattern, { pattern: r.pattern, title: r.title.trim() || before.title, category: r.section === 'income' || r.section === 'transfer' ? null : r.category });
     }
   }

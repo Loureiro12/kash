@@ -1,4 +1,4 @@
-import { createAccount, createCard, importAccountStatement, importCardStatement, listAccounts, listImports, listTransactions, listMerchantRules, listPlans, readStatementWithAi, saveMerchantRules, undoImport } from '../src';
+import { createAccount, createCard, importAccountStatement, importCardStatement, listAccounts, listImports, listTransactions, listMerchantRules, listPlans, readStatementWithAi, saveMerchantRules, suggestNamesWithAi, undoImport } from '../src';
 import { createTestUser, deleteTestUser, today } from './helpers';
 
 describe('importar fatura e extrato', () => {
@@ -67,6 +67,9 @@ describe('importar fatura e extrato', () => {
     await expect(readStatementWithAi(u.db, { text: 'Fatura de teste com algumas linhas de lançamento', kind: 'card', categories: ['Outros'] })).rejects.toMatchObject({
       message: 'A leitura de PDF ainda não está disponível. Use o arquivo OFX ou CSV do seu banco.',
     });
+    // nomes de OFX/CSV usam a mesma função: sem a chave, o mesmo erro claro
+    await expect(suggestNamesWithAi(u.db, { items: [{ id: 'padaria', description: 'PAG*Padaria' }], categories: ['Outros'] })).rejects.toMatchObject({ message: expect.stringContaining('ainda não está disponível') });
+    expect(await suggestNamesWithAi(u.db, { items: [], categories: [] })).toEqual({});
     await deleteTestUser(u);
   });
 });

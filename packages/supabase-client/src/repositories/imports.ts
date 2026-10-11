@@ -74,17 +74,32 @@ const AI_ERRORS: Record<string, string> = {
   ai_failed: 'A leitura com IA falhou agora. Tente de novo em instantes ou use o OFX/CSV do banco.',
 };
 
-/** Lê com IA o texto (já limpo) de um PDF de fatura/extrato. Devolve o ParsedStatement da Edge Function. */
-export async function readStatementWithAi<T = unknown>(db: KashClient, input: { text: string; kind: 'card' | 'account'; categories: string[] }): Promise<T> {
+async function invokeAssist<T>(db: KashClient, body: Record<string, unknown>, fallback: string): Promise<T> {
   try {
-    const { data, error } = await db.functions.invoke('import-assist', { body: input });
+    const { data, error } = await db.functions.invoke('import-assist', { body });
     if (error) {
-      const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
-      const code = (body as { error?: string } | null)?.error ?? '';
-      throw new KashApiError('unknown', AI_ERRORS[code] ?? 'Não deu pra ler o PDF agora. Tente de novo.', error);
+      const res = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      const code = (res as { error?: string } | null)?.error ?? '';
+      throw new KashApiError('unknown', AI_ERRORS[code] ?? fallback, error);
     }
-    return (data as { statement: T }).statement;
+    return data as T;
   } catch (err) {
     throw toKashError(err);
   }
+}
+
+/** Lê com IA o texto (já limpo) de um PDF de fatura/extrato. Devolve o ParsedStatement da Edge Function. */
+export async function readStatementWithAi<T = unknown>(db: KashClient, input: { text: string; kind: 'card' | 'account'; categories: string[] }): Promise<T> {
+  const data = await invokeAssist<{ statement: T }>(db, input, 'Não deu pra ler o PDF agora. Tente de novo.');
+  return data.statement;
+}
+
+/**
+ * Sugestões da IA para nomes e categorias de linhas de OFX/CSV (descrições já limpas, uma por
+ * estabelecimento — ver `aiNameRequests` em @kash/importers). Devolve { [id]: { title?, category? } }.
+ */
+export async function suggestNamesWithAi(db: KashClient, input: { items: { id: string; description: string }[]; categories: string[] }): Promise<Record<string, { title?: string; category?: string }>> {
+  if (input.items.length === 0) return {};
+  const data = await invokeAssist<{ suggestions?: Record<string, { title?: string; category?: string }> }>(db, { mode: 'names', ...input }, 'Não deu pra sugerir nomes com IA agora.');
+  return data.suggestions ?? {};
 }

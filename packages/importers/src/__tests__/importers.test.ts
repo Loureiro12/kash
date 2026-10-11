@@ -3,6 +3,7 @@ import { csvSignature, guessCsvMapping, mappingFits, parseBrDate, parseBrNumber,
 import { amountInText, classifyLine, detectInstallment, guessCategory, normalizeMerchant, stableId, suggestTitle } from '../normalize';
 import { parseOfx } from '../ofx';
 import { applyRowEdit, buildImportPlan, learnedRules, statementMonthOf, toAccountItems, toCardItems, type ImportPlanInput } from '../plan';
+import { aiNameRequests, withAiNames } from '../aiNames';
 import { redactStatementText } from '../redact';
 import { guessCounterpart, looksLikeOwnTransfer } from '../transfers';
 import type { ParsedStatement } from '../types';
@@ -371,6 +372,50 @@ describe('transferência entre as próprias contas no extrato', () => {
   it('com uma conta só, nada vira transferência', () => {
     const plan = buildImportPlan(base({ target: { type: 'account', id: 'acc1' }, accounts: accounts.slice(0, 1), statement: lines({ date: '2026-10-05', description: 'APLICACAO POUPANCA', amount: 500, kind: 'purchase' }) }));
     expect([plan.rows[0]!.section, plan.rows[0]!.transfer]).toEqual(['purchase', undefined]);
+  });
+});
+
+describe('IA para nomes e categorias em OFX/CSV', () => {
+  const statement: ParsedStatement = {
+    kind: 'account',
+    format: 'csv',
+    cardLast4s: [],
+    lines: [
+      { date: '2026-10-01', description: 'PAG*JoseDaSilva 12345678', amount: 30, kind: 'purchase' },
+      { date: '2026-10-02', description: 'PAG*JoseDaSilva 12345678', amount: 12, kind: 'purchase' },
+      { date: '2026-10-03', description: 'EBW*Spotify', amount: 21.9, kind: 'purchase' },
+      { date: '2026-10-04', description: 'PIX ENVIADO MARIA SOUZA', amount: 50, kind: 'purchase' },
+      { date: '2026-10-05', description: 'RAIA DROGASIL ANDRE LOUREIRO', amount: 40, kind: 'purchase' },
+      { date: '2026-10-06', description: 'SALARIO EMPRESA', amount: -3000, kind: 'income' },
+      { date: '2026-10-07', description: 'TARIFA PACOTE', amount: 20, kind: 'fee' },
+      { date: '2026-10-08', description: 'ZIG*BAR DO ZE', amount: 60, kind: 'purchase' },
+    ],
+  };
+
+  it('vai só o que precisa: compras sem regra nem marca conhecida, uma vez, sem dados pessoais', () => {
+    const reqs = aiNameRequests(statement, { rules: [{ pattern: normalizeMerchant('ZIG*BAR DO ZE'), title: 'Bar do Zé', category: 'Comida' }], ownNames: ['André Loureiro'] });
+    expect(reqs).toEqual([{ id: normalizeMerchant('PAG*JoseDaSilva 12345678'), description: 'PAG*JoseDaSilva #' }]);
+  });
+
+  it('sugestões entram na revisão marcadas como IA; regra aprendida continua mandando', () => {
+    const id = normalizeMerchant('PAG*JoseDaSilva 12345678');
+    const next = withAiNames(statement, { [id]: { title: 'Lanchonete do José', category: 'Comida' }, [normalizeMerchant('ZIG*BAR DO ZE')]: { title: 'Bar' } });
+    const plan = buildImportPlan(base({ statement: next, target: { type: 'account', id: 'acc1' }, rules: [{ pattern: normalizeMerchant('ZIG*BAR DO ZE'), title: 'Bar do Zé', category: 'Comida' }] }));
+    expect([plan.rows[0]!.title, plan.rows[0]!.category, plan.rows[0]!.fromAi]).toEqual(['Lanchonete do José', 'Comida', true]);
+    expect([plan.rows[1]!.title, plan.rows[1]!.fromAi]).toEqual(['Lanchonete do José', true]);
+    expect([plan.rows[7]!.title, plan.rows[7]!.fromAi]).toEqual(['Bar do Zé', undefined]);
+  });
+
+  it('nome da IA importado vira regra (uma por estabelecimento); desmarcado não', () => {
+    const id = normalizeMerchant('PAG*JoseDaSilva 12345678');
+    const next = withAiNames(statement, { [id]: { title: 'Lanchonete do José', category: 'Comida' } });
+    const plan = buildImportPlan(base({ statement: next, target: { type: 'account', id: 'acc1' } }));
+    expect(learnedRules(plan.rows, plan.rows)).toEqual([{ pattern: id, title: 'Lanchonete do José', category: 'Comida' }]);
+    // a pessoa ajustou o nome sugerido: vale o dela
+    const edited = plan.rows.map((r) => (r.key === '0' ? { ...r, title: 'Lanche do Zé' } : r));
+    expect(learnedRules(edited, plan.rows)[0]!.title).toBe('Lanche do Zé');
+    const skipped = plan.rows.map((r) => (r.pattern === id ? { ...r, include: false } : r));
+    expect(learnedRules(skipped, plan.rows)).toEqual([]);
   });
 });
 
