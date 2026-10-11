@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { buildPrompt, DAILY_LIMIT, failureDetail, failureReason, handleImportAssist, toStatement, type ImportAssistDeps } from './handler.ts';
+import { buildPrompt, DAILY_LIMIT, failureDetail, failureReason, handleImportAssist, jsonFromText, toStatement, type ImportAssistDeps } from './handler.ts';
 
 const categories = ['Comida', 'Assinaturas', 'Outros'];
 const aiOutput = {
@@ -94,4 +94,15 @@ Deno.test('motivo da falha da IA', () => {
 Deno.test('prompt e validação sem dados', () => {
   assertStringIncludes(buildPrompt('t', 'account', ['A']).system, 'extratos de conta');
   assertEquals(toStatement(null, 'card', []), { kind: 'card', format: 'pdf', cardLast4s: [], lines: [] });
+});
+
+Deno.test('plano B: JSON no texto da resposta', () => {
+  assertEquals(jsonFromText('Aqui está:\n```json\n{"lines":[{"date":"2026-09-05"}]}\n```'), { lines: [{ date: '2026-09-05' }] });
+  assertEquals(jsonFromText('resultado {"issuer":"Nubank","lines":[]} fim'), { issuer: 'Nubank', lines: [] });
+  assertEquals(jsonFromText('não consegui ler'), null);
+  assertEquals(jsonFromText('{"sem":"linhas"}'), null);
+});
+
+Deno.test('prompt pede a ferramenta', () => {
+  assertStringIncludes(buildPrompt('t', 'card', ['A']).system, 'chamando a ferramenta registrar_fatura');
 });

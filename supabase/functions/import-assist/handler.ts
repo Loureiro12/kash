@@ -91,6 +91,7 @@ export function buildPrompt(text: string, kind: 'card' | 'account', categories: 
     '- description: copie o texto do estabelecimento como está, sem a cidade, sem o final do cartão e sem o "R$".',
     `- suggested_category: escolha exatamente uma destas ou deixe vazio: ${categories.join(', ')}.`,
     '- O texto já teve CPF, endereço e nome do titular removidos (aparece como TITULAR). Não invente linhas.',
+    '- Responda SEMPRE chamando a ferramenta registrar_fatura uma única vez, com todas as linhas. Não escreva texto fora dela.',
   ].join('\n');
   return { system, user: `Documento:\n\n${text}`, tool: STATEMENT_TOOL };
 }
@@ -125,6 +126,21 @@ export function failureDetail(message: string): string {
     }
   }
   return message.replace(/sk-ant-[\w-]+/g, '[chave]').slice(0, 200);
+}
+
+/** Primeiro objeto JSON com "lines" num texto (plano B quando o modelo não usa a ferramenta). */
+export function jsonFromText(text: string): Record<string, unknown> | null {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1];
+  const candidates = [fenced, text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)].filter((c): c is string => !!c && c.trim().startsWith('{'));
+  for (const c of candidates) {
+    try {
+      const obj = JSON.parse(c);
+      if (obj && typeof obj === 'object' && Array.isArray(obj.lines)) return obj;
+    } catch {
+      // tenta o próximo
+    }
+  }
+  return null;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;

@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { handleImportAssist } from './handler.ts';
+import { handleImportAssist, jsonFromText } from './handler.ts';
 
 const url = Deno.env.get('SUPABASE_URL')!;
 const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -33,7 +33,8 @@ Deno.serve((req) =>
             max_tokens: 8000,
             system,
             tools: [tool],
-            tool_choice: { type: 'tool', name: (tool as { name: string }).name },
+            // modelos atuais não aceitam forçar a ferramenta (tool/any): o prompt manda usar e o texto é plano B
+            tool_choice: { type: 'auto' },
             messages: [{ role: 'user', content: user }],
           });
           // uma nova tentativa quando a API está sobrecarregada ou limitando (429/529)
@@ -50,9 +51,14 @@ Deno.serve((req) =>
             }
             if (!res.ok) throw new Error(`anthropic ${res.status}: ${await res.text()}`);
             const data = await res.json();
+            const usage = { input_tokens: data.usage?.input_tokens ?? 0, output_tokens: data.usage?.output_tokens ?? 0 };
             const block = (data.content ?? []).find((c: { type: string }) => c.type === 'tool_use');
-            if (!block) throw new Error(`anthropic ${res.status}: resposta sem tool_use (stop_reason ${data.stop_reason})`);
-            return { input: block.input ?? {}, usage: { input_tokens: data.usage?.input_tokens ?? 0, output_tokens: data.usage?.output_tokens ?? 0 } };
+            if (block) return { input: block.input ?? {}, usage };
+            // sem a ferramenta: aproveita um JSON no texto, se houver
+            const text = (data.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n');
+            const parsed = jsonFromText(text);
+            if (parsed) return { input: parsed, usage };
+            throw new Error(`anthropic ${res.status}: resposta sem tool_use (stop_reason ${data.stop_reason})`);
           }
         }
       : null,
