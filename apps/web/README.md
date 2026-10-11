@@ -87,7 +87,9 @@ Modais: lançar gasto/entrada (parcelado 1–24x, compra antiga com "1ª parcela
   - fatura antiga traz só parcelamentos;
   - extrato de conta pode manter o saldo de hoje.
 - **Sem duplicar:** cada linha tem um `external_id` estável, e reimportar não cria nada de novo. Renomear ou mudar a categoria vira regra (`merchant_rules`) para as próximas importações.
-- **Desfazer:** a importação inteira pode ser desfeita, pelo resultado ou pelo histórico.
+- **Transferências no extrato:** "aplicação poupança", "mesma titularidade" ou Pix/TED para o próprio nome viram transferência para outra conta da pessoa (`looksLikeOwnTransfer`/`guessCounterpart`); sem pista da conta, a linha avisa "parece transferência" e a pessoa escolhe. Um gasto ou entrada de outra conta com o valor oposto e até 1 dia de diferença (3 com a pista no texto) vira a outra perna, em vez de criar uma nova. Perna que já existe na conta importada aparece como duplicada. Com "manter o saldo de hoje", as aberturas das duas contas são ajustadas (migração `20261017000000_import_transfers`).
+- **Revisão em lote e CSV lembrado:** "Categoria das marcadas" muda as saídas marcadas de uma seção de uma vez. As colunas indicadas num CSV desconhecido ficam salvas por "cara" do arquivo (`csvSignature`), no navegador.
+- **Desfazer:** a importação inteira pode ser desfeita, pelo resultado ou pelo histórico (inclusive as pernas criadas nas outras contas e os lançamentos que viraram transferência, que voltam ao que eram).
 
 **Primeiro acesso guiado.** Regras em `@kash/domain` (`onboardingStatus`); estado no perfil (`onboarding_done_at`, `checklist_hidden_at`; migração `onboarding`), então vale em qualquer navegador e o app pode adotar depois. Quem já tinha contas foi marcado como concluído na migração.
 

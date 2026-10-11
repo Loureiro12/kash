@@ -153,7 +153,7 @@ test.describe('importar fatura e extrato', () => {
     await page.getByTestId('import-row-0-title').fill('Max (streaming)');
     await expect(page.getByTestId('import-row-0')).toContainText('Dm*Streamingx - Parcela 2/12');
     await page.getByTestId('import-save').click();
-    await expect(page.getByTestId('import-done')).toContainText('2 parcelamentos criados');
+    await expect(page.getByTestId('import-done')).toContainText('2 parcelamentos no Kash');
 
     await page.goto('/app/cartoes');
     await expect(page.getByTestId('cards-plans')).toContainText('Max (streaming)');
@@ -218,6 +218,54 @@ test.describe('importar fatura e extrato', () => {
     await expect(page.getByTestId('accounts-total')).toHaveText('R$ 1.000,00');
     await page.goto('/app/lancamentos');
     await expect(page.getByTestId('tx-total-income')).toHaveText('+ R$ 3.000,00');
+  });
+
+  test('extrato com transferências entre as contas, categoria em lote e colunas do CSV lembradas', async ({ page }, info) => {
+    const { email, db } = await setup(info, 'imp-transfer');
+    const corrente = await createAccount(db, { name: 'Corrente', kind: 'Conta corrente', institution: '', balance: 1000, color: '#C6F432' });
+    const poupanca = await createAccount(db, { name: 'Poupança', kind: 'Poupança', institution: '', balance: 2000, color: '#5B8CFF' });
+    const nubank = await createAccount(db, { name: 'Nubank', kind: 'Conta corrente', institution: 'Nubank', balance: 300, color: '#9B5CF6' });
+    await login(page, email);
+    // cabeçalhos que o Kash não conhece: pede as colunas na primeira vez
+    const csv = ['Quando;Histórico;Quanto', `${br(thisMonth(2))};APLICACAO POUPANCA;-500,00`, `${br(thisMonth(3))};TED MESMA TITULARIDADE;300,00`, `${br(thisMonth(4))};PADARIA PAO BOM;-20,00`, `${br(thisMonth(5))};LANCHONETE X;-50,00`].join('\n');
+    await page.goto('/app/contas');
+    await page.getByTestId('accounts-import').click();
+    await page.getByTestId(`import-target-${corrente.id}`).click();
+    await page.getByTestId('import-file').setInputFiles({ name: 'extrato.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+    await page.getByTestId('import-read').click();
+    await expect(page.getByTestId('import-mapping')).toBeVisible();
+    await page.getByTestId('import-read').click();
+
+    // aplicação na poupança já vem como transferência; a TED pede a conta
+    const transfers = page.getByTestId('import-transfers');
+    await expect(transfers).toContainText('APLICACAO POUPANCA');
+    await expect(page.getByTestId('import-row-0-category')).toHaveValue(`t:${poupanca.id}`);
+    await expect(page.getByTestId('import-row-1')).toContainText('parece transferência');
+    await page.getByTestId('import-row-1-category').selectOption(`t:${nubank.id}`);
+    await expect(transfers).toContainText('TED MESMA TITULARIDADE');
+    // as duas saídas comuns ganham a mesma categoria de uma vez
+    await page.getByTestId('import-purchases-bulk-category').selectOption('Comida');
+    await expect(page.getByTestId('import-row-2-category')).toHaveValue('Comida');
+    await expect(page.getByTestId('import-row-3-category')).toHaveValue('Comida');
+    await expect(page.getByTestId('import-total')).toContainText('2 transferências e 2 lançamentos');
+    await page.getByTestId('import-save').click();
+    await expect(page.getByTestId('import-done')).toBeVisible();
+
+    // saldo de hoje mantido nas três contas; transferência não conta como gasto
+    await page.goto('/app/contas');
+    await expect(page.getByTestId('accounts-total')).toHaveText('R$ 3.300,00');
+    await expect(page.getByTestId(`account-${poupanca.id}`)).toContainText('R$ 2.000,00');
+    await page.goto('/app/lancamentos');
+    await expect(page.getByTestId('tx-total-spent')).toHaveText('− R$ 70,00');
+
+    // mesmo banco de novo: as colunas já vêm lidas
+    await page.goto('/app/contas');
+    await page.getByTestId('accounts-import').click();
+    await page.getByTestId(`import-target-${corrente.id}`).click();
+    await page.getByTestId('import-file').setInputFiles({ name: 'extrato2.csv', mimeType: 'text/csv', buffer: Buffer.from(['Quando;Histórico;Quanto', `${br(thisMonth(6))};FARMACIA;-30,00`].join('\n')) });
+    await page.getByTestId('import-read').click();
+    await expect(page.getByTestId('import-summary')).toBeVisible();
+    expect(await seriousA11y(page)).toEqual([]);
   });
 
   test('PDF: lê no navegador, manda só o texto limpo para a IA e confere os valores', async ({ page }, info) => {

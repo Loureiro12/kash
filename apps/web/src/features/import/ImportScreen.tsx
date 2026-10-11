@@ -3,9 +3,13 @@
 import { formatBRL, monthKey, monthKeyName } from '@kash/domain';
 import {
   amountInText,
+  applyRowEdit,
   buildImportPlan,
+  csvSignature,
   guessCsvMapping,
+  importCountsLabel,
   learnedRules,
+  mappingFits,
   parseCsv,
   parseOfx,
   readCsv,
@@ -17,6 +21,7 @@ import {
   type ImportMode,
   type ParsedStatement,
   type ReviewRow,
+  type RowEdit,
 } from '@kash/importers';
 import { listImports, listMerchantRules, readStatementWithAi, toKashError } from '@kash/supabase-client';
 import { useQuery } from '@tanstack/react-query';
@@ -37,9 +42,29 @@ import s from './import.module.css';
 type TargetType = 'card' | 'account';
 type Format = 'pdf' | 'ofx' | 'csv';
 type Step = 'file' | 'review' | 'done';
-type RowEdit = Partial<Pick<ReviewRow, 'title' | 'category' | 'include'>>;
 
 const AI_CONSENT_KEY = 'kash-ai-consent';
+/** colunas que a pessoa indicou para cada "cara" de CSV (só neste navegador) */
+const CSV_MAPPINGS_KEY = 'kash-csv-mappings';
+
+function savedCsvMapping(table: CsvTable): CsvMapping | null {
+  try {
+    const all = JSON.parse(localStorage.getItem(CSV_MAPPINGS_KEY) ?? '{}') as Record<string, CsvMapping>;
+    const m = all[csvSignature(table)];
+    return mappingFits(table, m) ? m : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberCsvMapping(table: CsvTable, mapping: CsvMapping) {
+  try {
+    const all = JSON.parse(localStorage.getItem(CSV_MAPPINGS_KEY) ?? '{}') as Record<string, CsvMapping>;
+    localStorage.setItem(CSV_MAPPINGS_KEY, JSON.stringify({ ...all, [csvSignature(table)]: mapping }));
+  } catch {
+    // sem armazenamento: pergunta de novo na próxima
+  }
+}
 const formatOf = (name: string): Format | null => (/\.pdf$/i.test(name) ? 'pdf' : /\.ofx$/i.test(name) ? 'ofx' : /\.(csv|txt)$/i.test(name) ? 'csv' : null);
 
 /** Importar fatura (cartão) ou extrato (conta): arquivo → revisão → pronto (com desfazer). */
@@ -78,7 +103,7 @@ export function ImportScreen() {
   const [keepBalance, setKeepBalance] = useState(true);
   const [edits, setEdits] = useState<Record<string, RowEdit>>({});
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{ id: string; txs: number; plans: number } | null>(null);
+  const [result, setResult] = useState<{ id: string; txs: number; plans: number; transfers: number } | null>(null);
   const cardsBefore = useRef(snap.cards.map((c) => c.id));
   const accountsBefore = useRef(snap.accounts.map((a) => a.id));
 
@@ -110,14 +135,29 @@ export function ImportScreen() {
 
   const plan = useMemo(() => {
     if (!statement || !targetId) return null;
-    return buildImportPlan({ statement, target: { type: targetType, id: targetId }, mode, today: now, statementMonth: month ?? undefined, categories, rules: rulesQuery.data ?? [], existing: { plans: snap.plans, txs: snap.txs } });
-  }, [statement, targetType, targetId, mode, month, now, categories, rulesQuery.data, snap.plans, snap.txs]);
+    return buildImportPlan({
+      statement,
+      target: { type: targetType, id: targetId },
+      mode,
+      today: now,
+      statementMonth: month ?? undefined,
+      categories,
+      rules: rulesQuery.data ?? [],
+      existing: { plans: snap.plans, txs: snap.txs },
+      accounts: snap.accounts,
+      ownNames: [snap.user.name],
+    });
+  }, [statement, targetType, targetId, mode, month, now, categories, rulesQuery.data, snap.plans, snap.txs, snap.accounts, snap.user.name]);
 
-  const rows = useMemo(() => (plan ? plan.rows.map((r) => ({ ...r, ...edits[r.key] })) : []), [plan, edits]);
+  const rows = useMemo(() => (plan ? plan.rows.map((r) => applyRowEdit(r, edits[r.key])) : []), [plan, edits]);
   const included = rows.filter((r) => r.include && r.section !== 'ignored');
-  const sum = included.reduce((a, r) => a + (r.section === 'income' ? r.amount : targetType === 'account' ? -r.amount : r.amount), 0);
+  const sum = included.reduce((a, r) => a + (targetType === 'account' ? (r.inflow ? r.amount : -r.amount) : r.amount), 0);
   const planCount = included.filter((r) => r.section === 'installment').length;
-  const txCount = included.length - planCount;
+  const transferCount = included.filter((r) => r.section === 'transfer').length;
+  const txCount = included.length - planCount - transferCount;
+  /** extrato: contas para onde a linha pode ser transferência */
+  const transferTargets = useMemo(() => (targetType === 'account' ? snap.accounts.filter((a) => a.id !== targetId).map((a) => ({ id: a.id, label: a.name })) : []), [targetType, targetId, snap.accounts]);
+  const accountNames = useMemo(() => Object.fromEntries(snap.accounts.map((a) => [a.id, a.name])), [snap.accounts]);
 
   const edit = (key: string, patch: RowEdit) => setEdits((e) => ({ ...e, [key]: { ...e[key], ...patch } }));
 
@@ -136,7 +176,7 @@ export function ImportScreen() {
         }
       } else if (format === 'csv') {
         const table = readCsv(text);
-        const mapping = csv?.table === table ? csv.mapping : guessCsvMapping(table, targetType);
+        const mapping = guessCsvMapping(table, targetType) ?? savedCsvMapping(table);
         if (!mapping) {
           setCsv({ table, mapping: { date: 0, description: 1, amount: 2, expensesArePositive: targetType === 'card' } });
           setNeedsMapping(true);
@@ -187,6 +227,7 @@ export function ImportScreen() {
       setError('Com essas colunas não encontramos lançamentos. Confira a coluna de data e de valor.');
       return;
     }
+    rememberCsvMapping(csv.table, csv.mapping);
     setNeedsMapping(false);
     setStatement(parsed);
     setEdits({});
@@ -200,7 +241,7 @@ export function ImportScreen() {
     const id = await actions.importStatement({ target: { type: targetType, id: targetId }, fileName: file.name, format, statementMonth: plan.statementMonth, items, keepBalance }, learnedRules(rows, plan.rows));
     setSaving(false);
     if (id) {
-      setResult({ id, txs: txCount, plans: planCount });
+      setResult({ id, txs: txCount, plans: planCount, transfers: transferCount });
       setStep('done');
     }
   };
@@ -218,6 +259,7 @@ export function ImportScreen() {
     setNeedsMapping(false);
   };
 
+  const outCategories = useMemo(() => [...categories, 'Fatura'], [categories]);
   const monthOptions = useMemo(() => Array.from({ length: 13 }, (_, i) => monthKey(new Date(now.getFullYear(), now.getMonth() - i, 1))), [now]);
 
   return (
@@ -398,15 +440,26 @@ export function ImportScreen() {
           </Card>
 
           <RowsSection title="Parcelamentos" rows={rows.filter((r) => r.section === 'installment')} categories={categories} sourceText={sourceText} onEdit={edit} testID="import-installments" />
-          <RowsSection title={targetType === 'card' ? 'Compras e encargos' : 'Saídas'} rows={rows.filter((r) => r.section === 'purchase')} categories={[...categories, ...(targetType === 'account' ? ['Fatura'] : [])]} sourceText={sourceText} onEdit={edit} testID="import-purchases" />
-          {targetType === 'account' ? <RowsSection title="Entradas" rows={rows.filter((r) => r.section === 'income')} categories={['Entrada']} sourceText={sourceText} onEdit={edit} testID="import-incomes" /> : null}
+          {targetType === 'account' ? (
+            <RowsSection
+              title="Transferências entre suas contas"
+              hint="Não contam como gasto nem entrada; a outra conta recebe o lado dela."
+              rows={rows.filter((r) => r.section === 'transfer')}
+              categories={outCategories}
+              transferTargets={transferTargets}
+              accountNames={accountNames}
+              sourceText={sourceText}
+              onEdit={edit}
+              testID="import-transfers"
+            />
+          ) : null}
+          <RowsSection title={targetType === 'card' ? 'Compras e encargos' : 'Saídas'} rows={rows.filter((r) => r.section === 'purchase')} categories={targetType === 'account' ? outCategories : categories} transferTargets={transferTargets} accountNames={accountNames} sourceText={sourceText} onEdit={edit} testID="import-purchases" />
+          {targetType === 'account' ? <RowsSection title="Entradas" rows={rows.filter((r) => r.section === 'income')} categories={outCategories} transferTargets={transferTargets} accountNames={accountNames} sourceText={sourceText} onEdit={edit} testID="import-incomes" /> : null}
           <Ignored rows={rows.filter((r) => r.section === 'ignored')} />
 
           <div className={s.footer}>
             <span className={s.footerText} data-testid="import-total">
-              {planCount ? `${planCount} ${planCount === 1 ? 'parcelamento' : 'parcelamentos'}` : ''}
-              {planCount && txCount ? ' e ' : ''}
-              {txCount ? `${txCount} ${txCount === 1 ? 'lançamento' : 'lançamentos'}` : ''}
+              {importCountsLabel({ plans: planCount, txs: txCount, transfers: transferCount })}
               {included.length ? ` · ${formatBRL(Math.abs(sum))}` : 'Nada selecionado'}
             </span>
             <Button variant="secondary" size="md" onClick={restart} testID="import-cancel">
@@ -423,9 +476,7 @@ export function ImportScreen() {
         <Card className={s.done} testID="import-done">
           <h2 className={uiStyles.cardTitle}>Importação concluída</h2>
           <p className={uiStyles.hint}>
-            {result.plans ? `${result.plans} ${result.plans === 1 ? 'parcelamento criado' : 'parcelamentos criados'}` : ''}
-            {result.plans && result.txs ? ' e ' : ''}
-            {result.txs ? `${result.txs} ${result.txs === 1 ? 'lançamento' : 'lançamentos'}` : ''}. Os nomes que você mudou viram regra para as próximas importações.
+            {importCountsLabel(result)} no Kash. Os nomes que você mudou viram regra para as próximas importações.
           </p>
           <div className={s.doneActions}>
             <Link href={targetType === 'card' ? routes.cards : routes.accounts} className={`${uiStyles.btn} ${uiStyles.primary} ${uiStyles.md}`} onClick={() => targetType === 'card' && useUi.getState().selectCard(targetId)}>
@@ -452,19 +503,68 @@ export function ImportScreen() {
   );
 }
 
-function RowsSection({ title, rows, categories, sourceText, onEdit, testID }: { title: string; rows: ReviewRow[]; categories: string[]; sourceText: string; onEdit: (key: string, patch: RowEdit) => void; testID: string }) {
+const BULK_NONE = '';
+
+function RowsSection({
+  title,
+  hint,
+  rows,
+  categories,
+  transferTargets = [],
+  accountNames = {},
+  sourceText,
+  onEdit,
+  testID,
+}: {
+  title: string;
+  hint?: string;
+  rows: ReviewRow[];
+  categories: string[];
+  transferTargets?: { id: string; label: string }[];
+  accountNames?: Record<string, string>;
+  sourceText: string;
+  onEdit: (key: string, patch: RowEdit) => void;
+  testID: string;
+}) {
   if (rows.length === 0) return null;
   const selected = rows.filter((r) => r.include).length;
+  const marked = rows.filter((r) => r.include);
+  const isAccount = transferTargets.length > 0 || rows.some((r) => r.inflow !== undefined);
+  // categoria em lote: só para saídas (entrada é sempre "Entrada"; transferência não tem categoria)
+  const bulkCategories = marked.some((r) => !r.inflow && r.section !== 'transfer') && categories.length > 1;
   return (
     <Card list testID={testID}>
       <div className={uiStyles.cardHead}>
         <h2 className={uiStyles.cardTitle}>
           {title} <span className={uiStyles.hint}>({selected} de {rows.length})</span>
         </h2>
-        <button type="button" className={`${uiStyles.btn} ${uiStyles.link}`} onClick={() => rows.forEach((r) => onEdit(r.key, { include: selected < rows.length }))}>
-          {selected < rows.length ? 'Marcar todos' : 'Desmarcar todos'}
-        </button>
+        <span className={s.headActions}>
+          {bulkCategories ? (
+            <select
+              className={`${uiStyles.input} ${s.category}`}
+              value={BULK_NONE}
+              onChange={(e) => {
+                const category = e.target.value;
+                if (!category) return;
+                for (const r of marked) if (!r.inflow && r.section !== 'transfer') onEdit(r.key, { category });
+              }}
+              aria-label={`Categoria para as marcadas em ${title}`}
+              data-testid={`${testID}-bulk-category`}
+            >
+              <option value={BULK_NONE}>Categoria das marcadas…</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <button type="button" className={`${uiStyles.btn} ${uiStyles.link}`} onClick={() => rows.forEach((r) => onEdit(r.key, { include: selected < rows.length }))}>
+            {selected < rows.length ? 'Marcar todos' : 'Desmarcar todos'}
+          </button>
+        </span>
       </div>
+      {hint ? <p className={`${uiStyles.hint} ${s.sectionHint}`}>{hint}</p> : null}
       <ul className={s.rows}>
         {rows.map((r) => {
           const check = sourceText && !amountInText(r.amount, sourceText);
@@ -482,14 +582,46 @@ function RowsSection({ title, rows, categories, sourceText, onEdit, testID }: { 
                       {r.installment.currentNow}/{r.installment.total} agora · {r.installment.remaining === 1 ? 'última' : `faltam ${r.installment.remaining} até ${r.installment.lastMonth}`}
                     </Badge>
                   ) : null}
-                  {r.duplicate ? <Badge tone="neg">possível duplicado</Badge> : null}
+                  {r.duplicate ? <Badge tone="neg">{r.duplicateNote ?? 'possível duplicado'}</Badge> : null}
+                  {r.section === 'transfer' && r.transfer?.linkTxId ? (
+                    <Badge tone="pos">
+                      junta com {r.inflow ? 'a saída' : 'a entrada'} de {accountNames[r.transfer.accountId ?? ''] ?? 'outra conta'} em {r.transfer.linkDate?.split('-').reverse().slice(0, 2).join('/')}
+                    </Badge>
+                  ) : null}
+                  {r.section !== 'transfer' && r.transfer && !r.transfer.accountId ? <Badge>parece transferência: escolha a conta</Badge> : null}
                   {check ? <Badge tone="neg">conferir valor</Badge> : null}
                 </div>
               </div>
               <div className={s.rowSide}>
                 <span className={s.amount}>{formatBRL(r.amount)}</span>
                 <span className={uiStyles.hint}>{r.kashDate.split('-').reverse().join('/')}</span>
-                {categories.length > 1 ? (
+                {isAccount ? (
+                  <select
+                    className={`${uiStyles.input} ${s.category}`}
+                    value={r.section === 'transfer' && r.transfer?.accountId ? `t:${r.transfer.accountId}` : r.category}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      onEdit(r.key, v.startsWith('t:') ? { transferAccountId: v.slice(2) } : { transferAccountId: null, category: v });
+                    }}
+                    aria-label={`Categoria de ${r.originalTitle}`}
+                    data-testid={`import-row-${r.key}-category`}
+                  >
+                    {(r.inflow ? ['Entrada'] : categories).map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                    {transferTargets.length ? (
+                      <optgroup label="Transferência entre suas contas">
+                        {transferTargets.map((t) => (
+                          <option key={t.id} value={`t:${t.id}`}>
+                            {r.inflow ? `⇄ Veio de ${t.label}` : `⇄ Para ${t.label}`}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : null}
+                  </select>
+                ) : categories.length > 1 ? (
                   <select className={`${uiStyles.input} ${s.category}`} value={r.category} onChange={(e) => onEdit(r.key, { category: e.target.value })} aria-label={`Categoria de ${r.originalTitle}`} data-testid={`import-row-${r.key}-category`}>
                     {categories.map((c) => (
                       <option key={c} value={c}>

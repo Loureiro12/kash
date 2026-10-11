@@ -246,3 +246,14 @@
   border-radius: 16px;
   background: var(--surface2);
 }
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.sectionHint {
+  margin: -6px 0 4px;
+}
