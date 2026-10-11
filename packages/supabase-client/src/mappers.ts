@@ -106,6 +106,7 @@ export function toSettings(row: ProfileRow): Settings {
     onboardingDone: row.onboarding_done_at != null,
     checklistHidden: row.checklist_hidden_at != null,
     monthlyBudget: num(row.monthly_budget),
+    cardBudget: num(row.card_budget),
     biometrics: row.biometrics,
     currency: 'BRL',
   };

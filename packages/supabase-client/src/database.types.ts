@@ -504,6 +504,7 @@ export type Database = {
         Row: {
           bill_reminder: boolean;
           biometrics: boolean;
+          card_budget: number;
           checklist_hidden_at: string | null;
           created_at: string;
           currency: string;
@@ -522,6 +523,7 @@ export type Database = {
         Insert: {
           bill_reminder?: boolean;
           biometrics?: boolean;
+          card_budget?: number;
           checklist_hidden_at?: string | null;
           created_at?: string;
           currency?: string;
@@ -539,6 +541,7 @@ export type Database = {
         Update: {
           bill_reminder?: boolean;
           biometrics?: boolean;
+          card_budget?: number;
           checklist_hidden_at?: string | null;
           created_at?: string;
           currency?: string;

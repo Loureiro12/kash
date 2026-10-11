@@ -15,12 +15,12 @@ describe('perfil', () => {
   it('nasce com o nome do cadastro e aceita atualizações', async () => {
     const p = await getProfile(u.db);
     expect(p.user).toMatchObject({ name: 'Lara', email: u.email });
-    expect(p.settings).toMatchObject({ theme: 'dark', monthlyBudget: 1800, currency: 'BRL' });
+    expect(p.settings).toMatchObject({ theme: 'dark', monthlyBudget: 1800, cardBudget: 0, currency: 'BRL' });
     await updateUser(u.db, { name: 'Lara M.', phone: '11 9' });
-    await updateSettings(u.db, { theme: 'light', monthlyBudget: 2000 });
+    await updateSettings(u.db, { theme: 'light', monthlyBudget: 2000, cardBudget: 1200 });
     const after = await getProfile(u.db);
     expect(after.user).toMatchObject({ name: 'Lara M.', phone: '11 9' });
-    expect(after.settings).toMatchObject({ theme: 'light', monthlyBudget: 2000 });
+    expect(after.settings).toMatchObject({ theme: 'light', monthlyBudget: 2000, cardBudget: 1200 });
     expect(await ensureRollover(u.db)).toBe(0);
   });
 });

@@ -139,7 +139,10 @@ export interface Settings {
   onboardingDone: boolean;
   /** escondeu o card "Primeiros passos" do Início */
   checklistHidden: boolean;
+  /** limite do mês (total). Dividido: cartão + restante */
   monthlyBudget: number;
+  /** parte do limite para os cartões de crédito (fatura do mês); 0 = limite não dividido */
+  cardBudget: number;
   /** entrar com Face ID / Touch ID */
   biometrics: boolean;
   /** código ISO da moeda de exibição (só BRL nesta fase) */
