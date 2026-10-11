@@ -1,9 +1,10 @@
 import type { Plan, Tx } from '@kash/domain';
-import { guessCsvMapping, parseBrDate, parseBrNumber, parseCsv, readCsv } from '../csv';
+import { csvSignature, guessCsvMapping, mappingFits, parseBrDate, parseBrNumber, parseCsv, readCsv } from '../csv';
 import { amountInText, classifyLine, detectInstallment, guessCategory, normalizeMerchant, stableId, suggestTitle } from '../normalize';
 import { parseOfx } from '../ofx';
-import { buildImportPlan, learnedRules, statementMonthOf, toAccountItems, toCardItems, type ImportPlanInput } from '../plan';
+import { applyRowEdit, buildImportPlan, learnedRules, statementMonthOf, toAccountItems, toCardItems, type ImportPlanInput } from '../plan';
 import { redactStatementText } from '../redact';
+import { guessCounterpart, looksLikeOwnTransfer } from '../transfers';
 import type { ParsedStatement } from '../types';
 
 const today = new Date(2026, 9, 10, 10); // 10 out 2026
@@ -287,6 +288,100 @@ describe('revisão do extrato da conta', () => {
     ]);
     expect(toAccountItems(plan.rows).map((i) => i.amount)).toEqual([3000, -558.95, -120]);
     expect(plan.check.included).toBe(2321.05);
+  });
+});
+
+describe('transferência entre as próprias contas no extrato', () => {
+  const accounts = [
+    { id: 'acc1', name: 'Conta corrente', kind: 'Conta corrente · Itaú' },
+    { id: 'acc2', name: 'Poupança', kind: 'Poupança · Itaú' },
+    { id: 'acc3', name: 'Nubank', kind: 'Banco digital' },
+  ];
+  const lines = (...l: ParsedStatement['lines']): ParsedStatement => ({ kind: 'account', format: 'csv', cardLast4s: [], lines: l });
+  const tx = (over: Partial<Tx>): Tx => ({ id: 't', title: 'x', category: 'Entrada', amount: 0, date: '2026-10-05', sourceId: 'acc2', ...over });
+
+  it('pelo texto: aplicação na poupança, mesma titularidade e Pix para o próprio nome', () => {
+    expect(looksLikeOwnTransfer('APLICACAO POUPANCA')).toBe(true);
+    expect(looksLikeOwnTransfer('TED MESMA TITULARIDADE')).toBe(true);
+    expect(looksLikeOwnTransfer('PIX TRANSF ANDRE L 05/10', ['André Loureiro Gonçalves'])).toBe(true);
+    expect(looksLikeOwnTransfer('PIX ENVIADO ANDRE SOUZA', ['André Loureiro'])).toBe(false);
+    expect(looksLikeOwnTransfer('PIX ENVIADO MERCADO BOM')).toBe(false);
+    expect(looksLikeOwnTransfer('Pagamento fatura cartão')).toBe(false);
+  });
+
+  it('conta do outro lado pelo texto; sem pista e com várias contas, a pessoa escolhe', () => {
+    const others = accounts.filter((a) => a.id !== 'acc1');
+    expect(guessCounterpart('APLICACAO POUPANCA', others)).toBe('acc2');
+    expect(guessCounterpart('PIX TRANSF NUBANK ANDRE', others)).toBe('acc3');
+    expect(guessCounterpart('TED MESMA TITULARIDADE', others)).toBeNull();
+    expect(guessCounterpart('TED MESMA TITULARIDADE', others.slice(0, 1))).toBe('acc2');
+  });
+
+  it('sugere transferência; o outro lado já lançado vira a outra perna; perna já importada é duplicado', () => {
+    const plan = buildImportPlan(
+      base({
+        target: { type: 'account', id: 'acc1' },
+        accounts,
+        ownNames: ['André Loureiro'],
+        statement: lines(
+          { date: '2026-10-05', description: 'APLICACAO POUPANCA', amount: 500, kind: 'purchase' },
+          { date: '2026-10-06', description: 'PIX ENVIADO JOAO', amount: 200, kind: 'purchase' },
+          { date: '2026-10-07', description: 'TED MESMA TITULARIDADE', amount: -300, kind: 'income' },
+          { date: '2026-10-08', description: 'RESGATE CDB', amount: -100, kind: 'income' },
+          { date: '2026-10-09', description: 'SUPERMERCADO', amount: 80, kind: 'purchase' },
+        ),
+        existing: {
+          plans: [],
+          txs: [
+            // entrada de R$ 200 na Nubank um dia depois: o Pix "para o João" é, na verdade, outra conta da pessoa
+            tx({ id: 'nu-in', sourceId: 'acc3', amount: 200, date: '2026-10-07' }),
+            // transferência da poupança para a corrente já registrada (perna da corrente existe)
+            tx({ id: 'leg', sourceId: 'acc1', amount: 100, date: '2026-10-09', category: 'Transferência', transferId: 'tr1' }),
+          ],
+        },
+      }),
+    );
+    expect(plan.rows.map((r) => [r.section, r.transfer?.accountId ?? null, r.transfer?.linkTxId ?? null, r.include])).toEqual([
+      ['transfer', 'acc2', null, true],
+      ['transfer', 'acc3', 'nu-in', true],
+      ['income', null, null, true],
+      ['income', null, null, false],
+      ['purchase', null, null, true],
+    ]);
+    expect(plan.rows[3]!.duplicateNote).toBe('já está no Kash como transferência');
+
+    const items = toAccountItems(plan.rows);
+    expect(items[0]).toMatchObject({ type: 'transfer', amount: -500, counterpart_account_id: 'acc2', category: 'Transferência' });
+    expect(items[1]).toMatchObject({ type: 'transfer', amount: -200, counterpart_account_id: 'acc3', link_tx_id: 'nu-in' });
+    expect(items[2]).toMatchObject({ type: 'tx', amount: 300, category: 'Entrada' });
+  });
+
+  it('a pessoa escolhe a conta, troca ou desfaz a transferência', () => {
+    const plan = buildImportPlan(base({ target: { type: 'account', id: 'acc1' }, accounts, statement: lines({ date: '2026-10-07', description: 'TED MESMA TITULARIDADE', amount: -300, kind: 'income' }) }));
+    const row = plan.rows[0]!;
+    expect(row.transfer).toEqual({ accountId: null });
+    const chosen = applyRowEdit(row, { transferAccountId: 'acc3' });
+    expect([chosen.section, chosen.transfer?.accountId]).toEqual(['transfer', 'acc3']);
+    const undone = applyRowEdit(row, { transferAccountId: null });
+    expect([undone.section, undone.category, undone.transfer]).toEqual(['income', 'Entrada', undefined]);
+    // renomear a transferência ensina só o nome
+    expect(learnedRules([applyRowEdit(row, { transferAccountId: 'acc3', title: 'Da Nubank' })], plan.rows)).toEqual([{ pattern: row.pattern, title: 'Da Nubank', category: null }]);
+  });
+
+  it('com uma conta só, nada vira transferência', () => {
+    const plan = buildImportPlan(base({ target: { type: 'account', id: 'acc1' }, accounts: accounts.slice(0, 1), statement: lines({ date: '2026-10-05', description: 'APLICACAO POUPANCA', amount: 500, kind: 'purchase' }) }));
+    expect([plan.rows[0]!.section, plan.rows[0]!.transfer]).toEqual(['purchase', undefined]);
+  });
+});
+
+describe('CSV: lembrar as colunas do banco', () => {
+  it('mesma cara de arquivo, mesma assinatura; mapeamento salvo só serve se as colunas existem', () => {
+    const a = readCsv('Quando;Histórico;Quanto\n01/10/2026;Padaria;-10,00');
+    const b = readCsv('quando;historico;QUANTO\n02/10/2026;Mercado;-20,00');
+    expect(csvSignature(a)).toBe(csvSignature(b));
+    expect(csvSignature(a)).not.toBe(csvSignature(readCsv('a,b,c\n1,2,3')));
+    expect(mappingFits(a, { date: 0, description: 1, amount: 2, expensesArePositive: false })).toBe(true);
+    expect(mappingFits(a, { date: 0, description: 1, amount: 5, expensesArePositive: false })).toBe(false);
   });
 });
 

@@ -1,11 +1,12 @@
 import { monthKey, monthKeyName, monthKeyToDate, monthsBetween, round2, toISODate, type Plan, type Tx } from '@kash/domain';
 import { detectInstallment, guessCategory, normalizeMerchant, stableId, suggestTitle } from './normalize';
+import { daysApart, guessCounterpart, looksLikeOwnTransfer } from './transfers';
 import type { ParsedLine, ParsedStatement } from './types';
 
 /** 'installments' = só os parcelamentos; 'all' = parcelamentos e compras à vista da fatura */
 export type ImportMode = 'installments' | 'all';
 
-export type RowSection = 'installment' | 'purchase' | 'income' | 'ignored';
+export type RowSection = 'installment' | 'purchase' | 'income' | 'transfer' | 'ignored';
 
 export interface MerchantRule {
   pattern: string;
@@ -48,7 +49,34 @@ export interface ReviewRow {
   pastDate?: string;
   /** parece já existir no Kash (lançado à mão antes): começa desmarcado */
   duplicate: boolean;
+  /** por que parece duplicado, quando não é o caso comum (ex.: já entrou como transferência) */
+  duplicateNote?: string;
   externalId: string;
+  /** extrato: dinheiro entrando na conta (senão, saindo) */
+  inflow?: boolean;
+  /**
+   * extrato: transferência com outra conta da pessoa. `accountId` null = parece transferência, mas
+   * falta escolher a conta (a linha segue como gasto/entrada até lá). `linkTxId`: o outro lado já
+   * está no Kash (lançado à mão ou importado antes) e vira a outra perna, em vez de criar uma nova.
+   */
+  transfer?: { accountId: string | null; linkTxId?: string; linkDate?: string };
+}
+
+/** O que a pessoa mudou numa linha da revisão. `transferAccountId`: '' / null desfaz a transferência. */
+export type RowEdit = Partial<Pick<ReviewRow, 'title' | 'category' | 'include'>> & { transferAccountId?: string | null };
+
+/** Linha com as mudanças da pessoa (inclusive virar ou deixar de ser transferência). */
+export function applyRowEdit(row: ReviewRow, edit: RowEdit | undefined): ReviewRow {
+  if (!edit) return row;
+  const { transferAccountId, ...rest } = edit;
+  const next: ReviewRow = { ...row, ...rest };
+  if (transferAccountId === undefined) return next;
+  if (!transferAccountId) {
+    const { transfer: _drop, ...plain } = next;
+    return { ...plain, section: row.inflow ? 'income' : 'purchase' };
+  }
+  const keepLink = row.transfer?.accountId === transferAccountId && row.transfer.linkTxId;
+  return { ...next, section: 'transfer', transfer: keepLink ? { ...row.transfer!, accountId: transferAccountId } : { accountId: transferAccountId } };
 }
 
 export interface ImportPlanInput {
@@ -61,6 +89,10 @@ export interface ImportPlanInput {
   categories: readonly string[];
   rules: readonly MerchantRule[];
   existing: { plans: readonly Plan[]; txs: readonly Tx[] };
+  /** extrato: contas da pessoa (para achar transferências entre elas) */
+  accounts?: readonly { id: string; name: string; kind: string }[];
+  /** extrato: nome do titular (Pix/TED para o próprio nome é transferência) */
+  ownNames?: readonly string[];
 }
 
 export interface ImportPlan {
@@ -125,16 +157,32 @@ export function buildImportPlan(input: ImportPlanInput): ImportPlan {
   };
 
   if (target.type === 'account') {
+    const others = (input.accounts ?? []).filter((a) => a.id !== target.id);
+    const otherIds = new Set(others.map((a) => a.id));
+    const usedLinks = new Set<string>();
     statement.lines.forEach((line, i) => {
       const { pattern, title, category } = nameAndCategory(line, rules, categories, fallback);
       const amount = Math.abs(line.amount);
       const isIncome = line.amount < 0;
+      /** valor como fica na conta importada: entrada +, saída − */
+      const signed = isIncome ? amount : -amount;
       const externalId = line.bankId ? `ofx:${line.bankId}` : stableId(occurrence(`acc|${line.date}|${pattern}|${line.amount}`));
-      const duplicate = existing.txs.some((t) => t.sourceId === target.id && t.date === line.date && Math.abs(Math.abs(t.amount) - amount) < 0.005 && Math.sign(t.amount) === (isIncome ? 1 : -1));
       const ignore = line.kind === 'ignore';
+      const hint = !ignore && looksLikeOwnTransfer(line.description, input.ownNames);
+      // esta perna já entrou como transferência (ex.: importando antes o extrato da outra conta)
+      const transferLeg = existing.txs.some((t) => t.sourceId === target.id && t.transferId && Math.abs(t.amount - signed) < 0.005 && daysApart(t.date, line.date) <= 3);
+      const duplicate = transferLeg || existing.txs.some((t) => t.sourceId === target.id && t.date === line.date && Math.abs(Math.abs(t.amount) - amount) < 0.005 && Math.sign(t.amount) === (isIncome ? 1 : -1));
+      // o outro lado já está no Kash como gasto/entrada comum de outra conta: vira a outra perna
+      const link = ignore || duplicate
+        ? undefined
+        : existing.txs
+            .filter((t) => otherIds.has(t.sourceId) && !t.transferId && !t.planId && t.category !== 'Transferência' && !usedLinks.has(t.id) && Math.abs(t.amount + signed) < 0.005 && daysApart(t.date, line.date) <= (hint ? 3 : 1))
+            .sort((a, b) => daysApart(a.date, line.date) - daysApart(b.date, line.date))[0];
+      if (link) usedLinks.add(link.id);
+      const transfer = link ? { accountId: link.sourceId, linkTxId: link.id, linkDate: link.date } : hint && !duplicate ? { accountId: guessCounterpart(line.description, others) } : undefined;
       rows.push({
         key: String(i),
-        section: ignore ? 'ignored' : isIncome ? 'income' : 'purchase',
+        section: ignore ? 'ignored' : transfer?.accountId ? 'transfer' : isIncome ? 'income' : 'purchase',
         ...(ignore ? { reason: 'Não é um lançamento' } : {}),
         include: !ignore && !duplicate,
         selectable: !ignore,
@@ -146,10 +194,13 @@ export function buildImportPlan(input: ImportPlanInput): ImportPlan {
         amount,
         pattern,
         duplicate,
+        ...(transferLeg ? { duplicateNote: 'já está no Kash como transferência' } : {}),
         externalId,
+        inflow: isIncome,
+        ...(transfer && others.length ? { transfer } : {}),
       });
     });
-    const included = round2(rows.filter((r) => r.include).reduce((a, r) => a + (r.section === 'income' ? r.amount : -r.amount), 0));
+    const included = round2(rows.filter((r) => r.include && r.section !== 'ignored').reduce((a, r) => a + (r.inflow ? r.amount : -r.amount), 0));
     return { rows, statementMonth: null, allowAll: true, mode: 'all', check: { included, statementTotal: null } };
   }
 
@@ -244,7 +295,13 @@ export function toCardItems(rows: readonly ReviewRow[]) {
 export function toAccountItems(rows: readonly ReviewRow[]) {
   return rows
     .filter((r) => r.include && r.section !== 'ignored')
-    .map((r) => ({ title: r.title.trim() || r.originalTitle, original_title: r.originalTitle, category: r.category, amount: r.section === 'income' ? r.amount : -r.amount, date: r.kashDate, external_id: r.externalId }));
+    .map((r) => {
+      const common = { title: r.title.trim() || r.originalTitle, original_title: r.originalTitle, amount: r.inflow ?? r.section === 'income' ? r.amount : -r.amount, date: r.kashDate, external_id: r.externalId };
+      if (r.section === 'transfer' && r.transfer?.accountId) {
+        return { type: 'transfer' as const, ...common, category: 'Transferência', counterpart_account_id: r.transfer.accountId, ...(r.transfer.linkTxId ? { link_tx_id: r.transfer.linkTxId } : {}) };
+      }
+      return { type: 'tx' as const, ...common, category: r.category };
+    });
 }
 
 /** Regras novas: o que a pessoa renomeou ou recategorizou em relação à sugestão automática. */
@@ -254,9 +311,21 @@ export function learnedRules(rows: readonly ReviewRow[], suggested: readonly Rev
   for (const r of rows) {
     const before = byKey.get(r.key);
     if (!r.include || !before || !r.pattern) continue;
-    if (r.title.trim() !== before.title || r.category !== before.category) {
-      out.set(r.pattern, { pattern: r.pattern, title: r.title.trim() || before.title, category: r.section === 'income' ? null : r.category });
+    // transferência: só o nome vira regra (a conta do outro lado sai do texto a cada importação)
+    const categoryChanged = r.section !== 'transfer' && before.section !== 'transfer' && r.category !== before.category;
+    if (r.title.trim() !== before.title || categoryChanged) {
+      out.set(r.pattern, { pattern: r.pattern, title: r.title.trim() || before.title, category: r.section === 'income' || r.section === 'transfer' ? null : r.category });
     }
   }
   return [...out.values()];
+}
+
+/** "2 parcelamentos, 3 transferências e 5 lançamentos" (resumo da revisão e do fim da importação) */
+export function importCountsLabel({ plans, txs, transfers = 0 }: { plans: number; txs: number; transfers?: number }): string {
+  const parts = [
+    plans ? `${plans} ${plans === 1 ? 'parcelamento' : 'parcelamentos'}` : '',
+    transfers ? `${transfers} ${transfers === 1 ? 'transferência' : 'transferências'}` : '',
+    txs ? `${txs} ${txs === 1 ? 'lançamento' : 'lançamentos'}` : '',
+  ].filter(Boolean);
+  return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} e ${parts.at(-1)}` : (parts[0] ?? '');
 }

@@ -109,3 +109,19 @@ export function parseCsv(table: CsvTable, mapping: CsvMapping, kind: 'card' | 'a
   }
   return { kind, format: 'csv', cardLast4s: [], lines };
 }
+
+/**
+ * "Cara" do CSV de um banco (cabeçalhos e separador), para lembrar as colunas que a pessoa indicou:
+ * o próximo arquivo do mesmo banco já vem lido.
+ */
+export function csvSignature(table: CsvTable): string {
+  const headers = table.headers.map((h) => h.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim());
+  return `${table.delimiter}|${headers.length}|${headers.join('|')}`;
+}
+
+/** Mapeamento salvo serve para esta tabela? (colunas existem) */
+export function mappingFits(table: CsvTable, mapping: CsvMapping | null | undefined): mapping is CsvMapping {
+  if (!mapping) return false;
+  const n = table.headers.length;
+  return [mapping.date, mapping.description, mapping.amount].every((i) => Number.isInteger(i) && i >= 0 && i < n);
+}
