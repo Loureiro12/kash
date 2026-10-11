@@ -1,0 +1,80 @@
+appId: ${APP_ID}
+name: Limite dividido — cartão e restante, com as duas metas no Início
+---
+- runFlow: ../subflows/login.yaml
+- tapOn:
+    id: "home-avatar"
+- tapOn:
+    id: "profile-budget"
+- assertVisible:
+    id: "budget-screen"
+- tapOn:
+    id: "budget-split-switch"
+# dividir começa com tudo no restante; sem valor no cartão não salva
+- assertVisible:
+    id: "budget-rest-amount"
+    text: "R\\$ 1.800,00"
+# cartão: R$ 1.300,00 (digitado em centavos); o teclado fica no fim da tela
+- scrollUntilVisible:
+    element:
+      id: "key-00"
+    direction: DOWN
+- tapOn:
+    id: "key-1"
+- tapOn:
+    id: "key-3"
+- tapOn:
+    id: "key-0"
+- tapOn:
+    id: "key-0"
+- tapOn:
+    id: "key-00"
+# restante: R$ 1.800,00 → R$ 500,00
+- scrollUntilVisible:
+    element:
+      id: "budget-field-rest"
+    direction: UP
+- tapOn:
+    id: "budget-field-rest"
+- scrollUntilVisible:
+    element:
+      id: "key-00"
+    direction: DOWN
+- repeat:
+    times: 6
+    commands:
+      - tapOn:
+          id: "key-del"
+- tapOn:
+    id: "key-5"
+- tapOn:
+    id: "key-0"
+- tapOn:
+    id: "key-0"
+- tapOn:
+    id: "key-00"
+- scrollUntilVisible:
+    element:
+      id: "budget-total"
+    direction: UP
+- assertVisible:
+    id: "budget-total"
+    text: "Total do mês: R\\$ 1.800,00"
+- scrollUntilVisible:
+    element:
+      id: "budget-save"
+    direction: DOWN
+- tapOn:
+    id: "budget-save"
+- assertVisible: "Limite: R\\$ 1.300,00 no cartão \\+ R\\$ 500,00 no restante"
+- tapOn:
+    id: "profile-back"
+- extendedWaitUntil:
+    visible:
+      id: "home-budget-split"
+    timeout: 8000
+- assertVisible:
+    id: "home-budget-card-part"
+- assertVisible:
+    id: "home-budget-rest-part"
+- takeScreenshot: budget-split-home

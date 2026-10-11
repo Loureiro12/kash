@@ -22,6 +22,7 @@ Base: builds 1.0.1 (iOS 6, Android 3), feitos no commit `9ea8010`.
   - **Abrir com o Kash**: no app do banco ou no e-mail, "Compartilhar/Abrir em…" › Kash abre a importação com o arquivo já escolhido (PDF, OFX e CSV; iOS e Android).
   - Novas dependências nativas (`expo-document-picker`, `react-native-webview`) e tipos de documento no `app.json`: exige build novo, não vai por OTA.
   - Privacidade no app ganhou a seção "Importação com IA (opcional)".
+- **Limite mensal dividido** (Perfil › Limite mensal › "Separar cartão e o restante"): uma meta para a fatura do mês dos cartões e outra para débito, Pix e dinheiro; o total é a soma. O Início mostra as duas barras. Pagar a fatura pela conta não conta no restante (a compra já está no cartão). Mesma configuração da web (migração `20261018000000_card_budget`). A tela do limite ficou sem a barra de abas, para o teclado caber inteiro.
 - O texto do lembrete push passou a "Notificação 2 dias antes do vencimento", para diferenciar do e-mail.
 - **Correção:** Perfil e Ajuda mostravam "1.0.0" fixo; agora mostram a versão real do app.
 
@@ -33,6 +34,7 @@ Base: builds 1.0.1 (iOS 6, Android 3), feitos no commit `9ea8010`.
 > • Tempo real: o que você lança no computador aparece no celular na hora (e vice-versa).
 > • Lembrete por e-mail: ligue em Perfil › Preferências e receba às 9h as contas e faturas que vencem em 2 dias.
 > • Importe a fatura do cartão (PDF, mesmo com senha) ou o extrato da conta (OFX/CSV): revise, renomeie e traga as parcelas em aberto sem digitar nada.
+> • Limite separado para o cartão e para o resto (débito, Pix, dinheiro), sem contar o pagamento da fatura duas vezes.
 > • Relatório mais fiel: o gráfico dos últimos meses agora usa os seus lançamentos de verdade.
 > • Use o Kash também no computador: www.kash.app.br (mesma conta, mesmos dados).
 > • Pequenas correções.

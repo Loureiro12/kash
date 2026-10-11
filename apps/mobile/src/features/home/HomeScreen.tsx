@@ -15,7 +15,7 @@ import {
   staticColors,
   useTheme,
 } from '@/design-system';
-import { forecastHeights, formatBRL, greetingFor } from '@kash/domain';
+import { forecastHeights, formatBRL, greetingFor, type BudgetPart } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useForecast, useHomeSummary, useKashStore, useMoney, useOpenInvoices, useRecentTxs, useUpcomingBills } from '@/store';
 import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
@@ -105,6 +105,12 @@ export function HomeScreen() {
         <Text variant="chip" color={staticColors.ink}>
           {summary.budgetStatus.message}
         </Text>
+        {summary.card && summary.rest ? (
+          <View style={{ gap: 10, marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: staticColors.trackOnAccent }} testID="home-budget-split">
+            <BudgetPartRow label="Cartão" hint="fatura do mês" part={summary.card} money={money} testID="home-budget-card-part" />
+            <BudgetPartRow label="Restante" hint="débito, Pix, dinheiro" part={summary.rest} money={money} testID="home-budget-rest-part" />
+          </View>
+        ) : null}
       </Card>
 
       {/* Ações rápidas */}
@@ -193,5 +199,27 @@ function QuickAction({ label, onPress, testID, accent, children }: { label: stri
       <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: accent ? colors.posSoft : colors.surface2, alignItems: 'center', justifyContent: 'center' }}>{children}</View>
       <Text variant="chip">{label}</Text>
     </Card>
+  );
+}
+
+/** Uma das metas do limite dividido (no card verde do Início). */
+function BudgetPartRow({ label, hint, part, money, testID }: { label: string; hint: string; part: BudgetPart; money: (v: number) => string; testID: string }) {
+  const over = part.status.left < 0;
+  return (
+    <View style={{ gap: 6 }} testID={testID} accessible accessibilityLabel={`${label}: ${money(part.spent)} de ${formatBRL(part.budget)}. ${part.status.message}`}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+        <Text variant="chipBold" color={staticColors.ink}>
+          {label}{' '}
+          <Text variant="meta" color={staticColors.ink} opacity={0.7}>
+            {hint}
+          </Text>
+        </Text>
+        <Text variant="chip" color={staticColors.ink}>
+          {money(part.spent)} de {formatBRL(part.budget)}
+          {over ? ' · passou' : ''}
+        </Text>
+      </View>
+      <ProgressBar pct={part.status.pct} height={6} trackColor={staticColors.trackOnAccent} fillColor={staticColors.ink} />
+    </View>
   );
 }

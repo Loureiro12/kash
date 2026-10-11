@@ -45,7 +45,7 @@ export function ProfileScreen() {
       <Group>
         <ListRow title="Dados pessoais" value="Nome, e-mail, celular" onPress={() => router.push('/profile/personal')} testID="profile-personal" />
         <ListRow title="Segurança" value="Senha, biometria" onPress={() => router.push('/profile/security')} testID="profile-security" />
-        <ListRow title="Limite mensal" value={formatBRL(settings.monthlyBudget)} onPress={() => router.push('/profile/budget')} testID="profile-budget" />
+        <ListRow title="Limite mensal" value={`${formatBRL(settings.monthlyBudget)}${settings.cardBudget > 0 ? ' · dividido' : ''}`} onPress={() => router.push('/profile/budget')} testID="profile-budget" />
         <ListRow title="Categorias" value={`${categoryCount}`} onPress={() => router.push('/profile/categories')} divider={false} testID="profile-categories" />
       </Group>
 

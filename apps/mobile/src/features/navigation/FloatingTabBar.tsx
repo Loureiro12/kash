@@ -33,8 +33,8 @@ export function FloatingTabBar() {
   const openSheet = useKashStore((s) => s.openSheet);
   const bottom = Math.max(insets.bottom - 2, 20);
 
-  // boas-vindas do primeiro acesso e importação (tem rodapé próprio): telas focadas, sem a tab bar
-  if (pathname === '/welcome' || pathname === '/import') return null;
+  // telas focadas, sem a tab bar: boas-vindas, importação (rodapé próprio) e limite mensal (teclado numérico)
+  if (pathname === '/welcome' || pathname === '/import' || pathname === '/profile/budget') return null;
 
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }} testID="tab-bar">

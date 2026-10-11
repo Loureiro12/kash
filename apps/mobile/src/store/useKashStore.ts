@@ -208,6 +208,8 @@ export interface KashState {
   lock: () => void;
   unlock: () => void;
   setMonthlyBudget: (value: number) => void;
+  /** limite dividido: cartão (fatura do mês) + restante; cartão 0 = não dividido (total = restante) */
+  setBudgets: (card: number, rest: number) => void;
   updateUser: (input: Partial<User>) => void;
 
   // ui
@@ -463,6 +465,11 @@ export const useKashStore = create<KashState>((set, get) => ({
   setMonthlyBudget: (value) => {
     if (!(value > 0)) return;
     set((s) => ({ settings: { ...s.settings, monthlyBudget: round2(value) } }));
+  },
+  setBudgets: (card, rest) => {
+    const total = round2(Math.max(0, card) + Math.max(0, rest));
+    if (!(total > 0)) return;
+    set((s) => ({ settings: { ...s.settings, monthlyBudget: total, cardBudget: round2(Math.max(0, card)) } }));
   },
   updateUser: (input) =>
     set((s) => ({

@@ -152,6 +152,7 @@ export function installRemoteActions() {
   // perfil e preferências
   wrap('updateUser', ([input]) => api.updateUser(db, { name: input.name, phone: input.phone }));
   wrap('setMonthlyBudget', ([value]) => (value > 0 ? api.updateSettings(db, { monthlyBudget: value }) : undefined));
+  wrap('setBudgets', (_args, before, after) => (after.settings !== before.settings ? api.updateSettings(db, { monthlyBudget: after.settings.monthlyBudget, cardBudget: after.settings.cardBudget }) : undefined));
   wrap('setTheme', ([theme]) => api.updateSettings(db, { theme }));
   wrap('toggleTheme', (_args, _before, after) => api.updateSettings(db, { theme: after.settings.theme }));
   wrap('toggleHideValues', (_args, _before, after) => api.updateSettings(db, { hideValues: after.settings.hideValues }));

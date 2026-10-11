@@ -4,7 +4,7 @@
  */
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { activePlans, billSourceName, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, onboardingStatus, openInvoices, previousMonthsSpent, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, txViews, upcomingBills, type TxFilters } from '@kash/domain';
+import { activePlans, billSourceName, budgetSplit, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, onboardingStatus, openInvoices, previousMonthsSpent, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, txViews, upcomingBills, type TxFilters } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useKashStore } from './useKashStore';
 
@@ -20,6 +20,15 @@ export function useCategoriesWithUsage() {
   return useMemo(() => categories.map((c) => ({ ...c, usage: categoryUsage(c.name, { txs, bills, plans }) })), [categories, txs, bills, plans]);
 }
 
+/** Gasto do mês em cartão (fatura do mês) e no restante (contas, sem pagamento de fatura) — prévia do limite dividido. */
+export function useMonthSpentSplit() {
+  const { cards, txs } = useKashStore(useShallow((s) => ({ cards: s.cards, txs: s.txs })));
+  return useMemo(() => {
+    const split = budgetSplit(txs, cards.map((c) => c.id), { monthlyBudget: 1, cardBudget: 1 }, now());
+    return { card: split.card!.spent, rest: split.rest!.spent, total: split.total.spent };
+  }, [cards, txs]);
+}
+
 /** Formata dinheiro respeitando "ocultar valores". */
 export function useMoney() {
   const hidden = useKashStore((s) => s.settings.hideValues);
@@ -27,18 +36,22 @@ export function useMoney() {
 }
 
 export function useHomeSummary() {
-  const { accounts, txs, budget } = useKashStore(useShallow((s) => ({ accounts: s.accounts, txs: s.txs, budget: s.settings.monthlyBudget })));
+  const { accounts, cards, txs, budget, cardBudget } = useKashStore(useShallow((s) => ({ accounts: s.accounts, cards: s.cards, txs: s.txs, budget: s.settings.monthlyBudget, cardBudget: s.settings.cardBudget })));
   return useMemo(() => {
     const today = now();
     const spent = monthSpent(txs, today);
+    const split = budgetSplit(txs, cards.map((c) => c.id), { monthlyBudget: budget, cardBudget }, today);
     return {
       totalBalance: totalBalance(accounts),
       spent,
       income: monthIncome(txs, today),
       budget,
       budgetStatus: budgetStatus(spent, budget),
+      /** limite dividido (null sem divisão) */
+      card: split.card,
+      rest: split.rest,
     };
-  }, [accounts, txs, budget]);
+  }, [accounts, cards, txs, budget, cardBudget]);
 }
 
 export function useRecentTxs(limit = 6) {
