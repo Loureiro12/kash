@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { buildPrompt, DAILY_LIMIT, failureDetail, failureReason, handleImportAssist, jsonFromText, toStatement, type ImportAssistDeps } from './handler.ts';
+import { buildPrompt, DAILY_LIMIT, MAX_NAMES, failureDetail, failureReason, handleImportAssist, jsonFromText, toStatement, type ImportAssistDeps } from './handler.ts';
 
 const categories = ['Comida', 'Assinaturas', 'Outros'];
 const aiOutput = {
@@ -105,4 +105,44 @@ Deno.test('plano B: JSON no texto da resposta', () => {
 
 Deno.test('prompt pede a ferramenta', () => {
   assertStringIncludes(buildPrompt('t', 'card', ['A']).system, 'chamando a ferramenta registrar_fatura');
+});
+
+Deno.test('nomes de OFX/CSV: modelo menor, só ids enviados e categorias da lista', async () => {
+  const purposes: string[] = [];
+  const { d, prompts } = deps({
+    logCall: async (_u, _usage, purpose) => {
+      purposes.push(purpose);
+    },
+    callModel: async (p) => {
+      prompts.push(p.user);
+      purposes.push(`model:${p.purpose}`);
+      return {
+        input: { suggestions: [{ id: 'padaria pao bom', title: 'Padaria Pão Bom', category: 'Comida' }, { id: 'inventado', title: 'X' }, { id: 'loja x', title: '  ', category: 'Inventada' }] },
+        usage: { input_tokens: 200, output_tokens: 80 },
+      };
+    },
+  });
+  const items = [
+    { id: 'padaria pao bom', description: 'PAG*PadariaPaoBom' },
+    { id: 'loja x', description: 'MP*LOJAX' },
+  ];
+  const res = await handleImportAssist(post({ mode: 'names', items, categories }), d);
+  assertEquals(res.status, 200);
+  assertEquals(await res.json(), { suggestions: { 'padaria pao bom': { title: 'Padaria Pão Bom', category: 'Comida' } } });
+  assertEquals(purposes, ['model:names', 'names']);
+  assertStringIncludes(prompts[0]!, 'padaria pao bom: PAG*PadariaPaoBom');
+});
+
+Deno.test('nomes: lista vazia, grande demais e limite diário', async () => {
+  const { d } = deps();
+  assertEquals((await handleImportAssist(post({ mode: 'names', items: [], categories }), d)).status, 400);
+  const many = Array.from({ length: MAX_NAMES + 1 }, (_, i) => ({ id: `l${i}`, description: 'LOJA' }));
+  assertEquals((await handleImportAssist(post({ mode: 'names', items: many, categories }), d)).status, 413);
+  const limited = deps({ countRecentCalls: async () => DAILY_LIMIT }).d;
+  assertEquals((await handleImportAssist(post({ mode: 'names', items: [{ id: 'a', description: 'LOJA' }], categories }), limited)).status, 429);
+});
+
+Deno.test('plano B dos nomes: JSON no texto', () => {
+  assertEquals(jsonFromText('```json\n{"suggestions":[{"id":"a","title":"A"}]}\n```', 'suggestions'), { suggestions: [{ id: 'a', title: 'A' }] });
+  assertEquals(jsonFromText('{"suggestions":[]}'), null);
 });

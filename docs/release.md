@@ -41,16 +41,18 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
    - Sem os segredos do Vault o cron não faz nada; sem `RESEND_API_KEY` a função responde 503.
    - Só recebe quem ligou "Lembrete de contas" no Perfil do Kash web (`profiles.email_reminder`, desligado por padrão). Um e-mail por pessoa por dia (`reminder_emails`).
 
-9. **Importação de PDF com IA** (Edge Function `import-assist`, publicada junto com as outras). Uma vez só:
+9. **Importação com IA** (Edge Function `import-assist`, publicada junto com as outras): lê o PDF e sugere nomes/categorias em OFX/CSV. Uma vez só:
    ```bash
    supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" ANTHROPIC_API_KEY=sk-ant-...
    # opcional: outro modelo (padrão claude-sonnet-5-5)
    # supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" IMPORT_AI_MODEL=claude-sonnet-5-5
+   # opcional: modelo das sugestões de nome em OFX/CSV (padrão claude-haiku-5-5, menor e mais barato)
+   # supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" IMPORT_AI_NAMES_MODEL=claude-haiku-5-5
    ```
    - Crie a chave **dentro de um workspace** (console.anthropic.com › Settings › Workspaces; depois API Keys › Create Key escolhendo o workspace). Chave de organização sem workspace exige também `ANTHROPIC_WORKSPACE_ID=<id do workspace>` nos segredos.
    - A chave fica só no servidor. Sem ela, a tela de importação avisa que a leitura de PDF não está disponível; OFX e CSV funcionam sem IA.
-   - Limite: 30 leituras por pessoa a cada 24 h (`ai_calls`, também usado para acompanhar o custo: `select date(created_at), count(*), sum(input_tokens), sum(output_tokens) from ai_calls group by 1 order by 1 desc;`).
-   - A política de privacidade (seção "Compartilhamento") já cita o envio do texto (sem dados pessoais) à Anthropic.
+   - Limite: 30 chamadas por pessoa a cada 24 h, somando PDF e sugestões de nome (`ai_calls`, com `purpose` = `import` ou `names`; também serve para acompanhar o custo: `select date(created_at), purpose, count(*), sum(input_tokens), sum(output_tokens) from ai_calls group by 1, 2 order by 1 desc;`).
+   - A política de privacidade (seção "Compartilhamento") já cita o envio do texto do PDF e das descrições de OFX/CSV (sem dados pessoais) à Anthropic.
 
 ## 2. Expo / EAS — app
 

@@ -33,13 +33,24 @@ export interface ImportAssistDeps {
   getUserId: (authorization: string) => Promise<string | null>;
   /** chamadas de IA da pessoa nas últimas 24 h */
   countRecentCalls: (userId: string) => Promise<number>;
-  logCall: (userId: string, usage: ModelResult['usage']) => Promise<void>;
+  logCall: (userId: string, usage: ModelResult['usage'], purpose: AiPurpose) => Promise<void>;
   /** null quando a IA não está configurada (sem ANTHROPIC_API_KEY) */
-  callModel: ((prompt: { system: string; user: string; tool: unknown }) => Promise<ModelResult>) | null;
+  callModel: ((prompt: ModelPrompt) => Promise<ModelResult>) | null;
+}
+
+/** 'import' = ler o PDF inteiro; 'names' = só nomes e categorias de linhas de OFX/CSV (modelo menor) */
+export type AiPurpose = 'import' | 'names';
+export interface ModelPrompt {
+  system: string;
+  user: string;
+  tool: { name: string };
+  purpose: AiPurpose;
 }
 
 export const DAILY_LIMIT = 30;
 export const MAX_TEXT = 60_000;
+/** nomes por pedido (um extrato de mês costuma ter bem menos estabelecimentos diferentes) */
+export const MAX_NAMES = 150;
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
@@ -93,7 +104,58 @@ export function buildPrompt(text: string, kind: 'card' | 'account', categories: 
     '- O texto já teve CPF, endereço e nome do titular removidos (aparece como TITULAR). Não invente linhas.',
     '- Responda SEMPRE chamando a ferramenta registrar_fatura uma única vez, com todas as linhas. Não escreva texto fora dela.',
   ].join('\n');
-  return { system, user: `Documento:\n\n${text}`, tool: STATEMENT_TOOL };
+  return { system, user: `Documento:\n\n${text}`, tool: STATEMENT_TOOL, purpose: 'import' as const };
+}
+
+/** Ferramenta da sugestão de nomes: uma resposta por id recebido. */
+export const NAMES_TOOL = {
+  name: 'sugerir_nomes',
+  description: 'Registra o nome amigável e a categoria de cada lançamento recebido.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      suggestions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', description: 'O id recebido, sem mudar' },
+            title: { type: 'string', description: 'Nome amigável do estabelecimento em português (ex.: "PAG*PadariaPaoBom" → "Padaria Pão Bom")' },
+            category: { type: 'string', description: 'Uma das categorias da lista, exatamente como escrita, ou vazio' },
+          },
+          required: ['id'],
+        },
+      },
+    },
+    required: ['suggestions'],
+  },
+};
+
+export function buildNamesPrompt(items: { id: string; description: string }[], categories: string[]) {
+  const system = [
+    'Você dá nomes amigáveis e categorias para lançamentos de extratos e faturas de bancos brasileiros, usando a ferramenta sugerir_nomes.',
+    'Regras:',
+    '- title: o nome do estabelecimento como uma pessoa escreveria, sem prefixos de maquininha (PAG*, MP*, EBW*, ZIG*, IFD*…), sem códigos e sem cidade. Ex.: "MP*LOJADOJOAO" → "Loja do João"; "IFD*IFOOD COM AGENCIA" → "iFood".',
+    '- Se não reconhecer, apenas organize o texto (separe palavras, primeira letra maiúscula). Não invente marcas.',
+    `- category: exatamente uma destas ou vazio: ${categories.join(', ')}.`,
+    '- Responda SEMPRE chamando a ferramenta sugerir_nomes uma única vez, com uma sugestão para cada id. Não escreva texto fora dela.',
+  ].join('\n');
+  const user = `Lançamentos (id: descrição):\n${items.map((i) => `${i.id}: ${i.description}`).join('\n')}`;
+  return { system, user, tool: NAMES_TOOL, purpose: 'names' as const };
+}
+
+/** Valida as sugestões: só ids enviados, nome curto e categoria da lista da pessoa. */
+export function toSuggestions(raw: unknown, ids: Set<string>, categories: string[]): Record<string, { title?: string; category?: string }> {
+  const out: Record<string, { title?: string; category?: string }> = {};
+  const list = (raw as { suggestions?: unknown } | null)?.suggestions;
+  for (const item of Array.isArray(list) ? list : []) {
+    const s = item as Record<string, unknown>;
+    if (typeof s.id !== 'string' || !ids.has(s.id)) continue;
+    const title = typeof s.title === 'string' ? s.title.trim().slice(0, 80) : '';
+    const category = typeof s.category === 'string' && categories.includes(s.category) ? s.category : '';
+    if (title || category) out[s.id] = { ...(title ? { title } : {}), ...(category ? { category } : {}) };
+  }
+  return out;
 }
 
 /**
@@ -128,14 +190,14 @@ export function failureDetail(message: string): string {
   return message.replace(/sk-ant-[\w-]+/g, '[chave]').slice(0, 200);
 }
 
-/** Primeiro objeto JSON com "lines" num texto (plano B quando o modelo não usa a ferramenta). */
-export function jsonFromText(text: string): Record<string, unknown> | null {
+/** Primeiro objeto JSON com `key` ("lines" ou "suggestions") num texto (plano B quando o modelo não usa a ferramenta). */
+export function jsonFromText(text: string, key = 'lines'): Record<string, unknown> | null {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1];
   const candidates = [fenced, text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)].filter((c): c is string => !!c && c.trim().startsWith('{'));
   for (const c of candidates) {
     try {
       const obj = JSON.parse(c);
-      if (obj && typeof obj === 'object' && Array.isArray(obj.lines)) return obj;
+      if (obj && typeof obj === 'object' && Array.isArray(obj[key])) return obj;
     } catch {
       // tenta o próximo
     }
@@ -183,8 +245,9 @@ export function toStatement(raw: unknown, kind: 'card' | 'account', categories: 
 }
 
 /**
- * POST /import-assist — lê com IA o texto (já limpo no aparelho) de um PDF de fatura/extrato.
- * Corpo: { text, kind: 'card' | 'account', categories: string[] }.
+ * POST /import-assist
+ * - leitura do PDF: { text, kind: 'card' | 'account', categories } → { statement }. O texto já vem limpo do aparelho.
+ * - nomes de OFX/CSV: { mode: 'names', items: [{ id, description }], categories } → { suggestions: { [id]: { title?, category? } } }.
  */
 export async function handleImportAssist(req: Request, deps: ImportAssistDeps): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -194,12 +257,13 @@ export async function handleImportAssist(req: Request, deps: ImportAssistDeps): 
   if (!userId) return json(401, { error: 'unauthorized' });
   if (!deps.callModel) return json(503, { error: 'ai_not_configured' });
 
-  let body: { text?: unknown; kind?: unknown; categories?: unknown };
+  let body: { text?: unknown; kind?: unknown; categories?: unknown; mode?: unknown; items?: unknown };
   try {
     body = await req.json();
   } catch {
     return json(400, { error: 'invalid_json' });
   }
+  if (body.mode === 'names') return suggestNames(userId, body, deps);
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   const kind = body.kind === 'account' ? 'account' : 'card';
   const categories = Array.isArray(body.categories) ? body.categories.filter((c): c is string => typeof c === 'string').slice(0, 60) : [];
@@ -211,10 +275,33 @@ export async function handleImportAssist(req: Request, deps: ImportAssistDeps): 
   try {
     result = await deps.callModel(buildPrompt(text, kind, categories));
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('import-assist: falha na IA', message);
-    return json(502, { error: 'ai_failed', reason: failureReason(message), detail: failureDetail(message) });
+    return aiFailed(err);
   }
-  await deps.logCall(userId, result.usage);
+  await deps.logCall(userId, result.usage, 'import');
   return json(200, { statement: toStatement(result.input, kind, categories) });
+}
+
+function aiFailed(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error('import-assist: falha na IA', message);
+  return json(502, { error: 'ai_failed', reason: failureReason(message), detail: failureDetail(message) });
+}
+
+async function suggestNames(userId: string, body: { items?: unknown; categories?: unknown }, deps: ImportAssistDeps): Promise<Response> {
+  const categories = Array.isArray(body.categories) ? body.categories.filter((c): c is string => typeof c === 'string').slice(0, 60) : [];
+  const items = (Array.isArray(body.items) ? body.items : [])
+    .map((i) => i as { id?: unknown; description?: unknown })
+    .filter((i): i is { id: string; description: string } => typeof i.id === 'string' && !!i.id.trim() && typeof i.description === 'string' && !!i.description.trim())
+    .map((i) => ({ id: i.id.slice(0, 80), description: i.description.trim().slice(0, 120) }));
+  if (items.length === 0) return json(400, { error: 'empty_text' });
+  if (items.length > MAX_NAMES) return json(413, { error: 'text_too_long' });
+  if ((await deps.countRecentCalls(userId)) >= DAILY_LIMIT) return json(429, { error: 'daily_limit' });
+  let result: ModelResult;
+  try {
+    result = await deps.callModel!(buildNamesPrompt(items, categories));
+  } catch (err) {
+    return aiFailed(err);
+  }
+  await deps.logCall(userId, result.usage, 'names');
+  return json(200, { suggestions: toSuggestions(result.input, new Set(items.map((i) => i.id)), categories) });
 }
