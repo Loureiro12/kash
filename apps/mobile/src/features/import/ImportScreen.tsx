@@ -7,11 +7,11 @@ import { Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge, Button, Card, CheckCircle, Chip, Input, PageHeader, Pressable, Screen, SegmentedControl, Switch, Text, useTheme } from '@/design-system';
 import { formatBRL, monthKey, monthKeyName } from '@kash/domain';
-import { amountInText, applyRowEdit, buildImportPlan, csvSignature, importCountsLabel, learnedRules, mappingFits, redactStatementText, toAccountItems, toCardItems, type CsvMapping, type CsvTable, type ImportMode, type ParsedStatement, type ReviewRow, type RowEdit } from '@kash/importers';
+import { aiNameRequests, amountInText, applyRowEdit, buildImportPlan, csvSignature, importCountsLabel, learnedRules, mappingFits, redactStatementText, toAccountItems, toCardItems, type CsvMapping, type CsvTable, type ImportMode, type ParsedStatement, type ReviewRow, type RowEdit, withAiNames } from '@kash/importers';
 import { toKashError } from '@kash/supabase-client';
 import { now as clockNow } from '@/lib/clock';
 import { useKashStore } from '@/store';
-import { readWithAi, saveImport, undoImport, useImportHistory, useMerchantRules } from './importApi';
+import { readWithAi, saveImport, suggestNamesWithAi, undoImport, useImportHistory, useMerchantRules } from './importApi';
 import { PdfPasswordError, PdfReader, type PdfReaderHandle } from './PdfReader';
 import { nameWithExtension } from './openWith';
 import { formatOf, readMappedCsv, readTextStatement, type TargetType } from './readStatement';
@@ -78,6 +78,9 @@ export function ImportScreen() {
   const [keepBalance, setKeepBalance] = useState(true);
   const [edits, setEdits] = useState<Record<string, RowEdit>>({});
   const [saving, setSaving] = useState(false);
+  /** sugestão de nomes com IA para OFX/CSV (roda depois de abrir a revisão, sem travar a tela) */
+  const [aiNames, setAiNames] = useState<{ status: 'idle' | 'loading' | 'done' | 'error'; count: number }>({ status: 'idle', count: 0 });
+  const aiRun = useRef(0);
   const [result, setResult] = useState<{ id: string; txs: number; plans: number; transfers: number } | null>(null);
   const [savedMappings, setSavedMappings] = useState<SavedMappings>({});
   // outro arquivo compartilhado com a tela já aberta: recomeça com ele
@@ -205,13 +208,30 @@ export function ImportScreen() {
     void AsyncStorage.setItem(AI_CONSENT_KEY, next ? '1' : '0').catch(() => undefined);
   };
 
-  const accept = (parsed: ParsedStatement) => {
+  const suggestNames = (parsed: ParsedStatement) => {
+    const run = ++aiRun.current;
+    if (!aiConsent) return setAiNames({ status: 'idle', count: 0 });
+    const items = aiNameRequests(parsed, { rules: rulesQuery.data ?? [], ownNames: [userName] });
+    if (items.length === 0) return setAiNames({ status: 'idle', count: 0 });
+    setAiNames({ status: 'loading', count: items.length });
+    suggestNamesWithAi({ items, categories }).then(
+      (suggestions) => {
+        if (run !== aiRun.current) return;
+        setStatement((cur) => (cur === parsed ? withAiNames(parsed, suggestions) : cur));
+        setAiNames({ status: 'done', count: Object.keys(suggestions).length });
+      },
+      () => run === aiRun.current && setAiNames({ status: 'error', count: 0 }),
+    );
+  };
+
+  const accept = (parsed: ParsedStatement, withAi: boolean) => {
     setStatement(parsed);
     setEdits({});
     setMonth(null);
     setMode('installments');
     setCsv(null);
     setStep('review');
+    if (withAi) suggestNames(parsed);
   };
 
   const read = async () => {
@@ -223,9 +243,8 @@ export function ImportScreen() {
         const next = { ...savedMappings, [csvSignature(csv.table)]: csv.mapping };
         setSavedMappings(next);
         void AsyncStorage.setItem(CSV_MAPPINGS_KEY, JSON.stringify(next)).catch(() => undefined);
-        accept(res.statement);
-      }
-      else if (res.kind === 'error') setError(res.message);
+        accept(res.statement, true);
+      } else if (res.kind === 'error') setError(res.message);
       return;
     }
     setReading(true);
@@ -235,7 +254,7 @@ export function ImportScreen() {
           const m = savedMappings[csvSignature(table)];
           return mappingFits(table, m) ? m : null;
         });
-        if (res.kind === 'ok') accept(res.statement);
+        if (res.kind === 'ok') accept(res.statement, true);
         else if (res.kind === 'mapping') setCsv(res.csv);
         else setError(res.message);
         return;
@@ -260,7 +279,7 @@ export function ImportScreen() {
       setSourceText(clean);
       const parsed = await readWithAi<ParsedStatement>({ text: clean, kind: targetType, categories });
       if (parsed.lines.length === 0) setError('Não encontramos lançamentos nesse arquivo.');
-      else accept(parsed);
+      else accept(parsed, false);
     } catch (err) {
       setError(toKashError(err).message);
     } finally {
@@ -284,6 +303,8 @@ export function ImportScreen() {
   };
 
   const restart = () => {
+    aiRun.current++;
+    setAiNames({ status: 'idle', count: 0 });
     setStep('file');
     setFile(null);
     setStatement(null);
@@ -353,22 +374,26 @@ export function ImportScreen() {
                 {targetType === 'card' ? 'PDF da fatura, OFX ou CSV. No app do banco: fatura › exportar ou compartilhar (dá pra abrir direto no Kash).' : 'OFX ou CSV do extrato. No app do banco: extrato › exportar.'}
               </Text>
 
+              {format ? (
+                <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text variant="bodySemibold">{format === 'pdf' ? 'Ler o PDF com IA' : 'Sugerir nomes com IA (opcional)'}</Text>
+                    <Text variant="meta" color="muted">
+                      {format === 'pdf'
+                        ? 'O texto da fatura vai para a IA da Anthropic sem CPF, endereço, número do cartão e código de barras, só para identificar os lançamentos.'
+                        : 'Só o nome das compras que o Kash ainda não conhece vai para a IA da Anthropic, sem CPF, número do cartão e o seu nome; Pix e transferências não vão.'}
+                    </Text>
+                    <Pressable onPress={() => router.push('/privacy')} accessibilityRole="link" testID="import-privacy" hitSlop={8}>
+                      <Text variant="chip" color="accentText">
+                        Política de privacidade
+                      </Text>
+                    </Pressable>
+                  </View>
+                  <Switch value={aiConsent} onValueChange={toggleConsent} testID="import-ai-consent" accessibilityLabel={format === 'pdf' ? 'Ler o PDF com IA' : 'Sugerir nomes com IA'} />
+                </View>
+              ) : null}
               {format === 'pdf' ? (
                 <>
-                  <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-                    <View style={{ flex: 1, gap: 4 }}>
-                      <Text variant="bodySemibold">Ler o PDF com IA</Text>
-                      <Text variant="meta" color="muted">
-                        O texto da fatura vai para a IA da Anthropic sem CPF, endereço, número do cartão e código de barras, só para identificar os lançamentos.
-                      </Text>
-                      <Pressable onPress={() => router.push('/privacy')} accessibilityRole="link" testID="import-privacy" hitSlop={8}>
-                        <Text variant="chip" color="accentText">
-                          Política de privacidade
-                        </Text>
-                      </Pressable>
-                    </View>
-                    <Switch value={aiConsent} onValueChange={toggleConsent} testID="import-ai-consent" accessibilityLabel="Ler o PDF com IA" />
-                  </View>
                   {needsPassword ? (
                     <View style={{ gap: 6 }} testID="import-pdf-locked">
                       <Input label="Senha do PDF" value={password} onChangeText={setPassword} secureTextEntry autoFocus autoCapitalize="none" autoCorrect={false} returnKeyType="go" onSubmitEditing={() => void read()} testID="import-pdf-password" />
@@ -441,6 +466,17 @@ export function ImportScreen() {
                   : ''}
                 {plan.check.statementTotal ? ` Total da fatura no banco: ${formatBRL(plan.check.statementTotal)}.` : ''}
               </Text>
+              {aiNames.status !== 'idle' ? (
+                <Text variant="meta" color={aiNames.status === 'error' ? 'neg' : 'accentText'} accessibilityLiveRegion="polite" testID="import-ai-names">
+                  {aiNames.status === 'loading'
+                    ? `Sugerindo nomes com IA para ${aiNames.count} ${aiNames.count === 1 ? 'estabelecimento' : 'estabelecimentos'}…`
+                    : aiNames.status === 'done'
+                      ? aiNames.count
+                        ? `A IA sugeriu ${aiNames.count === 1 ? '1 nome' : `${aiNames.count} nomes`} (marcados com "IA"). Confira: os que você importar viram regra e não vão mais para a IA.`
+                        : 'A IA não teve sugestões para esses nomes.'
+                      : 'Não deu pra sugerir nomes com IA agora; os nomes ficam como no arquivo.'}
+                </Text>
+              ) : null}
             </Card>
 
             <RowsSection title="Parcelamentos" rows={rows.filter((r) => r.section === 'installment')} categories={categories} sourceText={sourceText} onEdit={edit} testID="import-installments" />
@@ -467,7 +503,7 @@ export function ImportScreen() {
           <Card padding={[20, 18]} style={{ gap: 12 }} testID="import-done">
             <Text variant="titleLg">Importação concluída</Text>
             <Text variant="body" color="muted">
-              {importCountsLabel(result)} no Kash. Os nomes que você mudou viram regra para as próximas importações.
+              {importCountsLabel(result)} no Kash. Os nomes que você mudou ou aceitou da IA viram regra para as próximas importações.
             </Text>
             <Button
               label={`Ver ${targetType === 'card' ? 'cartão' : 'conta'}`}
@@ -646,6 +682,7 @@ function RowsSection({
               ) : null}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {r.installment ? <Badge tone="pos" label={`${r.installment.currentNow}/${r.installment.total} agora · ${r.installment.remaining === 1 ? 'última' : `faltam ${r.installment.remaining} até ${r.installment.lastMonth}`}`} /> : null}
+                {r.fromAi ? <Badge label="IA" testID={`import-row-${r.key}-ai`} /> : null}
                 {r.duplicate ? <Badge tone="neg" label={r.duplicateNote ?? 'possível duplicado'} /> : null}
                 {r.section === 'transfer' && r.transfer?.linkTxId ? (
                   <Badge tone="pos" label={`junta com ${r.inflow ? 'a saída' : 'a entrada'} de ${accountNames[r.transfer.accountId ?? ''] ?? 'outra conta'} em ${r.transfer.linkDate?.split('-').reverse().slice(0, 2).join('/')}`} />

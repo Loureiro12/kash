@@ -68,3 +68,9 @@ export function readWithAi<T>(input: { text: string; kind: TargetType; categorie
   if (!remote) return Promise.reject(new Error('Ler PDF precisa da sua conta conectada.'));
   return api.readStatementWithAi<T>(supabase, input);
 }
+
+/** Nomes e categorias sugeridos pela IA para linhas de OFX/CSV (descrições já limpas; ver `aiNameRequests`). */
+export function suggestNamesWithAi(input: { items: { id: string; description: string }[]; categories: string[] }) {
+  if (!remote) return Promise.reject(new Error('Sugerir nomes precisa da sua conta conectada.'));
+  return api.suggestNamesWithAi(supabase, input);
+}

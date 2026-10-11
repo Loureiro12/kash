@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as api from '@kash/supabase-client';
 import * as DocumentPicker from 'expo-document-picker';
@@ -263,5 +264,41 @@ describe('Importar fatura (PDF com senha)', () => {
     expect(sent.kind).toBe('card');
     expect(sent.text).not.toMatch(/Ana|Paula|Souza|123\.456/);
     expect(sent.text).toContain('Mercadolivre*Mercadol - Parcela 1/3 90,00');
+  });
+});
+
+describe('Sugerir nomes com IA (CSV)', () => {
+  it('só os nomes desconhecidos vão, sem dados pessoais; a sugestão entra marcada como IA', async () => {
+    await AsyncStorage.setItem('kash.import.aiConsent', '1');
+    (api.suggestNamesWithAi as jest.Mock).mockImplementationOnce(async (_db: unknown, { items }: { items: { id: string }[] }) => ({ [items[0]!.id]: { title: 'Loja do João', category: 'Lazer' } }));
+    await renderWithTheme(<ImportScreen />);
+    pick('fatura.csv', ['date,title,amount', '2026-09-05,MP*LOJADOJOAO 12345678 - Parcela 2/5,50.00', '2026-09-06,EBW*Spotify - Parcela 2/3,23.90', '2026-09-07,Pagamento recebido,-100.00'].join('\n'));
+    await fireEvent.press(screen.getByTestId('import-pick'));
+    await fireEvent.press(screen.getByTestId('import-read'));
+    await waitFor(() => expect(screen.getByTestId('import-ai-names')).toHaveTextContent('A IA sugeriu 1 nome (marcados com "IA"). Confira: os que você importar viram regra e não vão mais para a IA.'));
+
+    const sent = (api.suggestNamesWithAi as jest.Mock).mock.calls[0]![1] as { items: { id: string; description: string }[] };
+    expect(sent.items).toEqual([{ id: expect.any(String), description: 'MP*LOJADOJOAO # - Parcela 2/5' }]);
+    expect(screen.getByTestId('import-row-0-title').props.value).toBe('Loja do João');
+    expect(screen.getByTestId('import-row-0-ai')).toBeTruthy();
+    expect(screen.getByTestId('import-row-0-category')).toHaveTextContent('Lazer');
+    expect(screen.getByTestId('import-row-1-title').props.value).toBe('Spotify');
+
+    // importou: o nome aceito da IA vira regra (na próxima, vem sem IA)
+    (api.importCardStatement as jest.Mock).mockResolvedValueOnce('imp-ai');
+    await fireEvent.press(screen.getByTestId('import-save'));
+    await waitFor(() => expect(screen.getByTestId('import-done')).toBeTruthy());
+    expect(api.saveMerchantRules).toHaveBeenCalledWith(expect.anything(), [{ pattern: sent.items[0]!.id, title: 'Loja do João', category: 'Lazer' }]);
+  });
+
+  it('sem autorização, nada vai para a IA', async () => {
+    await AsyncStorage.setItem('kash.import.aiConsent', '0');
+    await renderWithTheme(<ImportScreen />);
+    pick('fatura.csv', ['date,title,amount', '2026-09-05,MP*LOJADOJOAO - Parcela 2/5,50.00'].join('\n'));
+    await fireEvent.press(screen.getByTestId('import-pick'));
+    await fireEvent.press(screen.getByTestId('import-read'));
+    await waitFor(() => expect(screen.getByTestId('import-summary')).toBeTruthy());
+    expect(api.suggestNamesWithAi).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('import-ai-names')).toBeNull();
   });
 });
