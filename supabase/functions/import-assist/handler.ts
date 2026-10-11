@@ -99,13 +99,32 @@ export function buildPrompt(text: string, kind: 'card' | 'account', categories: 
  * Motivo da falha da IA, para quem administra ver na aba Rede sem abrir os logs
  * (a pessoa usando o app vê só a mensagem amigável).
  */
-export function failureReason(message: string): 'credit' | 'auth' | 'model' | 'rate_limit' | 'overloaded' | 'unknown' {
+export function failureReason(message: string): 'credit' | 'auth' | 'workspace' | 'model' | 'rate_limit' | 'overloaded' | 'unknown' {
   if (/credit balance|billing/i.test(message)) return 'credit';
+  if (/workspace/i.test(message)) return 'workspace';
   if (/anthropic 401|anthropic 403|x-api-key|authentication/i.test(message)) return 'auth';
   if (/anthropic 404|model/i.test(message)) return 'model';
   if (/anthropic 429|rate.?limit/i.test(message)) return 'rate_limit';
   if (/anthropic 529|anthropic 5\d\d|overloaded/i.test(message)) return 'overloaded';
   return 'unknown';
+}
+
+/**
+ * Resumo do erro para diagnóstico (aba Rede): status e mensagem da API, sem nada do pedido.
+ * Ex.: "anthropic 400 invalid_request_error: max_tokens: …".
+ */
+export function failureDetail(message: string): string {
+  const status = message.match(/^anthropic (\d{3})/)?.[1];
+  const start = message.indexOf('{');
+  if (status && start >= 0) {
+    try {
+      const e = JSON.parse(message.slice(start))?.error;
+      if (e && typeof e === 'object') return `anthropic ${status} ${e.type ?? ''}: ${String(e.message ?? '').slice(0, 200)}`.trim();
+    } catch {
+      // corpo não é JSON: cai no texto puro abaixo
+    }
+  }
+  return message.replace(/sk-ant-[\w-]+/g, '[chave]').slice(0, 200);
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -178,7 +197,7 @@ export async function handleImportAssist(req: Request, deps: ImportAssistDeps): 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('import-assist: falha na IA', message);
-    return json(502, { error: 'ai_failed', reason: failureReason(message) });
+    return json(502, { error: 'ai_failed', reason: failureReason(message), detail: failureDetail(message) });
   }
   await deps.logCall(userId, result.usage);
   return json(200, { statement: toStatement(result.input, kind, categories) });

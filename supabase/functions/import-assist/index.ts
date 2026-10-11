@@ -6,6 +6,8 @@ const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
 const model = Deno.env.get('IMPORT_AI_MODEL') ?? 'claude-sonnet-5-5';
+/** chave de organização (sem workspace) exige o workspace no cabeçalho; chave de workspace dispensa */
+const workspaceId = Deno.env.get('ANTHROPIC_WORKSPACE_ID');
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
 Deno.serve((req) =>
@@ -25,22 +27,33 @@ Deno.serve((req) =>
     },
     callModel: apiKey
       ? async ({ system, user, tool }) => {
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-            body: JSON.stringify({
-              model,
-              max_tokens: 16000,
-              system,
-              tools: [tool],
-              tool_choice: { type: 'tool', name: (tool as { name: string }).name },
-              messages: [{ role: 'user', content: user }],
-            }),
+          const body = JSON.stringify({
+            model,
+            // uma fatura tem dezenas de linhas (~3 mil tokens de saída); 8 mil dá folga
+            max_tokens: 8000,
+            system,
+            tools: [tool],
+            tool_choice: { type: 'tool', name: (tool as { name: string }).name },
+            messages: [{ role: 'user', content: user }],
           });
-          if (!res.ok) throw new Error(`anthropic ${res.status}: ${await res.text()}`);
-          const data = await res.json();
-          const block = (data.content ?? []).find((c: { type: string }) => c.type === 'tool_use');
-          return { input: block?.input ?? {}, usage: { input_tokens: data.usage?.input_tokens ?? 0, output_tokens: data.usage?.output_tokens ?? 0 } };
+          // uma nova tentativa quando a API está sobrecarregada ou limitando (429/529)
+          for (let attempt = 1; ; attempt++) {
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', ...(workspaceId ? { 'anthropic-workspace-id': workspaceId } : {}) },
+              body,
+              signal: AbortSignal.timeout(120_000),
+            });
+            if ((res.status === 429 || res.status === 529) && attempt === 1) {
+              await new Promise((r) => setTimeout(r, 2000));
+              continue;
+            }
+            if (!res.ok) throw new Error(`anthropic ${res.status}: ${await res.text()}`);
+            const data = await res.json();
+            const block = (data.content ?? []).find((c: { type: string }) => c.type === 'tool_use');
+            if (!block) throw new Error(`anthropic ${res.status}: resposta sem tool_use (stop_reason ${data.stop_reason})`);
+            return { input: block.input ?? {}, usage: { input_tokens: data.usage?.input_tokens ?? 0, output_tokens: data.usage?.output_tokens ?? 0 } };
+          }
         }
       : null,
   }),

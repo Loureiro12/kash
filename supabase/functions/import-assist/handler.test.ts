@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { buildPrompt, DAILY_LIMIT, failureReason, handleImportAssist, toStatement, type ImportAssistDeps } from './handler.ts';
+import { buildPrompt, DAILY_LIMIT, failureDetail, failureReason, handleImportAssist, toStatement, type ImportAssistDeps } from './handler.ts';
 
 const categories = ['Comida', 'Assinaturas', 'Outros'];
 const aiOutput = {
@@ -73,8 +73,13 @@ Deno.test('falha da IA vira 502 e não registra uso', async () => {
   });
   const res = await handleImportAssist(post(valid), d);
   assertEquals(res.status, 502);
-  assertEquals(await res.json(), { error: 'ai_failed', reason: 'unknown' });
+  assertEquals(await res.json(), { error: 'ai_failed', reason: 'unknown', detail: 'boom' });
   assertEquals(logged, []);
+});
+
+Deno.test('detalhe da falha: status e mensagem da API, sem a chave', () => {
+  assertEquals(failureDetail('anthropic 400: {"type":"error","error":{"type":"invalid_request_error","message":"max_tokens: 16000 > 8192"}}'), 'anthropic 400 invalid_request_error: max_tokens: 16000 > 8192');
+  assertEquals(failureDetail('TypeError: error sending request sk-ant-abc123'), 'TypeError: error sending request [chave]');
 });
 
 Deno.test('motivo da falha da IA', () => {
@@ -82,6 +87,7 @@ Deno.test('motivo da falha da IA', () => {
   assertEquals(failureReason('anthropic 401: {"error":{"type":"authentication_error","message":"invalid x-api-key"}}'), 'auth');
   assertEquals(failureReason('anthropic 404: {"error":{"type":"not_found_error","message":"model: claude-x"}}'), 'model');
   assertEquals(failureReason('anthropic 429: rate_limit_error'), 'rate_limit');
+  assertEquals(failureReason('anthropic 400: {"error":{"type":"invalid_request_error","message":"This API key is not scoped to a workspace, so this request must include the anthropic-workspace-id header"}}'), 'workspace');
   assertEquals(failureReason('anthropic 529: overloaded_error'), 'overloaded');
 });
 
