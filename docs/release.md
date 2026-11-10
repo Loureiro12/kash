@@ -66,6 +66,10 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
       2. *Credenciais* › *Criar ID do cliente OAuth* › **Aplicativo da Web**: origem `https://www.kash.app.br`; URI de redirecionamento: a URL de retorno do Supabase acima.
       3. Supabase › Providers › **Google**: ligar, colar Client ID e Client Secret.
     - Supabase › Authentication › **URL Configuration** › Redirect URLs: incluir `kash://auth-callback`, `com.andreloureiro.kash://auth-callback` e `https://www.kash.app.br/**` (o `config.toml` › `[remotes.production.auth]` tem a mesma lista).
+    - **GitHub › Settings › Environments › `production`** (o deploy do backend envia a config de auth e, sem isto, falha em vez de apagar os provedores):
+      - Variables: `SUPABASE_AUTH_EXTERNAL_APPLE_CLIENT_ID` = `br.app.kash.web,com.andreloureiro.kash` e `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` = o Client ID do Google.
+      - Secrets: `SUPABASE_AUTH_EXTERNAL_APPLE_SECRET` = o JWT da Apple e `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` = o Client Secret do Google.
+      - Ao renovar o JWT da Apple (a cada 6 meses), troque o secret no GitHub **e** no Supabase.
     - Mesmo e-mail em mais de um jeito de entrar (senha e Google, por exemplo): o Supabase junta na mesma conta quando o e-mail está confirmado.
     - Pendente para a App Store: ao excluir a conta de quem entrou com Apple, a Apple pede revogar o token (Sign in with Apple REST API › `revoke`). Ainda não é feito; ver item no CHANGELOG.
 

@@ -6,6 +6,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${SUPABASE_PROJECT_REF:?defina SUPABASE_PROJECT_REF}"
+# Login social: o config.toml liga Apple e Google em produção com as credenciais vindas do ambiente.
+# Sem elas o push gravaria valores vazios e o login social pararia; então não envia nada.
+missing=()
+for v in SUPABASE_AUTH_EXTERNAL_APPLE_CLIENT_ID SUPABASE_AUTH_EXTERNAL_APPLE_SECRET SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET; do
+  [ -n "${!v:-}" ] || missing+=("$v")
+done
+if [ ${#missing[@]} -gt 0 ]; then
+  echo "::error::Config de auth NÃO enviada: faltam ${missing[*]} (login com Apple/Google). Ver docs/release.md › 1.10."
+  exit 1
+fi
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/supabase"
