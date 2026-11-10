@@ -41,9 +41,36 @@ test.describe('política de privacidade', () => {
 
 test('SEO: sitemap, robots e 404', async ({ page, request }) => {
   const sitemap = await (await request.get('/sitemap.xml')).text();
-  expect(sitemap).toContain('/privacidade');
-  expect(await (await request.get('/robots.txt')).text()).toContain('Sitemap:');
+  expect(sitemap).toContain('/privacidade</loc>');
+  // URLs absolutas sem barra dupla (a variável do site pode vir com "/" no fim)
+  expect(sitemap).not.toMatch(/[^:]\/\/(privacidade|excluir-conta|<)/);
+  const robots = await (await request.get('/robots.txt')).text();
+  expect(robots).toMatch(/Sitemap: https?:\/\/[^\s]+[^/]\/sitemap\.xml/);
+  expect(robots).not.toContain('Host:');
   const res = await page.goto('/nao-existe');
   expect(res?.status()).toBe(404);
   await expect(page.getByRole('heading', { name: 'Página não encontrada.' })).toBeVisible();
+  await expect(page).toHaveTitle('Página não encontrada · Kash');
+  // a 404 não aponta o canônico para o início
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+});
+
+test('SEO: cada página indexável tem o próprio canônico; o login não herda o do início', async ({ page }) => {
+  for (const [path, canonical] of [['/', /^https?:\/\/[^/]+\/?$/], ['/privacidade', /\/privacidade$/], ['/excluir-conta', /\/excluir-conta$/]] as const) {
+    await page.goto(path);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', canonical);
+  }
+  await page.goto('/entrar');
+  await expect(page.locator('link[rel="canonical"]')).toHaveCount(0);
+});
+
+test('cabeçalhos de segurança', async ({ request }) => {
+  const headers = (await request.get('/')).headers();
+  expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+  expect(headers['content-security-policy']).toContain("object-src 'none'");
+  expect(headers['strict-transport-security']).toContain('includeSubDomains');
+  expect(headers['cross-origin-opener-policy']).toBe('same-origin');
+  expect(headers['x-content-type-options']).toBe('nosniff');
+  expect(headers['x-frame-options']).toBe('DENY');
+  expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
 });

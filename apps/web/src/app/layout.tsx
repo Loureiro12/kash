@@ -12,9 +12,10 @@ export const metadata: Metadata = {
   title: { default: site.title, template: '%s · Kash' },
   description: site.description,
   applicationName: site.name,
+  // o canônico fica em cada página indexável: herdado daqui, a 404 e o login apontariam para o início.
+  // (og:url fica aqui: declarar openGraph na página substitui o bloco inteiro e perde a imagem)
   openGraph: { type: 'website', locale: site.locale, siteName: site.name, url: '/', title: site.title, description: site.description },
   twitter: { card: 'summary_large_image', title: site.title, description: site.description },
-  alternates: { canonical: '/' },
   formatDetection: { telephone: false },
 };
 

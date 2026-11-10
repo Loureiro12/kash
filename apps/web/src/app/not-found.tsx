@@ -1,6 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { Logo } from '@/components/ui/Logo';
+
+export const metadata: Metadata = {
+  title: 'Página não encontrada',
+  description: 'O endereço pode ter mudado. Volte para o início do Kash.',
+  robots: { index: false, follow: true },
+};
 
 export default function NotFound() {
   return (

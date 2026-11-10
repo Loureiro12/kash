@@ -13,7 +13,8 @@ test.describe('landing', () => {
     await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /finanças/);
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /opengraph-image/);
     const ld = await page.locator('script[type="application/ld+json"]').textContent();
-    expect(JSON.parse(ld ?? '[]')[1]['@type']).toBe('FAQPage');
+    const types = (JSON.parse(ld ?? '[]') as { '@type': string }[]).map((d) => d['@type']);
+    expect(types).toEqual(['Organization', 'WebSite', 'SoftwareApplication', 'FAQPage']);
   });
 
   test('sem rolagem horizontal', async ({ page }) => {

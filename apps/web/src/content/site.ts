@@ -10,7 +10,8 @@ export interface StoreLink {
 
 export const site = {
   name: 'Kash',
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kash.app',
+  // sem barra no fim (a Vercel pode ter a variável com "/"): sitemap, robots e canônicos montam `${url}/caminho`
+  url: (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.kash.app.br').replace(/\/+$/, ''),
   locale: 'pt_BR',
   title: 'Kash — Sua grana, sem mistério',
   description:

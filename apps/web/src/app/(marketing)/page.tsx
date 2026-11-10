@@ -7,21 +7,48 @@ import { Pillars } from '@/components/landing/Pillars';
 import { PrivacyCallout } from '@/components/landing/PrivacyCallout';
 import { SiteFooter } from '@/components/landing/SiteFooter';
 import { SiteHeader } from '@/components/landing/SiteHeader';
+import type { Metadata } from 'next';
 import { faqs } from '@/content/landing';
 import { site } from '@/content/site';
 
-/** Dados estruturados (Google): app gratuito + perguntas frequentes. */
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
+
+/** Dados estruturados (Google): organização, site, app gratuito e perguntas frequentes. */
 function JsonLd() {
+  const stores = [site.stores.googlePlay, site.stores.appStore].filter((s) => s.available).map((s) => s.url);
   const data = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': `${site.url}/#organization`,
+      name: site.name,
+      url: `${site.url}/`,
+      logo: `${site.url}/icon.png`,
+      ...(stores.length ? { sameAs: stores } : {}),
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      '@id': `${site.url}/#website`,
+      name: site.name,
+      url: `${site.url}/`,
+      inLanguage: 'pt-BR',
+      publisher: { '@id': `${site.url}/#organization` },
+    },
     {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       name: site.name,
       description: site.description,
       applicationCategory: 'FinanceApplication',
-      operatingSystem: 'iOS, Android',
+      operatingSystem: site.webApp ? 'iOS, Android, Web' : 'iOS, Android',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' },
-      url: site.url,
+      url: `${site.url}/`,
+      inLanguage: 'pt-BR',
+      publisher: { '@id': `${site.url}/#organization` },
+      ...(stores.length ? { downloadUrl: stores } : {}),
     },
     {
       '@context': 'https://schema.org',
