@@ -25,7 +25,7 @@ export const LEGAL_DOCS = {
     title: 'Privacidade',
     updatedAt: 'Atualizado em 11 de outubro de 2026',
     sections: [
-      { heading: 'Quais dados coletamos', body: 'Nome, e-mail e os lançamentos que você cadastra. Não coletamos dados bancários nem localização.' },
+      { heading: 'Quais dados coletamos', body: 'Nome, e-mail e os lançamentos que você cadastra. Se você entra com Apple ou Google, recebemos deles só o nome e o e-mail, nunca a senha. Não coletamos dados bancários nem localização.' },
       { heading: 'Como usamos', body: 'Apenas para mostrar seus relatórios, metas e lembretes dentro do app. Não vendemos nem compartilhamos com anunciantes.' },
       {
         heading: 'Importação com IA (opcional)',

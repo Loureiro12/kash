@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, ListRow, PageHeader, Screen, Switch, Text } from '@/design-system';
 import { useBiometricSupport, useBiometricToggle } from '@/features/security/useBiometrics';
+import { signInMethods, socialOnlyLabel } from '@kash/supabase-client';
+import { supabase } from '@/services/supabase';
 import { useKashStore } from '@/store';
 
 /** Perfil › Segurança — trocar a senha e entrar com Face ID / Touch ID / digital. */
@@ -11,6 +13,11 @@ export function SecurityScreen() {
   const support = useBiometricSupport();
   const { enabled, toggle, busy } = useBiometricToggle(support);
   const label = support?.label ?? 'biometria';
+  // quem entra só com Apple/Google não tem senha no Kash
+  const [socialOnly, setSocialOnly] = useState<string | null>(null);
+  useEffect(() => {
+    void signInMethods(supabase).then((m) => setSocialOnly(socialOnlyLabel(m)), () => undefined);
+  }, []);
   const unavailable = support !== null && (!support.hasHardware || !support.enrolled);
 
   const subtitle = !support
@@ -29,7 +36,11 @@ export function SecurityScreen() {
         Acesso
       </Text>
       <Card padding={0} style={{ overflow: 'hidden' }}>
-        <ListRow title="Alterar senha" subtitle="Confirme a senha atual e escolha uma nova" onPress={() => openSheet('changePassword')} testID="security-password" />
+        {socialOnly ? (
+          <ListRow title={`Você entra com ${socialOnly}`} subtitle={`Sem senha no Kash: o acesso é pela sua conta ${socialOnly}`} chevron={false} testID="security-social" />
+        ) : (
+          <ListRow title="Alterar senha" subtitle="Confirme a senha atual e escolha uma nova" onPress={() => openSheet('changePassword')} testID="security-password" />
+        )}
         <ListRow
           title={`Entrar com ${label}`}
           subtitle={subtitle}

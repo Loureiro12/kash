@@ -4,9 +4,10 @@ import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Input, Pressable, Text, useTheme } from '@/design-system';
 import { useKashStore } from '@/store';
+import { OrDivider, SocialButtons } from './SocialButtons';
 import { validateLogin } from './validation';
 
-/** Tela 2 — Login com validação, carregando e erros (auth simulada nesta fase). */
+/** Tela 2 — Login: Apple/Google ou e-mail e senha, com validação, carregando e erros. */
 export function LoginScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -50,7 +51,12 @@ export function LoginScreen() {
           Entre pra ver como anda sua grana.
         </Text>
 
-        <View style={{ gap: 12, marginTop: 32 }}>
+        <View style={{ gap: 16, marginTop: 28 }}>
+          <SocialButtons disabled={loading} />
+          <OrDivider />
+        </View>
+
+        <View style={{ gap: 12, marginTop: 16 }}>
           <Input
             testID="login-email"
             label="E-mail ou celular"

@@ -108,3 +108,18 @@ jest.mock('@/data/queryClient', () => ({
   queryPersister: {},
   QUERY_CACHE_BUSTER: 'test',
 }));
+
+// Login social: módulos nativos viram mocks (cada teste decide o resultado).
+jest.mock('expo-apple-authentication', () => {
+  const React = require('react');
+  const { Pressable } = require('react-native');
+  return {
+    isAvailableAsync: jest.fn(async () => true),
+    signInAsync: jest.fn(),
+    AppleAuthenticationScope: { FULL_NAME: 0, EMAIL: 1 },
+    AppleAuthenticationButtonType: { SIGN_IN: 0, CONTINUE: 1 },
+    AppleAuthenticationButtonStyle: { WHITE: 0, WHITE_OUTLINE: 1, BLACK: 2 },
+    AppleAuthenticationButton: ({ onPress, testID }: { onPress: () => void; testID?: string }) => React.createElement(Pressable, { onPress, testID, accessibilityRole: 'button' }),
+  };
+});
+jest.mock('expo-web-browser', () => ({ openAuthSessionAsync: jest.fn(async () => ({ type: 'cancel' })), maybeCompleteAuthSession: jest.fn() }));

@@ -24,6 +24,8 @@ Base: builds 1.0.1 (iOS 6, Android 3), feitos no commit `9ea8010`.
   - Privacidade no app ganhou a seção "Importação com IA (opcional)".
 - **Limite mensal dividido** (Perfil › Limite mensal › "Separar cartão e o restante"): uma meta para a fatura do mês dos cartões e outra para débito, Pix e dinheiro; o total é a soma. O Início mostra as duas barras. Pagar a fatura pela conta não conta no restante (a compra já está no cartão). Mesma configuração da web (migração `20261018000000_card_budget`). A tela do limite ficou sem a barra de abas, para o teclado caber inteiro.
 - **Gastos por categoria** (Relatório › toque numa categoria): no estilo da Previsão, barras dos últimos 6 meses (toque escolhe o mês), total com a comparação com o mês anterior, quanto a categoria pesa nos gastos do mês, média por lançamento, "Onde você mais gastou" e os lançamentos do mês (toque edita). Chips no topo trocam de categoria. Também na web (`/app/relatorio/<categoria>`).
+- **Entrar com Apple e Google** (login e cadastro): no iPhone, "Continuar com Apple" usa a folha nativa; o Google (e a Apple no Android) abre o login do provedor numa janela segura do sistema e volta para o app. Mesmo login na web. Quem entra só por Apple/Google vê em Segurança "Você entra com …" no lugar de "Alterar senha". Novos módulos nativos (`expo-apple-authentication`, `expo-web-browser`) e a capacidade Sign In with Apple: exige build novo. Configuração na Apple, no Google e no Supabase: `docs/release.md` › 1.10 (migração `20261019000000_social_login`).
+  - **Falta antes da loja:** revogar o token da Apple ao excluir a conta (exigência da Apple para quem oferece Sign in with Apple).
 - O texto do lembrete push passou a "Notificação 2 dias antes do vencimento", para diferenciar do e-mail.
 - **Correção:** Perfil e Ajuda mostravam "1.0.0" fixo; agora mostram a versão real do app.
 
@@ -37,6 +39,7 @@ Base: builds 1.0.1 (iOS 6, Android 3), feitos no commit `9ea8010`.
 > • Importe a fatura do cartão (PDF, mesmo com senha) ou o extrato da conta (OFX/CSV): revise, renomeie e traga as parcelas em aberto sem digitar nada.
 > • Limite separado para o cartão e para o resto (débito, Pix, dinheiro), sem contar o pagamento da fatura duas vezes.
 > • Gastos por categoria: veja mês a mês quanto foi para cada categoria e onde você mais gastou.
+> • Entre com Apple ou Google, sem precisar de mais uma senha.
 > • Relatório mais fiel: o gráfico dos últimos meses agora usa os seus lançamentos de verdade.
 > • Use o Kash também no computador: www.kash.app.br (mesma conta, mesmos dados).
 > • Pequenas correções.

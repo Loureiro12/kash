@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, type KashSnapshot, RECOVERY_PATH, recoverSessionFromUrl, verifyRecoveryCode as apiVerifyRecoveryCode, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
+import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, type KashSnapshot, OAUTH_CALLBACK_PATH, RECOVERY_PATH, recoverSessionFromUrl, sessionFromOAuthRedirect, type SocialProvider, verifyRecoveryCode as apiVerifyRecoveryCode, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
 import { biometricLockPreference } from '@/services/biometrics';
 import { onboardingFlag } from '@/services/onboarding';
+import { signInWithProvider as socialSignIn } from '@/services/socialAuth';
 import { supabase } from '@/services/supabase';
 import { queryClient } from '@/data/queryClient';
 import type { CardGradient } from '@/design-system/tokens/colors';
@@ -174,6 +175,8 @@ export interface KashState {
   start: () => void;
   signIn: (input: Credentials) => Promise<boolean>;
   signUp: (input: SignUpInput) => Promise<boolean>;
+  /** Entrar (ou criar a conta) com Apple ou Google; false se a pessoa cancelou ou deu erro */
+  signInWithProvider: (provider: SocialProvider) => Promise<boolean>;
   requestPasswordReset: (email: string) => Promise<boolean>;
   /** código de recuperação digitado; true se válido (vai pra tela de nova senha) */
   verifyRecoveryCode: (email: string, code: string) => Promise<boolean>;
@@ -319,6 +322,23 @@ export const useKashStore = create<KashState>((set, get) => ({
       return false;
     }
   },
+  signInWithProvider: async (provider) => {
+    set({ authRequest: { status: 'loading', error: null } });
+    try {
+      const session = await socialSignIn(provider);
+      if (!session) {
+        set({ authRequest: { status: 'idle', error: null } });
+        return false;
+      }
+      void onboardingFlag.set(true);
+      set({ auth: 'app', userId: session.user.id, authRequest: { status: 'success', error: null } });
+      void get().loadProfile();
+      return true;
+    } catch (err) {
+      set({ authRequest: { status: 'error', error: toKashError(err).message } });
+      return false;
+    }
+  },
   signUp: async (input) => {
     set({ authRequest: { status: 'loading', error: null } });
     try {
@@ -359,6 +379,15 @@ export const useKashStore = create<KashState>((set, get) => ({
   },
   handleAuthUrl: async (url) => {
     try {
+      // retorno do login social que chegou como deep link (Android com o app reaberto pelo sistema)
+      if (url.includes(OAUTH_CALLBACK_PATH)) {
+        if (get().auth === 'app') return false;
+        const social = await sessionFromOAuthRedirect(supabase, url);
+        if (!social) return false;
+        set({ auth: 'app', userId: social.user.id, authRequest: { status: 'success', error: null } });
+        void get().loadProfile();
+        return true;
+      }
       const session = await recoverSessionFromUrl(supabase, url);
       if (!session) return false;
       set({ auth: 'recovery', userId: session.user.id, authRequest: { status: 'idle', error: null } });

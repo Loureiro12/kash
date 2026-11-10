@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, CheckCircle, IconButton, Input, Pressable, Text, useTheme } from '@/design-system';
 import { useKashStore } from '@/store';
+import { OrDivider, SocialButtons } from './SocialButtons';
 import { passwordStrength, validateSignup } from './validation';
 
 /** Cadastro — nome, e-mail, senha com força, aceite dos termos. */
@@ -48,7 +49,15 @@ export function SignupScreen() {
           Grátis, sem cartão e sem acessar seu banco.
         </Text>
 
-        <View style={{ gap: 12, marginTop: 28 }}>
+        <View style={{ gap: 12, marginTop: 24 }}>
+          <SocialButtons />
+          <Text variant="micro" color="muted" align="center" testID="signup-social-terms">
+            Ao continuar com Apple ou Google, você aceita os Termos de uso e a Política de privacidade.
+          </Text>
+          <OrDivider />
+        </View>
+
+        <View style={{ gap: 12, marginTop: 16 }}>
           <Input testID="signup-name" label="Nome" height={52} placeholder="Como quer ser chamado" value={name} onChangeText={(v) => { setName(v); if (errors.name) setErrors((e) => ({ ...e, name: undefined })); }} error={errors.name} autoCapitalize="words" textContentType="name" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => emailRef.current?.focus()} />
           <Input ref={emailRef} testID="signup-email" label="E-mail" height={52} placeholder="voce@email.com" value={email} onChangeText={(v) => { setEmail(v); if (errors.email) setErrors((e) => ({ ...e, email: undefined })); }} error={errors.email} autoCapitalize="none" keyboardType="email-address" textContentType="emailAddress" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => passwordRef.current?.focus()} />
           <Input ref={passwordRef} testID="signup-password" label="Senha" height={52} placeholder="Pelo menos 6 caracteres" value={password} onChangeText={(v) => { setPassword(v); if (errors.password) setErrors((e) => ({ ...e, password: undefined })); }} error={errors.password} secureTextEntry textContentType="oneTimeCode" autoComplete="off" returnKeyType="done" onSubmitEditing={submit} />

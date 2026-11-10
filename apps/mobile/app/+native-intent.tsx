@@ -6,5 +6,7 @@ import { importPathFor } from '@/features/import/openWith';
  * os demais links (kash://, recuperação de senha) seguem como estão.
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }) {
+  // retorno do login social: quem abre a sessão é o login (ver useAuthLinks); a rota fica no login
+  if (path.includes('auth-callback')) return '/login';
   return importPathFor(path) ?? path;
 }

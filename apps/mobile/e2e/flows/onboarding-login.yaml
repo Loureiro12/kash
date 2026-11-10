@@ -19,12 +19,14 @@ tags: [smoke]
 - inputText: "lara@email.com"
 - pressKey: Enter
 - inputText: "errada123"
-- tapOn:
-    id: "login-submit"
-- extendedWaitUntil:
-    visible:
+# "ir" no teclado envia (o botão Entrar fica atrás do teclado com a tela mais alta)
+- pressKey: Enter
+# com os botões da Apple e do Google a tela ficou mais alta: o erro pode estar acima da área visível
+- scrollUntilVisible:
+    element:
       id: "login-error"
-    timeout: 5000
+    direction: UP
+    timeout: 8000
 - assertVisible: "E-mail ou senha incorretos."
 # senha certa
 # a senha é limpa automaticamente após credencial inválida; com o banner de erro o botão fica sob o teclado,

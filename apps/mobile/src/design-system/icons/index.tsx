@@ -78,3 +78,4 @@ export function Icon({ name, size = 22, color, strokeWidth = 2.2, testID }: Icon
   const Cmp = map[name];
   return <Cmp size={size} color={color} strokeWidth={strokeWidth} testID={testID} />;
 }
+export * from './brands';
