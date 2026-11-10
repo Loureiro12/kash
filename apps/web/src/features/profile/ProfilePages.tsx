@@ -1,15 +1,17 @@
 'use client';
 
 import { budgetSplit, budgetStatus, formatBRL } from '@kash/domain';
+import { signInMethods, socialOnlyLabel } from '@kash/supabase-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@/components/app/Icon';
 import { Avatar, Badge, Button, Card, DashedButton, Group, GroupRow, MoneyInput, ProgressBar, Switch, TextInput, uiStyles } from '@/components/app/ui';
 import { readableInk } from '@/components/app/colors';
 import { privacyContact, privacyIntro, privacySections, formatLongDate } from '@/content/privacy';
 import { helpFaq, SUPPORT_EMAIL, termsDoc } from '@/content/terms';
 import { useKashActions } from '@/kash/actions';
+import { requireKashClient } from '@/kash/client';
 import { useKash } from '@/kash/data';
 import { useUi } from '@/kash/ui';
 import { categoriesWithUsage } from '@/kash/views';
@@ -69,12 +71,21 @@ export function PersonalScreen() {
 
 export function SecurityScreen() {
   const openModal = useUi((st) => st.openModal);
+  // quem entra só com Apple/Google não tem senha no Kash
+  const [socialOnly, setSocialOnly] = useState<string | null>(null);
+  useEffect(() => {
+    void signInMethods(requireKashClient()).then((m) => setSocialOnly(socialOnlyLabel(m)), () => undefined);
+  }, []);
   return (
     <>
       <PageHeader title="Segurança" subtitle="Senha de acesso ao Kash (vale para o app e para a web)." back={backToProfile} />
       <div className={p.narrow}>
         <Group title="Acesso">
-          <GroupRow title="Alterar senha" subtitle="Confirme a senha atual e escolha uma nova" onClick={() => openModal({ name: 'changePassword' })} testID="security-password" />
+          {socialOnly ? (
+            <GroupRow title={`Você entra com ${socialOnly}`} subtitle={`Sem senha no Kash: o acesso é pela sua conta ${socialOnly}`} chevron={false} testID="security-social" />
+          ) : (
+            <GroupRow title="Alterar senha" subtitle="Confirme a senha atual e escolha uma nova" onClick={() => openModal({ name: 'changePassword' })} testID="security-password" />
+          )}
         </Group>
         <Card as="div" testID="security-tip" style={{ background: 'var(--surface2)' }}>
           <h2 className={uiStyles.cardTitle} style={{ marginBottom: 6 }}>

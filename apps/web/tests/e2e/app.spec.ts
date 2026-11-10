@@ -412,6 +412,34 @@ test.describe('Kash web — com o Supabase local', () => {
     await expect(page.getByTestId('category-total')).toHaveText('R$ 280,00');
   });
 
+  test('login social: botões levam ao provedor e o retorno abre a sessão (ou explica o erro)', async ({ page }, info) => {
+    // o provedor é externo: o teste confere para onde o botão leva e simula a volta com a sessão
+    let authorize: URL | null = null;
+    await page.route('**/auth/v1/authorize**', async (route) => {
+      authorize = new URL(route.request().url());
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<p>provedor</p>' });
+    });
+    await page.goto('/entrar');
+    await expect(page.getByTestId('auth-apple')).toHaveText('Continuar com Apple');
+    await page.getByTestId('auth-google').click();
+    await expect(page).toHaveURL(/\/auth\/v1\/authorize/);
+    expect(authorize!.searchParams.get('provider')).toBe('google');
+    expect(authorize!.searchParams.get('redirect_to')).toMatch(/\/entrar\/retorno$/);
+
+    // volta com erro (ex.: a pessoa negou o acesso)
+    await page.goto('/entrar/retorno?error=access_denied&error_description=User+denied');
+    await expect(page.getByTestId('auth-callback')).toContainText('Não deu pra entrar');
+    await expect(page.getByTestId('auth-callback-back')).toBeVisible();
+    expect(await seriousA11y(page)).toEqual([]);
+
+    // volta com a sessão (fluxo implícito: tokens no fragmento)
+    const email = await createUser(info, 'social');
+    const db = createKashClient({ url: url!, anonKey: anon!, options: { auth: { persistSession: false } } });
+    const session = await signIn(db, { email, password: PASSWORD });
+    await page.goto(`/entrar/retorno#access_token=${session.access_token}&refresh_token=${session.refresh_token}&token_type=bearer&expires_in=3600`);
+    await expect(page.getByTestId('home-title')).toBeVisible();
+  });
+
   test('acessibilidade com dados, nos dois temas, e sem rolagem lateral', async ({ page }, info) => {
     test.setTimeout(90_000);
     const email = await createUser(info, 'a11y');

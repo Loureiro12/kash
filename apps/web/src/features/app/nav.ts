@@ -10,6 +10,8 @@ export interface NavItem {
 /** Rotas do app (o login fica fora de /app). */
 export const routes = {
   login: '/entrar',
+  /** volta do login com Apple/Google */
+  authCallback: '/entrar/retorno',
   signup: '/criar-conta',
   forgot: '/esqueci-senha',
   home: '/app',

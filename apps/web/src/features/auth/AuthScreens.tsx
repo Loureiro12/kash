@@ -1,6 +1,6 @@
 'use client';
 
-import { RECOVERY_CODE_PATTERN, requestPasswordReset, signIn, signOut, signUp, toKashError, updatePassword, verifyRecoveryCode } from '@kash/supabase-client';
+import { RECOVERY_CODE_PATTERN, requestPasswordReset, sessionFromOAuthRedirect, signIn, signOut, signUp, toKashError, updatePassword, verifyRecoveryCode } from '@kash/supabase-client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { requireKashClient } from '@/kash/client';
 import { toast, useUi } from '@/kash/ui';
 import { routes } from '@/features/app/nav';
 import { AuthLayout, authStyles as s } from './AuthLayout';
+import { OrDivider, SocialButtons } from './SocialButtons';
 import { isValidEmail, MIN_PASSWORD, passwordStrength, validateLogin, validateSignup } from './validation';
 
 /* ---------- Entrar ---------- */
@@ -39,6 +40,8 @@ export function LoginScreen() {
 
   return (
     <AuthLayout title="Bem-vindo de volta" subtitle="Entre pra ver como anda sua grana." testID="login-screen">
+      <SocialButtons onError={setServerError} />
+      <OrDivider />
       <form className={s.fields} onSubmit={(e) => void onSubmit(e)} noValidate>
         <TextInput label="E-mail" type="email" autoComplete="email" placeholder="voce@email.com" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} testID="login-email" large />
         <PasswordInput label="Senha" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} error={errors.password} testID="login-password" />
@@ -121,6 +124,11 @@ export function SignupScreen() {
 
   return (
     <AuthLayout title="Criar conta" subtitle="Leva 1 minuto. Sem cartão, sem senha de banco." testID="signup-screen">
+      <SocialButtons onError={setServerError} />
+      <p className={s.socialTerms} data-testid="signup-social-terms">
+        Ao continuar com Apple ou Google, você aceita os <Link href="/privacidade">termos e a política de privacidade</Link>.
+      </p>
+      <OrDivider />
       <form className={s.fields} onSubmit={(e) => void onSubmit(e)} noValidate>
         <TextInput label="Nome" autoComplete="name" placeholder="Como a gente te chama?" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} testID="signup-name" large />
         <TextInput label="E-mail" type="email" autoComplete="email" placeholder="voce@email.com" value={email} onChange={(e) => setEmail(e.target.value)} error={errors.email} testID="signup-email" large />
@@ -315,6 +323,34 @@ export function ForgotPasswordScreen() {
           </Link>
         </p>
       </form>
+    </AuthLayout>
+  );
+}
+
+/* ---------- Volta do login com Apple/Google ---------- */
+
+export function AuthCallbackScreen() {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void sessionFromOAuthRedirect(requireKashClient(), window.location.href).then(
+      (session) => alive && router.replace(session ? routes.home : routes.login),
+      (err: unknown) => alive && setError(toKashError(err).message),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [router]);
+
+  return (
+    <AuthLayout title={error ? 'Não deu pra entrar' : 'Entrando…'} subtitle={error ?? 'Só um instante, estamos abrindo sua conta.'} testID="auth-callback">
+      {error ? (
+        <Link href={routes.login} style={outlineLink} data-testid="auth-callback-back">
+          Voltar para o login
+        </Link>
+      ) : null}
     </AuthLayout>
   );
 }
