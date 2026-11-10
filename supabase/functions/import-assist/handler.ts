@@ -90,16 +90,31 @@ export const STATEMENT_TOOL = {
   },
 };
 
-export function buildPrompt(text: string, kind: 'card' | 'account', categories: string[]) {
-  const system = [
-    `Você lê ${kind === 'card' ? 'faturas de cartão de crédito' : 'extratos de conta'} de bancos brasileiros e registra os lançamentos com a ferramenta registrar_fatura.`,
-    'Regras:',
+/** Regras que mudam entre fatura de cartão e extrato de conta (sinal, tipos e linhas a ignorar). */
+const KIND_RULES: Record<'card' | 'account', string[]> = {
+  card: [
     '- Registre TODAS as linhas de lançamento do período (compras, parcelas, IOF, juros, multas, pagamentos, estornos), de todos os cartões da fatura.',
     '- Valores em reais: compra/débito positivo; pagamento, estorno, ajuste de crédito e cashback negativos. Use o valor em R$ (não o em dólar).',
     '- kind: "installment" para parcela ("Parcela 2/12", "02 DE 05", "03/12", "Parcela 03 de 06"), preenchendo installment_current e installment_total; "fee" para IOF, juros, multa, mora, anuidade, tarifas; "payment" para pagamento da fatura; "refund" para estorno/ajuste/crédito; "purchase" para compra à vista; "income" para crédito em conta.',
     '- Linhas que listam parcelas de PRÓXIMAS faturas, totais, subtotais, saldo anterior e simulações de parcelamento NÃO são lançamentos: não registre (ou use kind "ignore").',
     '- Datas sem ano: use o ano do vencimento; se o mês da linha for maior que o do vencimento, é do ano anterior. Parcelas costumam trazer a data da compra original: mantenha.',
     '- description: copie o texto do estabelecimento como está, sem a cidade, sem o final do cartão e sem o "R$".',
+  ],
+  account: [
+    '- Registre TODAS as movimentações do período: compras no débito, Pix e TED enviados e recebidos, pagamento de fatura do cartão, boletos, tarifas, salário, rendimentos, estornos.',
+    '- Valores em reais pelo ponto de vista da conta: dinheiro SAINDO (débito, Pix/TED enviado, pagamento de fatura ou boleto, saque, tarifa) é positivo; dinheiro ENTRANDO (crédito, Pix/TED recebido, salário, rendimento, estorno) é negativo.',
+    '- kind: "income" para toda entrada; "fee" para tarifas, juros e IOF; "purchase" para as demais saídas (inclusive pagamento de fatura e transferências enviadas). Nunca use "payment", "refund" ou "installment" no extrato.',
+    '- Saldo do dia, saldo anterior, saldo final, totais, limite e lançamentos futuros/agendados NÃO são movimentações: não registre (ou use kind "ignore").',
+    '- Datas sem ano: use o ano do período do extrato.',
+    '- description: copie o texto da movimentação como está (ex.: "PIX ENVIADO JOAO", "PAGAMENTO FATURA NUBANK"), sem o "R$".',
+  ],
+};
+
+export function buildPrompt(text: string, kind: 'card' | 'account', categories: string[]) {
+  const system = [
+    `Você lê ${kind === 'card' ? 'faturas de cartão de crédito' : 'extratos de conta'} de bancos brasileiros e registra os lançamentos com a ferramenta registrar_fatura.`,
+    'Regras:',
+    ...KIND_RULES[kind],
     `- suggested_category: escolha exatamente uma destas ou deixe vazio: ${categories.join(', ')}.`,
     '- O texto já teve CPF, endereço e nome do titular removidos (aparece como TITULAR). Não invente linhas.',
     '- Responda SEMPRE chamando a ferramenta registrar_fatura uma única vez, com todas as linhas. Não escreva texto fora dela.',
@@ -224,7 +239,8 @@ export function toStatement(raw: unknown, kind: 'card' | 'account', categories: 
       date: l.date,
       description: l.description.trim().slice(0, 200),
       amount: Math.round(amount * 100) / 100,
-      kind: kindValue === 'installment' && !hasInst ? 'purchase' : kindValue,
+      // extrato não tem pagamento/estorno/parcela: o tipo segue o sinal (entrada × saída)
+      kind: kind === 'account' && (kindValue === 'payment' || kindValue === 'refund' || kindValue === 'installment') ? (amount < 0 ? 'income' : 'purchase') : kindValue === 'installment' && !hasInst ? 'purchase' : kindValue,
       ...(hasInst && (kindValue === 'installment' || kindValue === 'fee') ? { installment: { current: cur, total: tot } } : {}),
       ...(typeof l.card_last4 === 'string' && /^\d{4}$/.test(l.card_last4) ? { cardLast4: l.card_last4 } : {}),
       ...(typeof l.suggested_title === 'string' && l.suggested_title.trim() ? { suggestedTitle: l.suggested_title.trim().slice(0, 80) } : {}),

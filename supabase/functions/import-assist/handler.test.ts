@@ -146,3 +146,23 @@ Deno.test('plano B dos nomes: JSON no texto', () => {
   assertEquals(jsonFromText('```json\n{"suggestions":[{"id":"a","title":"A"}]}\n```', 'suggestions'), { suggestions: [{ id: 'a', title: 'A' }] });
   assertEquals(jsonFromText('{"suggestions":[]}'), null);
 });
+
+Deno.test('extrato de conta: saída positiva, entrada negativa, sem regras de fatura', () => {
+  const account = buildPrompt('Extrato ...', 'account', categories).system;
+  assertStringIncludes(account, 'extratos de conta');
+  assertStringIncludes(account, 'pagamento de fatura ou boleto');
+  assertStringIncludes(account, 'Nunca use "payment"');
+  assertEquals(account.includes('Parcela 2/12'), false);
+  const card = buildPrompt('Fatura ...', 'card', categories).system;
+  assertStringIncludes(card, '"payment" para pagamento da fatura');
+  assertEquals(card.includes('Pix/TED enviado'), false);
+});
+
+Deno.test('extrato: tipos de fatura viram entrada ou saída pelo sinal', () => {
+  const s = toStatement({ lines: [
+    { date: '2026-10-05', description: 'PAGAMENTO FATURA NUBANK', amount: 558.95, kind: 'payment' },
+    { date: '2026-10-06', description: 'ESTORNO COMPRA', amount: -20, kind: 'refund' },
+    { date: '2026-10-07', description: 'TARIFA PACOTE', amount: 19.9, kind: 'fee' },
+  ] }, 'account', categories);
+  assertEquals(s.lines.map((l) => l.kind), ['purchase', 'income', 'fee']);
+});
