@@ -54,6 +54,21 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
    - Limite: 30 chamadas por pessoa a cada 24 h, somando PDF e sugestões de nome (`ai_calls`, com `purpose` = `import` ou `names`; também serve para acompanhar o custo: `select date(created_at), purpose, count(*), sum(input_tokens), sum(output_tokens) from ai_calls group by 1, 2 order by 1 desc;`).
    - A política de privacidade (seção "Compartilhamento") já cita o envio do texto do PDF e das descrições de OFX/CSV (sem dados pessoais) à Anthropic.
 
+10. **Login social (Apple e Google)**. Uma vez só; nada disso vai para o repositório. Referência: projeto `sqpxugyjnlwpkzuxzcpg`, URL de retorno do Supabase `https://sqpxugyjnlwpkzuxzcpg.supabase.co/auth/v1/callback`.
+    - **Apple** (developer.apple.com › Certificates, Identifiers & Profiles):
+      1. *Identifiers* › App ID `com.andreloureiro.kash` › marque **Sign In with Apple** (o `eas build` também tenta ligar sozinho, porque o `app.json` tem `usesAppleSignIn`).
+      2. *Identifiers* › **+** › *Services IDs* (ex.: `br.app.kash.web`) › ligue Sign In with Apple › *Configure*: domínio `sqpxugyjnlwpkzuxzcpg.supabase.co` e Return URL acima. É o que a web e o Android usam.
+      3. *Keys* › **+** › Sign In with Apple › baixe o `.p8` e anote o Key ID (Team ID: `G58V8BP6VH`).
+      4. Gere o *client secret* (um JWT assinado com o `.p8`, vale no máximo 6 meses) com o gerador da documentação do Supabase (Login with Apple). **Lembrete no calendário para renovar antes de vencer**, senão o login da Apple pela web e pelo Android para.
+      5. Supabase › Authentication › Sign In / Providers › **Apple**: ligar; *Client IDs*: `br.app.kash.web,com.andreloureiro.kash` (o segundo é o login nativo do iPhone); *Secret Key*: o JWT.
+    - **Google** (console.cloud.google.com):
+      1. *APIs e serviços* › *Tela de consentimento OAuth*: nome Kash, e-mail de suporte, domínio `kash.app.br`, links da política e dos termos. Publique o app (status "Em produção"); em teste só entram os e-mails cadastrados.
+      2. *Credenciais* › *Criar ID do cliente OAuth* › **Aplicativo da Web**: origem `https://www.kash.app.br`; URI de redirecionamento: a URL de retorno do Supabase acima.
+      3. Supabase › Providers › **Google**: ligar, colar Client ID e Client Secret.
+    - Supabase › Authentication › **URL Configuration** › Redirect URLs: incluir `kash://auth-callback`, `com.andreloureiro.kash://auth-callback` e `https://www.kash.app.br/**` (o `config.toml` › `[remotes.production.auth]` tem a mesma lista).
+    - Mesmo e-mail em mais de um jeito de entrar (senha e Google, por exemplo): o Supabase junta na mesma conta quando o e-mail está confirmado.
+    - Pendente para a App Store: ao excluir a conta de quem entrou com Apple, a Apple pede revogar o token (Sign in with Apple REST API › `revoke`). Ainda não é feito; ver item no CHANGELOG.
+
 ## 2. Expo / EAS — app
 
 1. **[você]** `cd apps/mobile && eas login` (conta Expo), depois:

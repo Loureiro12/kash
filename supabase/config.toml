@@ -161,7 +161,8 @@ site_url = "https://www.kash.app.br"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://www.kash.app.br/**", "https://kash.app.br/**", "http://127.0.0.1:3000", "kash://reset-password"]
+# login social volta para `<esquema do app>://auth-callback` (app) ou `/entrar/retorno` (web)
+additional_redirect_urls = ["https://www.kash.app.br/**", "https://kash.app.br/**", "http://127.0.0.1:3000/**", "http://localhost:3100/**", "kash://reset-password", "kash://auth-callback", "com.andreloureiro.kash://auth-callback"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -325,9 +326,12 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
+# Login social: Apple e Google (docs/release.md › 1.10). Desligados no local por padrão — para testar,
+# exporte as variáveis abaixo e mude `enabled` para true (o Supabase local precisa das credenciais reais).
 [auth.external.apple]
 enabled = false
-client_id = ""
+# Services ID (login pela web/navegador) e o bundle id do app (login nativo no iOS), separados por vírgula
+client_id = "env(SUPABASE_AUTH_EXTERNAL_APPLE_CLIENT_ID)"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
 secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 # Overrides the default auth callback URL derived from auth.external_url.
@@ -339,6 +343,13 @@ url = ""
 skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
+
+[auth.external.google]
+enabled = false
+# cliente OAuth do tipo "Aplicativo da Web" no Google Cloud (o app também usa este, pelo navegador)
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = false
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
@@ -431,9 +442,19 @@ enabled = true
 project_id = "sqpxugyjnlwpkzuxzcpg"
 
 [remotes.production.auth]
-# o app não tem site web: o esquema do app é a única origem válida de redirecionamento
-site_url = "kash://"
-additional_redirect_urls = ["kash://reset-password"]
+# site do Kash; o app volta pelo próprio esquema (recuperação de senha e login social)
+site_url = "https://www.kash.app.br"
+additional_redirect_urls = ["https://www.kash.app.br/**", "https://kash.app.br/**", "kash://reset-password", "kash://auth-callback", "com.andreloureiro.kash://auth-callback"]
+
+[remotes.production.auth.external.apple]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_APPLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
+
+[remotes.production.auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 
 [remotes.production.auth.email]
 # em produção a conta só entra depois de confirmar o e-mail (o app já trata sessão nula no cadastro)
