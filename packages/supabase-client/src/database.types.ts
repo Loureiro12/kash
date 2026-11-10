@@ -296,6 +296,7 @@ export type Database = {
           format: string;
           id: string;
           linked: NonNullable<Json>;
+          matched_count: number;
           plan_count: number;
           skipped_count: number;
           source_id: string;
@@ -314,6 +315,7 @@ export type Database = {
           format: string;
           id?: string;
           linked?: NonNullable<Json>;
+          matched_count?: number;
           plan_count?: number;
           skipped_count?: number;
           source_id: string;
@@ -331,6 +333,7 @@ export type Database = {
           format?: string;
           id?: string;
           linked?: NonNullable<Json>;
+          matched_count?: number;
           plan_count?: number;
           skipped_count?: number;
           source_id?: string;

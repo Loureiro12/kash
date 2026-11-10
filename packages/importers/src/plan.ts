@@ -1,12 +1,14 @@
 import { monthKey, monthKeyName, monthKeyToDate, monthsBetween, round2, toISODate, type Plan, type Tx } from '@kash/domain';
 import { detectInstallment, guessCategory, normalizeMerchant, stableId, suggestTitle } from './normalize';
+import { matchExisting, matchPool, type ExistingMatch } from './reconcile';
 import { daysApart, guessCounterpart, looksLikeOwnTransfer } from './transfers';
 import type { ParsedLine, ParsedStatement } from './types';
 
 /** 'installments' = só os parcelamentos; 'all' = parcelamentos e compras à vista da fatura */
 export type ImportMode = 'installments' | 'all';
 
-export type RowSection = 'installment' | 'purchase' | 'income' | 'transfer' | 'ignored';
+/** 'matched' = já está no Kash (lançado pela pessoa): a linha vincula o lançamento em vez de criar outro */
+export type RowSection = 'installment' | 'purchase' | 'income' | 'transfer' | 'matched' | 'ignored';
 
 export interface MerchantRule {
   pattern: string;
@@ -62,16 +64,27 @@ export interface ReviewRow {
   transfer?: { accountId: string | null; linkTxId?: string; linkDate?: string };
   /** nome ou categoria vieram da IA (a pessoa confere na revisão) */
   fromAi?: boolean;
+  /** lançamento da pessoa que corresponde a esta linha (ver reconcile.ts) */
+  match?: ExistingMatch;
+  /**
+   * com `match`: 'keep' = mantém o lançamento da pessoa e vincula ao arquivo; 'update' = vincula e
+   * corrige valor/data com os do arquivo; 'import' = é outro gasto, importa também
+   */
+  matchAction?: MatchAction;
 }
 
+export type MatchAction = 'keep' | 'update' | 'import';
+
 /** O que a pessoa mudou numa linha da revisão. `transferAccountId`: '' / null desfaz a transferência. */
-export type RowEdit = Partial<Pick<ReviewRow, 'title' | 'category' | 'include'>> & { transferAccountId?: string | null };
+export type RowEdit = Partial<Pick<ReviewRow, 'title' | 'category' | 'include' | 'matchAction'>> & { transferAccountId?: string | null };
 
 /** Linha com as mudanças da pessoa (inclusive virar ou deixar de ser transferência). */
 export function applyRowEdit(row: ReviewRow, edit: RowEdit | undefined): ReviewRow {
   if (!edit) return row;
   const { transferAccountId, ...rest } = edit;
   const next: ReviewRow = { ...row, ...rest };
+  // conferência: vincular manda a linha para "já estão no Kash"; importar devolve para compras/entradas
+  if (edit.matchAction && row.match) next.section = edit.matchAction === 'import' ? (row.inflow ? 'income' : 'purchase') : 'matched';
   if (transferAccountId === undefined) return next;
   if (!transferAccountId) {
     const { transfer: _drop, ...plain } = next;
@@ -106,6 +119,11 @@ export interface ImportPlan {
   mode: ImportMode;
   /** soma do que vai entrar × total informado pelo banco */
   check: { included: number; statementTotal: number | null };
+  /**
+   * lançamentos da pessoa no período do arquivo que não casaram com nenhuma linha (fatura: só no modo
+   * "Tudo"): compra que ainda vai cair, lançada no cartão errado ou repetida
+   */
+  unmatched: Tx[];
 }
 
 const firstDay = (key: string) => `${key}-01`;
@@ -142,6 +160,34 @@ function nameAndCategory(line: ParsedLine & { suggestedTitle?: string; suggested
 }
 
 /**
+ * Conferência: linha já importada antes (mesmo id do banco) sai como ignorada; as demais procuram o
+ * lançamento correspondente. Devolve os lançamentos do período que ficaram sem par (`inPeriod`).
+ */
+function reconcile(rows: ReviewRow[], txs: readonly Tx[], sourceId: string, eligible: (r: ReviewRow) => boolean, inPeriod: ((t: Tx) => boolean) | null): Tx[] {
+  const pool = matchPool(txs, sourceId);
+  const imported = new Set(pool.map((t) => t.externalId).filter(Boolean));
+  for (const r of rows) {
+    if (!eligible(r) || !r.externalId || !imported.has(r.externalId)) continue;
+    Object.assign(r, { section: 'ignored', reason: 'Já importado antes', include: false, selectable: false });
+  }
+  // lançamento já vinculado a um arquivo (importado ou conferido) não casa de novo
+  const free = pool.filter((t) => !t.externalId);
+  const matches = matchExisting(
+    rows.filter(eligible).map((r) => ({ key: r.key, date: r.date, amount: r.amount, inflow: !!r.inflow, description: r.originalTitle, title: r.title })),
+    free,
+  );
+  for (const r of rows) {
+    const m = matches.get(r.key);
+    if (!m) continue;
+    // mesmo gasto: mantém o da pessoa e vincula; parecido: importa, mas avisa para conferir
+    Object.assign(r, m.strength === 'same' ? { match: m, matchAction: 'keep', section: 'matched' } : { match: m, matchAction: 'import' });
+  }
+  if (!inPeriod) return [];
+  const used = new Set([...matches.values()].map((m) => m.txId));
+  return free.filter((t) => !used.has(t.id) && inPeriod(t)).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
  * Monta a revisão da importação: o que entra (parcelamentos, compras, entradas), o que fica de fora
  * e por quê, já com nome amigável, categoria, parcela atual e aviso de possível duplicado.
  */
@@ -174,7 +220,8 @@ export function buildImportPlan(input: ImportPlanInput): ImportPlan {
       const hint = !ignore && looksLikeOwnTransfer(line.description, input.ownNames);
       // esta perna já entrou como transferência (ex.: importando antes o extrato da outra conta)
       const transferLeg = existing.txs.some((t) => t.sourceId === target.id && t.transferId && Math.abs(t.amount - signed) < 0.005 && daysApart(t.date, line.date) <= 3);
-      const duplicate = transferLeg || existing.txs.some((t) => t.sourceId === target.id && t.date === line.date && Math.abs(Math.abs(t.amount) - amount) < 0.005 && Math.sign(t.amount) === (isIncome ? 1 : -1));
+      // gasto/entrada que a pessoa já lançou é tratado depois, na conferência (reconcile)
+      const duplicate = transferLeg;
       // o outro lado já está no Kash como gasto/entrada comum de outra conta: vira a outra perna
       const link = ignore || duplicate
         ? undefined
@@ -204,8 +251,10 @@ export function buildImportPlan(input: ImportPlanInput): ImportPlan {
         ...(fromAi && !isIncome ? { fromAi } : {}),
       });
     });
-    const included = round2(rows.filter((r) => r.include && r.section !== 'ignored').reduce((a, r) => a + (r.inflow ? r.amount : -r.amount), 0));
-    return { rows, statementMonth: null, allowAll: true, mode: 'all', check: { included, statementTotal: null } };
+    const dates = statement.lines.map((l) => l.date).sort();
+    const unmatched = reconcile(rows, existing.txs, target.id, (r) => r.section === 'purchase' || r.section === 'income', dates[0] ? (t) => t.date >= dates[0]! && t.date <= dates.at(-1)! : null);
+    const included = round2(rows.filter((r) => r.include && r.section !== 'ignored' && r.section !== 'matched').reduce((a, r) => a + (r.inflow ? r.amount : -r.amount), 0));
+    return { rows, statementMonth: null, allowAll: true, mode: 'all', check: { included, statementTotal: null }, unmatched };
   }
 
   // ---------- fatura de cartão ----------
@@ -265,12 +314,27 @@ export function buildImportPlan(input: ImportPlanInput): ImportPlan {
     const kashDate = clampToMonth(line.date, month);
     const amount = round2(Math.abs(line.amount));
     const externalId = stableId(occurrence(`card|${kashDate}|${pattern}|${amount}`));
-    const duplicate = cardTxs.some((t) => t.date.slice(0, 7) === month && Math.abs(Math.abs(t.amount) - amount) < 0.005 && !t.planId);
-    rows.push({ ...base, amount, section: 'purchase', include: !duplicate, selectable: true, kashDate, duplicate, externalId });
+    rows.push({ ...base, amount, section: 'purchase', include: true, selectable: true, kashDate, duplicate: false, externalId });
   });
 
-  const included = round2(rows.filter((r) => r.include).reduce((a, r) => a + r.amount, 0));
-  return { rows, statementMonth: month, allowAll, mode, check: { included, statementTotal: statement.total ?? null } };
+  // compras à vista conferidas com o que a pessoa lançou no cartão naquele mês
+  const unmatched = mode === 'all' ? reconcile(rows, cardTxs, target.id, (r) => r.section === 'purchase', (t) => t.date.slice(0, 7) === month && t.amount < 0) : [];
+  const included = round2(rows.filter((r) => r.include && r.section !== 'ignored' && r.section !== 'matched').reduce((a, r) => a + r.amount, 0));
+  return { rows, statementMonth: month, allowAll, mode, check: { included, statementTotal: statement.total ?? null }, unmatched };
+}
+
+/**
+ * Lançamento da pessoa conferido com a linha: vincula ao arquivo (id do banco e nome original) e, com
+ * 'update', corrige valor e data. `amount` segue a convenção de cada RPC (fatura: positivo).
+ */
+function matchItem(r: ReviewRow, amount: number) {
+  return {
+    type: 'match' as const,
+    tx_id: r.match!.txId,
+    external_id: r.externalId,
+    original_title: r.originalTitle,
+    ...(r.matchAction === 'update' ? { amount, date: r.kashDate } : {}),
+  };
 }
 
 /** Itens da RPC `import_card_statement`. */
@@ -278,7 +342,9 @@ export function toCardItems(rows: readonly ReviewRow[]) {
   return rows
     .filter((r) => r.include && r.section !== 'ignored')
     .map((r) =>
-      r.section === 'installment' && r.installment
+      r.section === 'matched' && r.match
+        ? matchItem(r, r.amount)
+        : r.section === 'installment' && r.installment
         ? {
             type: 'plan' as const,
             title: r.title.trim() || r.originalTitle,
@@ -301,6 +367,7 @@ export function toAccountItems(rows: readonly ReviewRow[]) {
     .filter((r) => r.include && r.section !== 'ignored')
     .map((r) => {
       const common = { title: r.title.trim() || r.originalTitle, original_title: r.originalTitle, amount: r.inflow ?? r.section === 'income' ? r.amount : -r.amount, date: r.kashDate, external_id: r.externalId };
+      if (r.section === 'matched' && r.match) return matchItem(r, common.amount);
       if (r.section === 'transfer' && r.transfer?.accountId) {
         return { type: 'transfer' as const, ...common, category: 'Transferência', counterpart_account_id: r.transfer.accountId, ...(r.transfer.linkTxId ? { link_tx_id: r.transfer.linkTxId } : {}) };
       }
@@ -317,7 +384,8 @@ export function learnedRules(rows: readonly ReviewRow[], suggested: readonly Rev
   const out = new Map<string, MerchantRule>();
   for (const r of rows) {
     const before = byKey.get(r.key);
-    if (!r.include || !before || !r.pattern) continue;
+    // conferido com um lançamento da pessoa: o nome dela continua; nada a aprender
+    if (!r.include || !before || !r.pattern || r.section === 'matched') continue;
     // transferência: só o nome vira regra (a conta do outro lado sai do texto a cada importação)
     const categoryChanged = r.section !== 'transfer' && before.section !== 'transfer' && r.category !== before.category;
     const edited = r.title.trim() !== before.title || categoryChanged;
@@ -330,8 +398,9 @@ export function learnedRules(rows: readonly ReviewRow[], suggested: readonly Rev
 }
 
 /** "2 parcelamentos, 3 transferências e 5 lançamentos" (resumo da revisão e do fim da importação) */
-export function importCountsLabel({ plans, txs, transfers = 0 }: { plans: number; txs: number; transfers?: number }): string {
+export function importCountsLabel({ plans, txs, transfers = 0, matched = 0 }: { plans: number; txs: number; transfers?: number; matched?: number }): string {
   const parts = [
+    matched ? `${matched} ${matched === 1 ? 'conferido' : 'conferidos'}` : '',
     plans ? `${plans} ${plans === 1 ? 'parcelamento' : 'parcelamentos'}` : '',
     transfers ? `${transfers} ${transfers === 1 ? 'transferência' : 'transferências'}` : '',
     txs ? `${txs} ${txs === 1 ? 'lançamento' : 'lançamentos'}` : '',

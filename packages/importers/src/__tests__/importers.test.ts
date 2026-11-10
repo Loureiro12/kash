@@ -2,13 +2,14 @@ import type { Plan, Tx } from '@kash/domain';
 import { csvSignature, guessCsvMapping, mappingFits, parseBrDate, parseBrNumber, parseCsv, readCsv } from '../csv';
 import { amountInText, classifyLine, detectInstallment, guessCategory, normalizeMerchant, stableId, suggestTitle } from '../normalize';
 import { parseOfx } from '../ofx';
-import { applyRowEdit, buildImportPlan, learnedRules, statementMonthOf, toAccountItems, toCardItems, type ImportPlanInput } from '../plan';
+import { applyRowEdit, buildImportPlan, importCountsLabel, learnedRules, statementMonthOf, toAccountItems, toCardItems, type ImportPlanInput } from '../plan';
 import { aiNameRequests, withAiNames } from '../aiNames';
 import { redactStatementText } from '../redact';
 import { guessCounterpart, looksLikeOwnTransfer } from '../transfers';
 import type { ParsedStatement } from '../types';
 
 const today = new Date(2026, 9, 10, 10); // 10 out 2026
+const round = (v: number) => Math.round(v * 100) / 100;
 const categories = ['Comida', 'Transporte', 'Lazer', 'Mercado', 'Assinaturas', 'Outros'];
 
 describe('parcelas nas descrições (formatos dos bancos)', () => {
@@ -244,12 +245,12 @@ describe('revisão da fatura', () => {
     expect(b.externalId).toBe(a.externalId);
   });
 
-  it('parcelamento parecido já cadastrado à mão e compra igual no mês começam desmarcados', () => {
+  it('parcelamento parecido já cadastrado à mão começa desmarcado; compra já lançada é conferida', () => {
     const plans: Plan[] = [{ id: 'p', title: 'Streaming', category: 'Assinaturas', cardId: 'card1', installments: 12, current: 3, perInstallment: 20 }];
     const txs: Tx[] = [{ id: 't', title: 'Spotify', category: 'Assinaturas', amount: -21.9, date: '2026-09-13', sourceId: 'card1' }];
     const plan = buildImportPlan(base({ mode: 'all', existing: { plans, txs } }));
     expect(plan.rows[0]).toMatchObject({ duplicate: true, include: false });
-    expect(plan.rows.find((r) => r.title === 'Spotify')).toMatchObject({ duplicate: true, include: false });
+    expect(plan.rows.find((r) => r.title === 'Spotify')).toMatchObject({ section: 'matched', matchAction: 'keep', include: true, match: { txId: 't', strength: 'same' } });
   });
 
   it('regras aprendidas mandam no nome e na categoria; o que a pessoa muda vira regra', () => {
@@ -289,6 +290,101 @@ describe('revisão do extrato da conta', () => {
     ]);
     expect(toAccountItems(plan.rows).map((i) => i.amount)).toEqual([3000, -558.95, -120]);
     expect(plan.check.included).toBe(2321.05);
+  });
+});
+
+describe('conferência com o que a pessoa já lançou', () => {
+  const card = (lines: ParsedStatement['lines']): ParsedStatement => ({ kind: 'card', format: 'csv', cardLast4s: [], lines });
+  const tx = (over: Partial<Tx>): Tx => ({ id: 't', title: 'x', category: 'Comida', amount: -10, date: '2026-10-05', sourceId: 'card1', ...over });
+  const october = card([
+    { date: '2026-10-05', description: 'MERCADO BH 123', amount: 120, kind: 'purchase' },
+    { date: '2026-10-06', description: 'UBER *TRIP', amount: 15, kind: 'purchase' },
+    { date: '2026-10-08', description: 'UBER *TRIP', amount: 15, kind: 'purchase' },
+    { date: '2026-10-09', description: 'PADARIA PAO BOM', amount: 24.5, kind: 'purchase' },
+    { date: '2026-10-10', description: 'FARMACIA X', amount: 40, kind: 'purchase' },
+  ]);
+  const existing = {
+    plans: [],
+    txs: [
+      tx({ id: 'mercado', title: 'Mercado', amount: -120, date: '2026-10-04' }), // mesmo valor, 1 dia antes: é o mesmo
+      tx({ id: 'uber', title: 'Uber', amount: -15, date: '2026-10-06' }), // uma corrida lançada, duas na fatura
+      tx({ id: 'padaria', title: 'Padaria Pão Bom', amount: -25, date: '2026-10-09' }), // valor aproximado e mesmo nome: parecido
+      tx({ id: 'cinema', title: 'Cinema', amount: -60, date: '2026-10-12' }), // não está na fatura
+      tx({ id: 'antes', title: 'Farmácia', amount: -40, date: '2026-10-10', externalId: 'ext-farmacia' }), // já vinculado a outro arquivo
+      tx({ id: 'parcela', title: 'Celular (3/10)', amount: -15, date: '2026-10-06', planId: 'p1' }), // parcela não casa com compra
+    ],
+  };
+
+  it('mesmo gasto vincula, parecido avisa, um lançamento casa com uma linha só e o que sobrou aparece', () => {
+    const plan = buildImportPlan(base({ statement: october, mode: 'all', statementMonth: '2026-10', today: new Date(2026, 9, 15), existing }));
+    const byDesc = (d: string) => plan.rows.filter((r) => r.originalTitle === d);
+    expect(byDesc('MERCADO BH 123')[0]).toMatchObject({ section: 'matched', matchAction: 'keep', match: { txId: 'mercado', title: 'Mercado', strength: 'same' } });
+    expect(byDesc('UBER *TRIP').map((r) => [r.section, r.match?.txId ?? null])).toEqual([
+      ['matched', 'uber'],
+      ['purchase', null],
+    ]);
+    expect(byDesc('PADARIA PAO BOM')[0]).toMatchObject({ section: 'purchase', matchAction: 'import', match: { txId: 'padaria', strength: 'similar' } });
+    expect(byDesc('FARMACIA X')[0]).toMatchObject({ section: 'purchase' });
+    expect(byDesc('FARMACIA X')[0]!.match).toBeUndefined();
+    expect(plan.unmatched.map((t) => t.id)).toEqual(['cinema']);
+    // o total "a entrar" não conta o que já estava no Kash
+    expect(plan.check.included).toBe(round(15 + 24.5 + 40));
+  });
+
+  it('linha já importada antes (mesmo id do banco) fica de fora', () => {
+    const row = buildImportPlan(base({ statement: october, mode: 'all', statementMonth: '2026-10', today: new Date(2026, 9, 15), existing })).rows.find((r) => r.originalTitle === 'FARMACIA X')!;
+    const again = buildImportPlan(base({ statement: october, mode: 'all', statementMonth: '2026-10', today: new Date(2026, 9, 15), existing: { plans: [], txs: [tx({ id: 'imp', amount: -40, date: '2026-10-10', externalId: row.externalId })] } }));
+    expect(again.rows.find((r) => r.originalTitle === 'FARMACIA X')).toMatchObject({ section: 'ignored', reason: 'Já importado antes', include: false });
+    expect(again.unmatched).toEqual([]);
+  });
+
+  it('a pessoa decide: vincular, corrigir com a fatura ou importar também', () => {
+    const plan = buildImportPlan(base({ statement: october, mode: 'all', statementMonth: '2026-10', today: new Date(2026, 9, 15), existing }));
+    const mercado = plan.rows.find((r) => r.originalTitle === 'MERCADO BH 123')!;
+    const padaria = plan.rows.find((r) => r.originalTitle === 'PADARIA PAO BOM')!;
+    const rows = plan.rows.map((r) => (r === mercado ? applyRowEdit(r, { matchAction: 'update' }) : r === padaria ? applyRowEdit(r, { matchAction: 'keep' }) : r));
+    expect(rows.find((r) => r.key === padaria.key)!.section).toBe('matched');
+    expect(applyRowEdit(mercado, { matchAction: 'import' }).section).toBe('purchase');
+    const items = toCardItems(rows);
+    expect(items.find((i) => i.type === 'match' && i.tx_id === 'mercado')).toEqual({ type: 'match', tx_id: 'mercado', external_id: mercado.externalId, original_title: 'MERCADO BH 123', amount: 120, date: '2026-10-05' });
+    expect(items.find((i) => i.type === 'match' && i.tx_id === 'padaria')).toEqual({ type: 'match', tx_id: 'padaria', external_id: padaria.externalId, original_title: 'PADARIA PAO BOM' });
+    expect(items.filter((i) => i.type === 'tx').length).toBe(2);
+    expect(learnedRules(rows, plan.rows)).toEqual([]);
+    expect(importCountsLabel({ plans: 0, txs: 2, matched: 3 })).toBe('3 conferidos e 2 lançamentos');
+  });
+
+  it('"Só parceladas": compras à vista não entram, então nada a conferir', () => {
+    const plan = buildImportPlan(base({ statement: october, mode: 'installments', statementMonth: '2026-10', today: new Date(2026, 9, 15), existing }));
+    expect(plan.rows.some((r) => r.section === 'matched')).toBe(false);
+    expect(plan.unmatched).toEqual([]);
+  });
+
+  it('extrato: entrada e saída conferidas pelo sinal; vincular com correção manda o valor com sinal', () => {
+    const statement: ParsedStatement = {
+      kind: 'account',
+      format: 'ofx',
+      cardLast4s: [],
+      lines: [
+        { date: '2026-10-05', description: 'PIX RECEBIDO EMPRESA', amount: -3000, kind: 'income', bankId: 'a1' },
+        { date: '2026-10-06', description: 'SUPERMERCADO', amount: 80, kind: 'purchase', bankId: 'a2' },
+      ],
+    };
+    const accTxs: Tx[] = [
+      { id: 'sal', title: 'Salário', category: 'Entrada', amount: 3000, date: '2026-10-05', sourceId: 'acc1' },
+      { id: 'mer', title: 'Mercado', category: 'Mercado', amount: -79.9, date: '2026-10-06', sourceId: 'acc1' },
+      { id: 'outro', title: 'Academia', category: 'Outros', amount: -100, date: '2026-10-06', sourceId: 'acc1' },
+    ];
+    const plan = buildImportPlan(base({ statement, target: { type: 'account', id: 'acc1' }, existing: { plans: [], txs: accTxs } }));
+    expect(plan.rows.map((r) => [r.section, r.match?.txId, r.match?.strength])).toEqual([
+      ['matched', 'sal', 'same'],
+      ['purchase', 'mer', 'similar'],
+    ]);
+    expect(plan.unmatched.map((t) => t.id)).toEqual(['outro']);
+    const fixed = plan.rows.map((r) => (r.match?.txId === 'mer' ? applyRowEdit(r, { matchAction: 'update' }) : r));
+    expect(toAccountItems(fixed)).toEqual([
+      { type: 'match', tx_id: 'sal', external_id: 'ofx:a1', original_title: 'PIX RECEBIDO EMPRESA' },
+      { type: 'match', tx_id: 'mer', external_id: 'ofx:a2', original_title: 'SUPERMERCADO', amount: -80, date: '2026-10-06' },
+    ]);
   });
 });
 

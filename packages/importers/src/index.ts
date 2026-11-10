@@ -3,6 +3,7 @@ export * from './csv';
 export * from './normalize';
 export * from './ofx';
 export * from './plan';
+export * from './reconcile';
 export * from './redact';
 export * from './transfers';
 export * from './types';

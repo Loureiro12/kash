@@ -11,6 +11,8 @@ export interface ImportRecord {
   txCount: number;
   planCount: number;
   skippedCount: number;
+  /** lançamentos da pessoa conferidos com o arquivo (vinculados, sem criar outro) */
+  matchedCount: number;
   undone: boolean;
   createdAt: string;
 }
@@ -50,6 +52,7 @@ export async function listImports(db: KashClient, limit = 20): Promise<ImportRec
     txCount: r.tx_count,
     planCount: r.plan_count,
     skippedCount: r.skipped_count,
+    matchedCount: r.matched_count,
     undone: r.undone_at != null,
     createdAt: r.created_at,
   }));

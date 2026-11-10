@@ -60,6 +60,8 @@ export interface Tx {
   planId?: ID;
   /** perna de uma transferência entre contas (a outra perna tem o mesmo id, com o sinal oposto) */
   transferId?: ID;
+  /** identificador da linha no arquivo do banco (importado ou conferido numa importação) */
+  externalId?: string;
 }
 
 export const txKind = (tx: Pick<Tx, 'amount'>): TxKind => (tx.amount < 0 ? 'expense' : 'income');
