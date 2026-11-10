@@ -324,7 +324,7 @@ export function ImportScreen() {
               </button>
             </ChipGroup>
 
-            <Field label="Arquivo" htmlFor="import-file" hint={targetType === 'card' ? 'PDF da fatura, OFX ou CSV (no app do banco: fatura › exportar/enviar por e-mail).' : 'OFX ou CSV do extrato (no app do banco: extrato › exportar).'}>
+            <Field label="Arquivo" htmlFor="import-file" hint={targetType === 'card' ? 'PDF da fatura, OFX ou CSV (no app do banco: fatura › exportar/enviar por e-mail).' : 'PDF, OFX ou CSV do extrato (no app do banco: extrato › exportar ou salvar em PDF).'}>
               <label className={s.drop} htmlFor="import-file">
                 <span className={s.dropTitle}>{file ? file.name : 'Escolher arquivo'}</span>
                 <span className={uiStyles.hint}>{file ? `${(file.size / 1024).toFixed(0)} KB · ${format?.toUpperCase() ?? 'formato não suportado'}` : 'PDF, OFX ou CSV'}</span>

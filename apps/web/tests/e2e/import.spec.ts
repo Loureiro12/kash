@@ -234,6 +234,52 @@ test.describe('importar fatura e extrato', () => {
     await expect(page.getByTestId('cards-invoice-total')).toHaveText('R$ 244,50');
   });
 
+  test('extrato com conferência: salário e pagamento da fatura já lançados não duplicam e o saldo de hoje fica', async ({ page }, info) => {
+    const { email, db } = await setup(info, 'imp-extrato-conf');
+    const acc = await createAccount(db, { name: 'Corrente', kind: 'Conta corrente', institution: '', balance: 2000, color: '#C6F432' });
+    const manual = (title: string, category: string, amount: number, date: string) => createTransaction(db, { title, category, amount, date, sourceType: 'account', sourceId: acc.id });
+    await manual('Salário', 'Entrada', 3000, thisMonth(2));
+    // como o "Pagar fatura" do Kash registra o pagamento
+    await manual('Fatura Roxinho', 'Fatura', 558.95, thisMonth(3));
+    await manual('Mercado', 'Mercado', 79.9, thisMonth(4));
+    await manual('Academia', 'Outros', 100, thisMonth(4));
+    await login(page, email);
+    await page.goto('/app/contas');
+    await expect(page.getByTestId('accounts-total')).toHaveText('R$ 4.261,15');
+
+    const day = (d: number) => thisMonth(d).replace(/-/g, '');
+    const ofx = `OFXHEADER:100\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKTRANLIST>
+<STMTTRN><TRNTYPE>CREDIT<DTPOSTED>${day(2)}<TRNAMT>3000.00<FITID>c1<MEMO>PIX RECEBIDO EMPRESA X</STMTTRN>
+<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>${day(3)}<TRNAMT>-558.95<FITID>c2<MEMO>PAGAMENTO FATURA CARTAO</STMTTRN>
+<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>${day(4)}<TRNAMT>-80.00<FITID>c3<MEMO>SUPERMERCADO BH</STMTTRN>
+<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>${day(5)}<TRNAMT>-19.90<FITID>c4<MEMO>TARIFA PACOTE</STMTTRN>
+</BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>`;
+    await page.goto('/app/contas');
+    await page.getByTestId('accounts-import').click();
+    await page.getByTestId('import-file').setInputFiles({ name: 'extrato.ofx', mimeType: 'application/x-ofx', buffer: Buffer.from(ofx) });
+    await page.getByTestId('import-read').click();
+
+    await expect(page.getByTestId('import-row-0-match')).toContainText('Salário');
+    await expect(page.getByTestId('import-row-1-match')).toContainText('Fatura Roxinho');
+    await expect(page.getByTestId('import-row-2-similar')).toContainText('Mercado');
+    await page.getByTestId('import-row-2-same').click();
+    await page.getByTestId('import-row-2-action').selectOption('update');
+    await expect(page.getByTestId('import-unmatched')).toContainText('Academia');
+    await expect(page.getByTestId('import-keep-balance')).toBeChecked();
+    await expect(page.getByTestId('import-total')).toContainText('3 conferidos e 1 lançamento · R$ 19,90');
+    await page.getByTestId('import-save').click();
+    await expect(page.getByTestId('import-done')).toBeVisible();
+
+    // saldo de hoje mantido (2.000 + 3.000 − 558,95 − 79,90 − 100 dos lançamentos que já existiam),
+    // mesmo com a tarifa nova e o mercado corrigido para R$ 80
+    await page.goto('/app/contas');
+    await expect(page.getByTestId('accounts-total')).toHaveText('R$ 4.261,15');
+    await page.goto('/app/lancamentos');
+    await expect(page.getByTestId('tx-total-income')).toHaveText('+ R$ 3.000,00');
+    // saídas do mês na lista: as 738,85 de antes + tarifa nova (19,90) + correção do mercado (0,10); nada em dobro
+    await expect(page.getByTestId('tx-total-spent')).toHaveText('− R$ 758,85');
+  });
+
   test('OFX do extrato mantendo o saldo de hoje', async ({ page }, info) => {
     const { email, db } = await setup(info, 'imp-ofx');
     const acc = await createAccount(db, { name: 'Corrente', kind: 'Conta corrente', institution: '', balance: 1000, color: '#C6F432' });
