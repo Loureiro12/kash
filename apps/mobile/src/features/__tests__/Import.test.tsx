@@ -302,3 +302,40 @@ describe('Sugerir nomes com IA (CSV)', () => {
     expect(screen.queryByTestId('import-ai-names')).toBeNull();
   });
 });
+
+describe('Compras do mês com conferência', () => {
+  it('já lançado fica o seu, o parecido é conferido e o que sobrou aparece; nada em dobro', async () => {
+    (api.importCardStatement as jest.Mock).mockResolvedValueOnce('imp-conf');
+    const cardId = useKashStore.getState().cards[0]!.id;
+    useKashStore.setState({
+      txs: [
+        { id: 'mercado', title: 'Mercado', category: 'Mercado', amount: -120, date: '2026-09-04', sourceId: cardId },
+        { id: 'padaria', title: 'Padaria Pão Bom', category: 'Comida', amount: -25, date: '2026-09-09', sourceId: cardId },
+        { id: 'cinema', title: 'Cinema', category: 'Lazer', amount: -60, date: '2026-09-12', sourceId: cardId },
+      ],
+    });
+    await renderWithTheme(<ImportScreen />);
+    pick('fatura.csv', ['date,title,amount', '2026-09-05,MERCADO BH 123,120.00', '2026-09-09,PADARIA PAO BOM,24.50', '2026-09-10,FARMACIA X,40.00'].join('\n'));
+    await fireEvent.press(screen.getByTestId('import-pick'));
+    await fireEvent.press(screen.getByTestId('import-read'));
+    await waitFor(() => expect(screen.getByTestId('import-mode-all')).toBeTruthy());
+    await fireEvent.press(screen.getByTestId('import-mode-all'));
+
+    expect(screen.getByTestId('import-row-0-match')).toHaveTextContent('No Kash: Mercado · 04/09 · R$ 120,00');
+    expect(screen.getByTestId('import-row-1-similar')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('import-row-1-same'));
+    await fireEvent.press(screen.getByTestId('import-row-1-action-update'));
+    expect(screen.getByTestId('import-unmatched-cinema')).toBeTruthy();
+    expect(screen.getByTestId('import-total')).toHaveTextContent('2 conferidos e 1 lançamento · R$ 40,00');
+
+    await fireEvent.press(screen.getByTestId('import-save'));
+    await waitFor(() => expect(screen.getByTestId('import-done')).toBeTruthy());
+    const items = (api.importCardStatement as jest.Mock).mock.calls[0]![1].items as Record<string, unknown>[];
+    expect(items).toEqual([
+      expect.objectContaining({ type: 'match', tx_id: 'mercado', original_title: 'MERCADO BH 123' }),
+      expect.objectContaining({ type: 'match', tx_id: 'padaria', amount: 24.5, date: '2026-09-09' }),
+      expect.objectContaining({ type: 'tx', original_title: 'FARMACIA X', amount: 40 }),
+    ]);
+    expect(items[0]).not.toHaveProperty('amount');
+  });
+});

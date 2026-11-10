@@ -6,8 +6,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge, Button, Card, CheckCircle, Chip, Input, PageHeader, Pressable, Screen, SegmentedControl, Switch, Text, useTheme } from '@/design-system';
-import { formatBRL, monthKey, monthKeyName } from '@kash/domain';
-import { aiNameRequests, amountInText, applyRowEdit, buildImportPlan, csvSignature, importCountsLabel, learnedRules, mappingFits, redactStatementText, toAccountItems, toCardItems, type CsvMapping, type CsvTable, type ImportMode, type ParsedStatement, type ReviewRow, type RowEdit, withAiNames } from '@kash/importers';
+import { formatBRL, monthKey, monthKeyName, type Tx } from '@kash/domain';
+import { aiNameRequests, amountInText, applyRowEdit, buildImportPlan, csvSignature, importCountsLabel, learnedRules, mappingFits, redactStatementText, toAccountItems, toCardItems, type CsvMapping, type CsvTable, type ImportMode, type ParsedStatement, type MatchAction, type ReviewRow, type RowEdit, withAiNames } from '@kash/importers';
 import { toKashError } from '@kash/supabase-client';
 import { now as clockNow } from '@/lib/clock';
 import { useKashStore } from '@/store';
@@ -81,7 +81,7 @@ export function ImportScreen() {
   /** sugestão de nomes com IA para OFX/CSV (roda depois de abrir a revisão, sem travar a tela) */
   const [aiNames, setAiNames] = useState<{ status: 'idle' | 'loading' | 'done' | 'error'; count: number }>({ status: 'idle', count: 0 });
   const aiRun = useRef(0);
-  const [result, setResult] = useState<{ id: string; txs: number; plans: number; transfers: number } | null>(null);
+  const [result, setResult] = useState<{ id: string; txs: number; plans: number; transfers: number; matched: number } | null>(null);
   const [savedMappings, setSavedMappings] = useState<SavedMappings>({});
   // outro arquivo compartilhado com a tela já aberta: recomeça com ele
   const [lastParamFile, setLastParamFile] = useState(params.file);
@@ -174,10 +174,12 @@ export function ImportScreen() {
 
   const rows = useMemo(() => (plan ? plan.rows.map((r) => applyRowEdit(r, edits[r.key])) : []), [plan, edits]);
   const included = rows.filter((r) => r.include && r.section !== 'ignored');
-  const sum = included.reduce((a, r) => a + (targetType === 'account' ? (r.inflow ? r.amount : -r.amount) : r.amount), 0);
+  // conferidos não somam: o lançamento já estava no Kash
+  const sum = included.filter((r) => r.section !== 'matched').reduce((a, r) => a + (targetType === 'account' ? (r.inflow ? r.amount : -r.amount) : r.amount), 0);
   const planCount = included.filter((r) => r.section === 'installment').length;
   const transferCount = included.filter((r) => r.section === 'transfer').length;
-  const txCount = included.length - planCount - transferCount;
+  const matchedCount = included.filter((r) => r.section === 'matched').length;
+  const txCount = included.length - planCount - transferCount - matchedCount;
   /** extrato: contas para onde a linha pode ser transferência */
   const transferTargets = useMemo(() => (targetType === 'account' ? accounts.filter((a) => a.id !== targetId).map((a) => ({ id: a.id, label: a.name })) : []), [targetType, targetId, accounts]);
   const accountNames = useMemo(() => Object.fromEntries(accounts.map((a) => [a.id, a.name])), [accounts]);
@@ -293,7 +295,7 @@ export function ImportScreen() {
     try {
       const items = targetType === 'card' ? toCardItems(rows) : toAccountItems(rows);
       const id = await saveImport({ target: { type: targetType, id: targetId }, fileName: file.name, format, statementMonth: plan.statementMonth, items, keepBalance }, learnedRules(rows, plan.rows));
-      setResult({ id, txs: txCount, plans: planCount, transfers: transferCount });
+      setResult({ id, txs: txCount, plans: planCount, transfers: transferCount, matched: matchedCount });
       setStep('done');
     } catch (err) {
       showToast(toKashError(err).message);
@@ -493,8 +495,18 @@ export function ImportScreen() {
                 testID="import-transfers"
               />
             ) : null}
+            <RowsSection
+              title="Já estão no Kash"
+              hint="Você já lançou estes gastos. O Kash mantém os seus e só marca como conferidos, sem duplicar. Se for outro gasto, escolha importar também."
+              rows={rows.filter((r) => r.section === 'matched')}
+              categories={[]}
+              sourceText={sourceText}
+              onEdit={edit}
+              testID="import-matched"
+            />
             <RowsSection title={targetType === 'card' ? 'Compras e encargos' : 'Saídas'} rows={rows.filter((r) => r.section === 'purchase')} categories={targetType === 'account' ? outCategories : categories} transferTargets={transferTargets} accountNames={accountNames} sourceText={sourceText} onEdit={edit} testID="import-purchases" />
             {targetType === 'account' ? <RowsSection title="Entradas" rows={rows.filter((r) => r.section === 'income')} categories={outCategories} transferTargets={transferTargets} accountNames={accountNames} sourceText={sourceText} onEdit={edit} testID="import-incomes" /> : null}
+            <Unmatched txs={plan.unmatched} kind={targetType} />
             <Ignored rows={rows.filter((r) => r.section === 'ignored')} />
           </View>
         ) : null}
@@ -522,7 +534,7 @@ export function ImportScreen() {
       {step === 'review' && plan ? (
         <ReviewFooter
           bottom={insets.bottom}
-          text={`${importCountsLabel({ plans: planCount, txs: txCount, transfers: transferCount })}${included.length ? ` · ${formatBRL(Math.abs(sum))}` : 'Nada selecionado'}`}
+          text={`${importCountsLabel({ plans: planCount, txs: txCount, transfers: transferCount, matched: matchedCount })}${included.length ? ` · ${formatBRL(Math.abs(sum))}` : 'Nada selecionado'}`}
           onBack={restart}
           onSave={() => void save()}
           disabled={included.length === 0}
@@ -587,7 +599,7 @@ function RowsSection({
   const selected = rows.filter((r) => r.include).length;
   const isAccount = rows.some((r) => r.inflow !== undefined);
   // categoria em lote: só para saídas marcadas (entrada é sempre "Entrada"; transferência não tem categoria)
-  const bulkRows = rows.filter((r) => r.include && !r.inflow && r.section !== 'transfer');
+  const bulkRows = rows.filter((r) => r.include && !r.inflow && r.section !== 'transfer' && r.section !== 'matched');
   const canBulk = bulkRows.length > 1 && categories.length > 1;
   const labelOf = (r: ReviewRow) => (r.section === 'transfer' && r.transfer?.accountId ? `⇄ ${r.inflow ? 'De' : 'Para'} ${accountNames[r.transfer.accountId] ?? 'outra conta'}` : r.category);
   return (
@@ -643,6 +655,7 @@ function RowsSection({
           onEdit(r.key, patch);
           setOpenCategory(null);
         };
+        if (r.section === 'matched' && r.match) return <MatchedRow key={r.key} row={r} first={i === 0} onEdit={onEdit} />;
         return (
           <View key={r.key} style={{ flexDirection: 'row', gap: 12, paddingVertical: 12, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line, opacity: r.include ? 1 : 0.55 }} testID={`import-row-${r.key}`}>
             <Pressable onPress={() => onEdit(r.key, { include: !r.include })} accessibilityRole="checkbox" accessibilityState={{ checked: r.include }} accessibilityLabel={`Importar ${r.originalTitle}`} testID={`import-row-${r.key}-include`} hitSlop={8} style={{ paddingTop: 12 }}>
@@ -683,6 +696,16 @@ function RowsSection({
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {r.installment ? <Badge tone="pos" label={`${r.installment.currentNow}/${r.installment.total} agora · ${r.installment.remaining === 1 ? 'última' : `faltam ${r.installment.remaining} até ${r.installment.lastMonth}`}`} /> : null}
                 {r.fromAi ? <Badge label="IA" testID={`import-row-${r.key}-ai`} /> : null}
+                {r.match && r.section !== 'matched' ? (
+                  <>
+                    <Badge tone="neg" label={`parecido com “${r.match.title}” (${shortDate(r.match.date)} · ${formatBRL(r.match.amount)})`} testID={`import-row-${r.key}-similar`} />
+                    <Pressable onPress={() => onEdit(r.key, { matchAction: 'keep' })} accessibilityRole="button" accessibilityLabel={`${r.originalTitle} é o mesmo que ${r.match.title}`} hitSlop={8} testID={`import-row-${r.key}-same`}>
+                      <Text variant="chip" color="accentText">
+                        É o mesmo
+                      </Text>
+                    </Pressable>
+                  </>
+                ) : null}
                 {r.duplicate ? <Badge tone="neg" label={r.duplicateNote ?? 'possível duplicado'} /> : null}
                 {r.section === 'transfer' && r.transfer?.linkTxId ? (
                   <Badge tone="pos" label={`junta com ${r.inflow ? 'a saída' : 'a entrada'} de ${accountNames[r.transfer.accountId ?? ''] ?? 'outra conta'} em ${r.transfer.linkDate?.split('-').reverse().slice(0, 2).join('/')}`} />
@@ -694,6 +717,78 @@ function RowsSection({
           </View>
         );
       })}
+    </Card>
+  );
+}
+
+const shortDate = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
+
+/** Linha do arquivo que bate com um lançamento da pessoa: os dois lado a lado e o que fazer. */
+function MatchedRow({ row: r, first, onEdit }: { row: ReviewRow; first: boolean; onEdit: (key: string, patch: RowEdit) => void }) {
+  const { colors } = useTheme();
+  const m = r.match!;
+  const differs = Math.abs(m.amount - r.amount) >= 0.005 || m.date !== r.kashDate;
+  const actions: { value: MatchAction; label: string }[] = [
+    { value: 'keep', label: 'Manter o meu' },
+    ...(differs ? [{ value: 'update' as const, label: 'Corrigir com o arquivo' }] : []),
+    { value: 'import', label: 'É outro: importar' },
+  ];
+  return (
+    <View style={{ flexDirection: 'row', gap: 12, paddingVertical: 12, borderTopWidth: first ? 0 : 1, borderTopColor: colors.line, opacity: r.include ? 1 : 0.55 }} testID={`import-row-${r.key}`}>
+      <Pressable onPress={() => onEdit(r.key, { include: !r.include })} accessibilityRole="checkbox" accessibilityState={{ checked: r.include }} accessibilityLabel={`Conferir ${r.originalTitle} com ${m.title}`} testID={`import-row-${r.key}-include`} hitSlop={8} style={{ paddingTop: 2 }}>
+        <CheckCircle checked={r.include} />
+      </Pressable>
+      <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+        <Text variant="meta" color="muted" numberOfLines={2}>
+          No arquivo: {r.originalTitle} · {shortDate(r.kashDate)} · {formatBRL(r.amount)}
+        </Text>
+        <Text variant="bodySemibold" numberOfLines={2} testID={`import-row-${r.key}-match`}>
+          No Kash: {m.title} · {shortDate(m.date)} · {formatBRL(m.amount)}
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          <Badge tone="pos" label={m.strength === 'same' ? 'já lançado' : 'você marcou como o mesmo'} />
+          {differs ? <Badge tone="neg" label="valor ou data diferente" /> : null}
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }} accessibilityRole="radiogroup">
+          {actions.map((a) => (
+            <Chip key={a.value} label={a.label} height={30} tone="soft" selected={(r.matchAction ?? 'keep') === a.value} onPress={() => onEdit(r.key, { matchAction: a.value })} testID={`import-row-${r.key}-action-${a.value}`} />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/** Lançamentos da pessoa no período do arquivo que não apareceram nele (só para conferir). */
+function Unmatched({ txs, kind }: { txs: Tx[]; kind: TargetType }) {
+  const { colors } = useTheme();
+  if (txs.length === 0) return null;
+  return (
+    <Card padding={[14, 16]} testID="import-unmatched">
+      <Text variant="titleBold">
+        No Kash, mas não {kind === 'card' ? 'na fatura' : 'no extrato'}{' '}
+        <Text variant="meta" color="muted">
+          ({txs.length})
+        </Text>
+      </Text>
+      <Text variant="meta" color="muted" style={{ marginTop: 2, marginBottom: 4 }}>
+        Pode ser uma compra que ainda vai entrar, lançada {kind === 'card' ? 'no cartão errado' : 'na conta errada'} ou repetida. Confira em Lançamentos; a importação não mexe neles.
+      </Text>
+      {txs.map((t, i) => (
+        <View key={t.id} style={{ flexDirection: 'row', gap: 12, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: colors.line }} testID={`import-unmatched-${t.id}`}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="bodyMedium" numberOfLines={1}>
+              {t.title}
+            </Text>
+            <Text variant="meta" color="muted">
+              {shortDate(t.date)} · {t.category}
+            </Text>
+          </View>
+          <Text variant="meta" color="muted">
+            {formatBRL(Math.abs(t.amount))}
+          </Text>
+        </View>
+      ))}
     </Card>
   );
 }
@@ -765,7 +860,7 @@ function CsvMappingForm({ csv, onChange }: { csv: { table: CsvTable; mapping: Cs
   );
 }
 
-function History({ imports, names, onUndo }: { imports: { id: string; fileName: string; sourceId: string; txCount: number; planCount: number; undone: boolean; createdAt: string }[]; names: Record<string, string>; onUndo: (id: string) => void }) {
+function History({ imports, names, onUndo }: { imports: { id: string; fileName: string; sourceId: string; txCount: number; planCount: number; matchedCount?: number; undone: boolean; createdAt: string }[]; names: Record<string, string>; onUndo: (id: string) => void }) {
   const { colors } = useTheme();
   if (imports.length === 0) return null;
   return (
@@ -781,6 +876,7 @@ function History({ imports, names, onUndo }: { imports: { id: string; fileName: 
             </Text>
             <Text variant="meta" color="muted" numberOfLines={1}>
               {names[imp.sourceId] ?? 'Removido'} · {new Date(imp.createdAt).toLocaleDateString('pt-BR')} · {imp.planCount} parc. · {imp.txCount} lanç.
+              {imp.matchedCount ? ` · ${imp.matchedCount} conf.` : ''}
             </Text>
           </View>
           {imp.undone ? <Badge label="desfeita" /> : <Button label="Desfazer" variant="secondary" size="sm" onPress={() => onUndo(imp.id)} testID={`import-history-undo-${imp.id}`} />}
