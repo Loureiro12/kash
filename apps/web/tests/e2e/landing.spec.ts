@@ -21,6 +21,13 @@ test.describe('landing', () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
+  test('Google Play publicado: o botão leva à loja; App Store segue "em breve"', async ({ page }) => {
+    const play = page.getByTestId('badge-google-play');
+    await expect(play).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=com.andreloureiro.kash');
+    await expect(play).toContainText('Disponível no');
+    await expect(page.getByTestId('badge-app-store')).toContainText('Em breve na');
+  });
+
   test('"Baixar grátis" leva aos botões das lojas', async ({ page }) => {
     await page.getByTestId('nav-cta').click();
     await expect(page.getByTestId('badge-app-store')).toBeInViewport();
