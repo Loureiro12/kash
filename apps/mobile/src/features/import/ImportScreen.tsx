@@ -373,7 +373,7 @@ export function ImportScreen() {
                 </Text>
               </Pressable>
               <Text variant="meta" color="muted">
-                {targetType === 'card' ? 'PDF da fatura, OFX ou CSV. No app do banco: fatura › exportar ou compartilhar (dá pra abrir direto no Kash).' : 'OFX ou CSV do extrato. No app do banco: extrato › exportar.'}
+                {targetType === 'card' ? 'PDF da fatura, OFX ou CSV. No app do banco: fatura › exportar ou compartilhar (dá pra abrir direto no Kash).' : 'PDF, OFX ou CSV do extrato. No app do banco: extrato › exportar ou compartilhar (dá pra abrir direto no Kash).'}
               </Text>
 
               {format ? (
