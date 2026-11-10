@@ -1,6 +1,6 @@
 'use client';
 
-import { formatBRL, monthKey, monthKeyName } from '@kash/domain';
+import { formatBRL, monthKey, monthKeyName, type Tx } from '@kash/domain';
 import {
   aiNameRequests,
   amountInText,
@@ -22,6 +22,7 @@ import {
   type ImportMode,
   type ParsedStatement,
   type ReviewRow,
+  type MatchAction,
   type RowEdit,
   withAiNames,
 } from '@kash/importers';
@@ -108,7 +109,7 @@ export function ImportScreen() {
   /** sugestão de nomes com IA para OFX/CSV (roda depois de abrir a revisão, sem travar a tela) */
   const [aiNames, setAiNames] = useState<{ status: 'idle' | 'loading' | 'done' | 'error'; count: number }>({ status: 'idle', count: 0 });
   const aiRun = useRef(0);
-  const [result, setResult] = useState<{ id: string; txs: number; plans: number; transfers: number } | null>(null);
+  const [result, setResult] = useState<{ id: string; txs: number; plans: number; transfers: number; matched: number } | null>(null);
   const cardsBefore = useRef(snap.cards.map((c) => c.id));
   const accountsBefore = useRef(snap.accounts.map((a) => a.id));
 
@@ -156,10 +157,12 @@ export function ImportScreen() {
 
   const rows = useMemo(() => (plan ? plan.rows.map((r) => applyRowEdit(r, edits[r.key])) : []), [plan, edits]);
   const included = rows.filter((r) => r.include && r.section !== 'ignored');
-  const sum = included.reduce((a, r) => a + (targetType === 'account' ? (r.inflow ? r.amount : -r.amount) : r.amount), 0);
+  // conferidos não somam: o lançamento já estava no Kash
+  const sum = included.filter((r) => r.section !== 'matched').reduce((a, r) => a + (targetType === 'account' ? (r.inflow ? r.amount : -r.amount) : r.amount), 0);
   const planCount = included.filter((r) => r.section === 'installment').length;
   const transferCount = included.filter((r) => r.section === 'transfer').length;
-  const txCount = included.length - planCount - transferCount;
+  const matchedCount = included.filter((r) => r.section === 'matched').length;
+  const txCount = included.length - planCount - transferCount - matchedCount;
   /** extrato: contas para onde a linha pode ser transferência */
   const transferTargets = useMemo(() => (targetType === 'account' ? snap.accounts.filter((a) => a.id !== targetId).map((a) => ({ id: a.id, label: a.name })) : []), [targetType, targetId, snap.accounts]);
   const accountNames = useMemo(() => Object.fromEntries(snap.accounts.map((a) => [a.id, a.name])), [snap.accounts]);
@@ -264,7 +267,7 @@ export function ImportScreen() {
     const id = await actions.importStatement({ target: { type: targetType, id: targetId }, fileName: file.name, format, statementMonth: plan.statementMonth, items, keepBalance }, learnedRules(rows, plan.rows));
     setSaving(false);
     if (id) {
-      setResult({ id, txs: txCount, plans: planCount, transfers: transferCount });
+      setResult({ id, txs: txCount, plans: planCount, transfers: transferCount, matched: matchedCount });
       setStep('done');
     }
   };
@@ -497,13 +500,23 @@ export function ImportScreen() {
               testID="import-transfers"
             />
           ) : null}
+          <RowsSection
+            title="Já estão no Kash"
+            hint="Você já lançou estes gastos. O Kash mantém os seus e só marca como conferidos, sem duplicar. Se for outro gasto, escolha importar também."
+            rows={rows.filter((r) => r.section === 'matched')}
+            categories={[]}
+            sourceText={sourceText}
+            onEdit={edit}
+            testID="import-matched"
+          />
           <RowsSection title={targetType === 'card' ? 'Compras e encargos' : 'Saídas'} rows={rows.filter((r) => r.section === 'purchase')} categories={targetType === 'account' ? outCategories : categories} transferTargets={transferTargets} accountNames={accountNames} sourceText={sourceText} onEdit={edit} testID="import-purchases" />
           {targetType === 'account' ? <RowsSection title="Entradas" rows={rows.filter((r) => r.section === 'income')} categories={outCategories} transferTargets={transferTargets} accountNames={accountNames} sourceText={sourceText} onEdit={edit} testID="import-incomes" /> : null}
+          <Unmatched txs={plan.unmatched} kind={targetType} />
           <Ignored rows={rows.filter((r) => r.section === 'ignored')} />
 
           <div className={s.footer}>
             <span className={s.footerText} data-testid="import-total">
-              {importCountsLabel({ plans: planCount, txs: txCount, transfers: transferCount })}
+              {importCountsLabel({ plans: planCount, txs: txCount, transfers: transferCount, matched: matchedCount })}
               {included.length ? ` · ${formatBRL(Math.abs(sum))}` : 'Nada selecionado'}
             </span>
             <Button variant="secondary" size="md" onClick={restart} testID="import-cancel">
@@ -575,7 +588,7 @@ function RowsSection({
   const marked = rows.filter((r) => r.include);
   const isAccount = transferTargets.length > 0 || rows.some((r) => r.inflow !== undefined);
   // categoria em lote: só para saídas (entrada é sempre "Entrada"; transferência não tem categoria)
-  const bulkCategories = marked.some((r) => !r.inflow && r.section !== 'transfer') && categories.length > 1;
+  const bulkCategories = marked.some((r) => !r.inflow && r.section !== 'transfer' && r.section !== 'matched') && categories.length > 1;
   return (
     <Card list testID={testID}>
       <div className={uiStyles.cardHead}>
@@ -590,7 +603,7 @@ function RowsSection({
               onChange={(e) => {
                 const category = e.target.value;
                 if (!category) return;
-                for (const r of marked) if (!r.inflow && r.section !== 'transfer') onEdit(r.key, { category });
+                for (const r of marked) if (!r.inflow && r.section !== 'transfer' && r.section !== 'matched') onEdit(r.key, { category });
               }}
               aria-label={`Categoria para as marcadas em ${title}`}
               data-testid={`${testID}-bulk-category`}
@@ -612,6 +625,7 @@ function RowsSection({
       <ul className={s.rows}>
         {rows.map((r) => {
           const check = sourceText && !amountInText(r.amount, sourceText);
+          if (r.section === 'matched' && r.match) return <MatchedRow key={r.key} row={r} onEdit={onEdit} />;
           return (
             <li key={r.key} className={`${s.row} ${r.include ? '' : s.rowOff}`} data-testid={`import-row-${r.key}`}>
               <input type="checkbox" className={s.check} checked={r.include} onChange={(e) => onEdit(r.key, { include: e.target.checked })} aria-label={`Importar ${r.originalTitle}`} data-testid={`import-row-${r.key}-include`} />
@@ -627,6 +641,16 @@ function RowsSection({
                     </Badge>
                   ) : null}
                   {r.fromAi ? <Badge>IA</Badge> : null}
+                  {r.match && r.section !== 'matched' ? (
+                    <span className={s.similar} data-testid={`import-row-${r.key}-similar`}>
+                      <Badge tone="neg">
+                        parecido com “{r.match.title}” ({shortDate(r.match.date)} · {formatBRL(r.match.amount)})
+                      </Badge>
+                      <button type="button" className={`${uiStyles.btn} ${uiStyles.link}`} onClick={() => onEdit(r.key, { matchAction: 'keep' })} data-testid={`import-row-${r.key}-same`}>
+                        É o mesmo
+                      </button>
+                    </span>
+                  ) : null}
                   {r.duplicate ? <Badge tone="neg">{r.duplicateNote ?? 'possível duplicado'}</Badge> : null}
                   {r.section === 'transfer' && r.transfer?.linkTxId ? (
                     <Badge tone="pos">
@@ -684,6 +708,67 @@ function RowsSection({
   );
 }
 
+const shortDate = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/');
+
+/** Linha do arquivo que bate com um lançamento da pessoa: os dois lado a lado e o que fazer. */
+function MatchedRow({ row: r, onEdit }: { row: ReviewRow; onEdit: (key: string, patch: RowEdit) => void }) {
+  const m = r.match!;
+  const differs = Math.abs(m.amount - r.amount) >= 0.005 || m.date !== r.kashDate;
+  return (
+    <li className={`${s.row} ${r.include ? '' : s.rowOff}`} data-testid={`import-row-${r.key}`}>
+      <input type="checkbox" className={s.check} checked={r.include} onChange={(e) => onEdit(r.key, { include: e.target.checked })} aria-label={`Conferir ${r.originalTitle} com ${m.title}`} data-testid={`import-row-${r.key}-include`} />
+      <div className={s.rowMain}>
+        <span className={s.matchPair}>
+          <span>
+            <span className={uiStyles.hint}>No arquivo</span> <span className={s.original}>{r.originalTitle}</span> · {shortDate(r.kashDate)} · {formatBRL(r.amount)}
+          </span>
+          <span data-testid={`import-row-${r.key}-match`}>
+            <span className={uiStyles.hint}>No Kash</span> <b>{m.title}</b> · {shortDate(m.date)} · {formatBRL(m.amount)}
+          </span>
+        </span>
+        <div className={s.badges}>
+          <Badge tone="pos">{m.strength === 'same' ? 'já lançado' : 'você marcou como o mesmo'}</Badge>
+          {differs ? <Badge tone="neg">valor ou data diferente</Badge> : null}
+        </div>
+      </div>
+      <div className={s.rowSide}>
+        <select className={`${uiStyles.input} ${s.category}`} value={r.matchAction ?? 'keep'} onChange={(e) => onEdit(r.key, { matchAction: e.target.value as MatchAction })} aria-label={`O que fazer com ${r.originalTitle}`} data-testid={`import-row-${r.key}-action`}>
+          <option value="keep">Manter o meu</option>
+          {differs ? <option value="update">Corrigir o meu com o arquivo</option> : null}
+          <option value="import">É outro gasto: importar</option>
+        </select>
+      </div>
+    </li>
+  );
+}
+
+/** Lançamentos da pessoa no período do arquivo que não apareceram nele (só para conferir). */
+function Unmatched({ txs, kind }: { txs: Tx[]; kind: 'card' | 'account' }) {
+  if (txs.length === 0) return null;
+  const source = kind === 'card' ? 'na fatura' : 'no extrato';
+  return (
+    <Card list testID="import-unmatched">
+      <div className={uiStyles.cardHead}>
+        <h2 className={uiStyles.cardTitle}>
+          No Kash, mas não {source} <span className={uiStyles.hint}>({txs.length})</span>
+        </h2>
+      </div>
+      <p className={`${uiStyles.hint} ${s.sectionHint}`}>Pode ser uma compra que ainda vai entrar, lançada {kind === 'card' ? 'no cartão errado' : 'na conta errada'} ou repetida. Confira em Lançamentos; a importação não mexe neles.</p>
+      <ul className={s.rows}>
+        {txs.map((t) => (
+          <li key={t.id} className={s.ignoredRow} data-testid={`import-unmatched-${t.id}`}>
+            <span className={uiStyles.rowTitle}>{t.title}</span>
+            <span className={uiStyles.hint}>
+              {shortDate(t.date)} · {t.category}
+            </span>
+            <span className={s.amount}>{formatBRL(Math.abs(t.amount))}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 function Ignored({ rows }: { rows: ReviewRow[] }) {
   if (rows.length === 0) return null;
   return (
@@ -732,7 +817,7 @@ function CsvMappingForm({ csv, onChange }: { csv: { table: CsvTable; mapping: Cs
   );
 }
 
-function History({ imports, snapNames, onUndo }: { imports: Array<{ id: string; fileName: string; sourceId: string; txCount: number; planCount: number; undone: boolean; createdAt: string; statementMonth: string | null }>; snapNames: Record<string, string>; onUndo: (id: string) => void }) {
+function History({ imports, snapNames, onUndo }: { imports: Array<{ id: string; fileName: string; sourceId: string; txCount: number; planCount: number; matchedCount: number; undone: boolean; createdAt: string; statementMonth: string | null }>; snapNames: Record<string, string>; onUndo: (id: string) => void }) {
   if (imports.length === 0) return null;
   return (
     <Card list testID="import-history">
@@ -745,6 +830,7 @@ function History({ imports, snapNames, onUndo }: { imports: Array<{ id: string; 
             <span className={uiStyles.rowTitle}>{imp.fileName || 'Arquivo'}</span>
             <span className={uiStyles.rowMeta}>
               {snapNames[imp.sourceId] ?? 'Removido'} · {new Date(imp.createdAt).toLocaleDateString('pt-BR')} · {imp.planCount} parc. · {imp.txCount} lanç.
+              {imp.matchedCount ? ` · ${imp.matchedCount} conf.` : ''}
             </span>
           </span>
           {imp.undone ? (

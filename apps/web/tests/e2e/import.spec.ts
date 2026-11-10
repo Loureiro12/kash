@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { createClient } from '@supabase/supabase-js';
-import { createAccount, createCard, createKashClient, signIn } from '@kash/supabase-client';
+import { createAccount, createCard, createKashClient, createTransaction, signIn } from '@kash/supabase-client';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import WebSocket from 'ws';
@@ -195,6 +195,43 @@ test.describe('importar fatura e extrato', () => {
     // fatura do mês passado: compras + a parcela daquele mês
     await expect(page.getByTestId('cards-invoice-total')).toHaveText('R$ 146,80');
     await expect(page.getByTestId('cards-invoice-pay')).toBeVisible();
+  });
+
+  test('compras do mês com conferência: o que já foi lançado não duplica, o parecido é conferido e o que sobrou aparece', async ({ page }, info) => {
+    const { email, db } = await setup(info, 'imp-conferir');
+    const card = await createCard(db, { name: 'Roxinho', last4: '1670', limit: 6400, closingDay: 5, dueDay: 13, gradientId: 'purple' });
+    // o que a pessoa lançou à mão no mês da fatura
+    const manual = (title: string, category: string, amount: number, date: string) => createTransaction(db, { title, category, amount, date, sourceType: 'card', sourceId: card.id });
+    await manual('Mercado', 'Mercado', 120, prev(4));
+    await manual('Padaria Pão Bom', 'Comida', 25, prev(9));
+    await manual('Cinema', 'Lazer', 60, prev(12));
+    await login(page, email);
+
+    const csv = ['date,title,amount', `${prev(5)},MERCADO BH 123,120.00`, `${prev(9)},PADARIA PAO BOM,24.50`, `${prev(10)},FARMACIA X,40.00`].join('\n');
+    await page.goto('/app/importar');
+    await page.getByTestId(`import-target-${card.id}`).click();
+    await page.getByTestId('import-file').setInputFiles({ name: 'fatura.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+    await page.getByTestId('import-read').click();
+    await page.getByTestId('import-mode-all').click();
+
+    // mesmo valor e data próxima: já lançado, fica o da pessoa
+    await expect(page.getByTestId('import-row-0-match')).toContainText('Mercado');
+    await expect(page.getByTestId('import-row-0-action')).toHaveValue('keep');
+    // valor quase igual e mesmo nome: parecido, a pessoa confere
+    await expect(page.getByTestId('import-row-1-similar')).toContainText('Padaria Pão Bom');
+    await page.getByTestId('import-row-1-same').click();
+    await expect(page.getByTestId('import-matched')).toContainText('PADARIA PAO BOM');
+    await page.getByTestId('import-row-1-action').selectOption('update');
+    // lançado no Kash e que não veio na fatura
+    await expect(page.getByTestId('import-unmatched')).toContainText('Cinema');
+    await expect(page.getByTestId('import-total')).toContainText('2 conferidos e 1 lançamento · R$ 40,00');
+    expect(await seriousA11y(page)).toEqual([]);
+    await page.getByTestId('import-save').click();
+    await expect(page.getByTestId('import-done')).toContainText('2 conferidos e 1 lançamento');
+
+    // fatura do mês: 120 + 24,50 (corrigido) + 40 (novo) + 60 (cinema), sem nada em dobro
+    await page.goto('/app/cartoes');
+    await expect(page.getByTestId('cards-invoice-total')).toHaveText('R$ 244,50');
   });
 
   test('OFX do extrato mantendo o saldo de hoje', async ({ page }, info) => {
