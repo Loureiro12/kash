@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 import { Sora } from 'next/font/google';
+import { TelemetryProvider } from '@/components/telemetry/TelemetryProvider';
 import { site } from '@/content/site';
 import '@/styles/globals.css';
 
@@ -38,6 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Pular para o conteúdo
         </a>
         {children}
+        {/* Google Analytics for Firebase + Firebase Performance, com banner de consentimento (LGPD) */}
+        <TelemetryProvider />
         {/* visitas e páginas vistas (Web Analytics) e Core Web Vitals (Speed Insights): sem cookies,
             sem dados pessoais; só no build da Vercel (local/CI não têm os scripts /_vercel/*) */}
         {process.env.VERCEL ? (

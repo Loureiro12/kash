@@ -16,6 +16,7 @@ import { ModalsHost } from '@/features/modals/ModalsHost';
 import { isActive, isNewTxShortcut, NAV, routes } from './nav';
 import { DisplayToggles } from './PageHeader';
 import s from './AppShell.module.css';
+import { identify } from '@/lib/telemetry';
 
 /**
  * Casca do app logado: sidebar (menu recolhível abaixo de 900px), conteúdo e modais.
@@ -33,6 +34,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (session.status === 'signedOut') router.replace(routes.login);
   }, [session.status, router]);
+
+  // Analytics: a pessoa pelo id interno (pseudônimo), nunca o e-mail
+  useEffect(() => {
+    identify(session.userId);
+  }, [session.userId]);
 
   // primeiro acesso: quem chega no Início sem nenhuma conta (e não pulou) vai para as boas-vindas
   const showWelcome = query.data ? onboardingStatus(query.data).showWelcome : false;

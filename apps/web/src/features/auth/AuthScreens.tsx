@@ -8,6 +8,7 @@ import { Button, PasswordInput, TextInput } from '@/components/app/ui';
 import { requireKashClient } from '@/kash/client';
 import { toast, useUi } from '@/kash/ui';
 import { routes } from '@/features/app/nav';
+import { track } from '@/lib/telemetry';
 import { AuthLayout, authStyles as s } from './AuthLayout';
 import { OrDivider, SocialButtons } from './SocialButtons';
 import { isValidEmail, MIN_PASSWORD, passwordStrength, validateLogin, validateSignup } from './validation';
@@ -31,6 +32,7 @@ export function LoginScreen() {
     setServerError(null);
     try {
       await signIn(requireKashClient(), { email, password });
+      track('login', { method: 'email' });
       router.replace(routes.home);
     } catch (err) {
       setServerError(toKashError(err).message);
@@ -100,6 +102,7 @@ export function SignupScreen() {
     setServerError(null);
     try {
       const session = await signUp(requireKashClient(), { name, email, password });
+      track('sign_up', { method: 'email' });
       if (session) {
         toast(`Conta criada. Boas-vindas ao Kash, ${name.trim().split(' ')[0]}!`);
         router.replace(routes.home);
@@ -336,7 +339,14 @@ export function AuthCallbackScreen() {
   useEffect(() => {
     let alive = true;
     void sessionFromOAuthRedirect(requireKashClient(), window.location.href).then(
-      (session) => alive && router.replace(session ? routes.home : routes.login),
+      (session) => {
+        if (session) {
+          // conta criada agora (primeiro login pelo provedor) conta como cadastro
+          const provider = session.user.app_metadata?.provider === 'apple' ? 'apple' : 'google';
+          track(Date.now() - Date.parse(session.user.created_at) < 2 * 60_000 ? 'sign_up' : 'login', { method: provider });
+        }
+        if (alive) router.replace(session ? routes.home : routes.login);
+      },
       (err: unknown) => alive && setError(toKashError(err).message),
     );
     return () => {

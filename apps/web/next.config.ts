@@ -1,21 +1,32 @@
 import type { NextConfig } from 'next';
 
 /**
- * Content-Security-Policy: só o próprio site, o Supabase (API e tempo real) e o Analytics da Vercel
- * (servido em /_vercel, mesma origem). Scripts e estilos inline continuam liberados porque o Next
+ * Content-Security-Policy: só o próprio site, o Supabase (API e tempo real), o Analytics da Vercel
+ * (servido em /_vercel, mesma origem) e o Google Analytics/Firebase (Analytics e Performance). Scripts e estilos inline continuam liberados porque o Next
  * injeta os dados das páginas estáticas inline (nonce exigiria renderizar tudo sob demanda).
  */
+const GOOGLE_ENDPOINTS = [
+  'https://*.google-analytics.com',
+  'https://*.analytics.google.com',
+  'https://*.googletagmanager.com',
+  'https://firebase.googleapis.com',
+  'https://firebaseinstallations.googleapis.com',
+  'https://firebaselogging.googleapis.com',
+  'https://firebaselogging-pa.googleapis.com',
+  'https://firebaseremoteconfig.googleapis.com',
+].join(' ');
+
 function contentSecurityPolicy() {
   const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const realtime = supabase.replace(/^http/, 'ws');
   const dev = process.env.NODE_ENV !== 'production';
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ''}`,
+    `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com${dev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
+    "img-src 'self' data: blob: https://*.google-analytics.com https://*.googletagmanager.com",
     "font-src 'self' data:",
-    `connect-src 'self' ${supabase} ${realtime}`.trim(),
+    `connect-src 'self' ${supabase} ${realtime} ${GOOGLE_ENDPOINTS}`.trim(),
     // leitor de PDF da importação (pdf.js) roda num worker do próprio site
     "worker-src 'self' blob:",
     "frame-ancestors 'none'",

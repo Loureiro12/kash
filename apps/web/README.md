@@ -126,3 +126,10 @@ No Google Play Console (Segurança dos dados › Exclusão de conta), informe `h
 ## Deploy
 
 Pensado para a Vercel (projeto com *Root Directory* `apps/web`; o build do monorepo é detectado). Qualquer host que rode `next start` também serve. Variáveis: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` (as duas últimas são públicas, as mesmas do app; nunca a service role).
+
+## Firebase (Analytics e Performance)
+- `src/lib/telemetry.ts`: Google Analytics for Firebase e Firebase Performance, carregados sob demanda e só com as variáveis `NEXT_PUBLIC_FIREBASE_*` (sem elas, nada é carregado). Eventos iguais aos do app (`TelemetryEvents` em `@kash/domain`), sem valores, nomes de lançamentos ou e-mail.
+- Consentimento (LGPD): `ConsentBanner`. Até aceitar, o Analytics roda no modo de consentimento negado (sem cookies) e o Performance não carrega. "Preferências de cookies" no rodapé reabre a escolha. Anúncios sempre negados.
+- Erros: não há Crashlytics para web; erros não tratados e de renderização (`src/app/error.tsx`) viram o evento `exception`.
+- A CSP (`next.config.ts`) libera só os domínios do Google Analytics/Firebase necessários.
+

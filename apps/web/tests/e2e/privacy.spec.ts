@@ -6,11 +6,11 @@ test.describe('política de privacidade', () => {
     await page.goto('/privacidade');
   });
 
-  test('título, data, resumo e 11 seções', async ({ page }) => {
+  test('título, data, resumo e 12 seções', async ({ page }) => {
     await expect(page).toHaveTitle('Política de privacidade · Kash');
-    await expect(page.getByText('Última atualização: 11 de outubro de 2026')).toBeVisible();
+    await expect(page.getByText('Última atualização: 10 de novembro de 2026')).toBeVisible();
     await expect(page.getByText('Resumo rápido')).toBeVisible();
-    await expect(page.locator('article section h2')).toHaveCount(11);
+    await expect(page.locator('article section h2')).toHaveCount(12);
   });
 
   test('índice leva à seção (no celular, abrindo o bloco recolhível)', async ({ page }, info) => {
@@ -19,9 +19,9 @@ test.describe('política de privacidade', () => {
       await expect(page.getByTestId('toc-desktop')).toBeHidden();
       await toc.locator('summary').click();
     }
-    await toc.getByRole('link', { name: '9. Seus direitos' }).click();
+    await toc.getByRole('link', { name: '10. Seus direitos' }).click();
     await expect(page).toHaveURL(/#direitos$/);
-    await expect(page.getByRole('heading', { name: '9. Seus direitos' })).toBeInViewport();
+    await expect(page.getByRole('heading', { name: '10. Seus direitos' })).toBeInViewport();
   });
 
   test('voltar ao site e e-mail do encarregado', async ({ page }) => {

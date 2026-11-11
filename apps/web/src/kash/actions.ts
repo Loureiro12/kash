@@ -1,9 +1,10 @@
 'use client';
 
 import * as api from '@kash/supabase-client';
-import { formatBRL, toISODate, type AccountKind, type Bill, type CardGradientId, type Category, type Settings, type Tx } from '@kash/domain';
+import { formatBRL, toISODate, type TelemetryEventName, type TelemetryEvents, type AccountKind, type Bill, type CardGradientId, type Category, type Settings, type Tx } from '@kash/domain';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { track } from '@/lib/telemetry';
 import { requireKashClient } from './client';
 import { queryKeys } from './data';
 import { buildNewTxRequest, buildTxUpdate, type TxFormValues } from './transactions';
@@ -71,6 +72,11 @@ export function createActions(qc: QueryClient) {
     }
   }
   const ok = (result: unknown) => result !== undefined;
+  /** registra o evento só quando a escrita deu certo */
+  const tracked = <N extends TelemetryEventName>(name: N, params: TelemetryEvents[N], done: boolean) => {
+    if (done) track(name, params);
+    return done;
+  };
 
   const sourceType = (id: string): 'card' | 'account' => (snapshot()?.cards.some((c) => c.id === id) ? 'card' : 'account');
 
@@ -86,18 +92,23 @@ export function createActions(qc: QueryClient) {
         toast(req.message);
         return false;
       }
+      const sourceKind = sourceType(values.sourceId);
       if (req.type === 'installments') {
         const { input, per, paid } = req;
-        return ok(
-          await run(
-            () => api.addInstallmentPurchase(db(), input),
-            paid > 0 ? `Parcela ${input.current}/${input.installments} lançada · ${paid} já pagas` : `${input.installments}x de ${formatBRL(per)} no cartão`,
+        return tracked(
+          'add_transaction',
+          { kind: 'expense', source_type: 'card', installments: input.installments },
+          ok(
+            await run(
+              () => api.addInstallmentPurchase(db(), input),
+              paid > 0 ? `Parcela ${input.current}/${input.installments} lançada · ${paid} já pagas` : `${input.installments}x de ${formatBRL(per)} no cartão`,
+            ),
           ),
         );
       }
       const { input } = req;
       const message = values.kind === 'income' ? `${formatBRL(input.amount)} de entrada registrados` : `${formatBRL(input.amount)} lançado em ${input.category}`;
-      return ok(await run(() => api.createTransaction(db(), input), message));
+      return tracked('add_transaction', { kind: values.kind === 'income' ? 'income' : 'expense', source_type: sourceKind, installments: 1 }, ok(await run(() => api.createTransaction(db(), input), message)));
     },
     async updateTransaction(tx: Tx, values: Pick<TxFormValues, 'amount' | 'category' | 'sourceId' | 'note' | 'date'>) {
       const { input, movePlanTo } = buildTxUpdate(tx, values, snapshot() ?? { cards: [] });
@@ -128,7 +139,7 @@ export function createActions(qc: QueryClient) {
     async saveTransfer(transferId: string | null, input: api.TransferInput) {
       const label = `${formatBRL(input.amount)} transferidos`;
       if (transferId) return ok(await run(() => api.updateTransfer(db(), transferId, input), 'Transferência atualizada'));
-      return ok(await run(() => api.createTransfer(db(), input), label));
+      return tracked('add_transfer', {}, ok(await run(() => api.createTransfer(db(), input), label)));
     },
 
     // importação de fatura/extrato (as linhas já vêm revisadas)
@@ -143,6 +154,8 @@ export function createActions(qc: QueryClient) {
             : await api.importAccountStatement(db(), { accountId: input.target.id, fileName: input.fileName, format: input.format, items: input.items, keepBalance: input.keepBalance });
         // regras aprendidas não podem derrubar a importação
         await api.saveMerchantRules(db(), rules).catch(() => undefined);
+        const count = (type: string) => input.items.filter((i) => i.type === type).length;
+        track('import_statement', { target: input.target.type, format: input.format, plans: count('plan'), txs: count('tx'), transfers: count('transfer'), matched: count('match') });
         return importId;
       });
       // regras novas (nomes trocados e os da IA aceitos) já valem no próximo arquivo
@@ -150,7 +163,7 @@ export function createActions(qc: QueryClient) {
       return typeof id === 'string' ? id : null;
     },
     async undoImport(importId: string) {
-      const done = ok(await run(() => api.undoImport(db(), importId), 'Importação desfeita'));
+      const done = tracked('import_undo', {}, ok(await run(() => api.undoImport(db(), importId), 'Importação desfeita')));
       await qc.invalidateQueries({ queryKey: ['imports'] });
       return done;
     },
@@ -161,7 +174,7 @@ export function createActions(qc: QueryClient) {
       if (id) return ok(await run(() => api.updateCard(db(), id, input), 'Cartão atualizado'));
       const card = await run(() => api.createCard(db(), input), `Cartão “${values.name.trim()}” adicionado`);
       if (card && typeof card === 'object') useUi.getState().selectCard(card.id);
-      return ok(card);
+      return tracked('add_card', {}, ok(card));
     },
     async deleteCard(id: string, name: string) {
       return ok(await run(() => api.deleteCard(db(), id), `Cartão “${name}” excluído`));
@@ -171,7 +184,7 @@ export function createActions(qc: QueryClient) {
     async saveAccount(id: string | null, values: AccountFormValues) {
       const input: api.AccountInput = { name: values.name, kind: values.kind, institution: values.bank, balance: values.balance, color: values.color };
       if (id) return ok(await run(() => api.updateAccount(db(), id, input), 'Conta atualizada'));
-      return ok(await run(() => api.createAccount(db(), input), `Conta “${values.name.trim()}” adicionada`));
+      return tracked('add_account', {}, ok(await run(() => api.createAccount(db(), input), `Conta “${values.name.trim()}” adicionada`)));
     },
     async deleteAccount(id: string, name: string) {
       return ok(await run(() => api.deleteAccount(db(), id), `Conta “${name}” excluída`));
@@ -181,21 +194,22 @@ export function createActions(qc: QueryClient) {
     async saveBill(id: string | null, values: BillFormValues) {
       const input: api.BillInput = { name: values.name, amount: values.amount, dueDay: values.dueDay, category: values.category, source: values.sourceId ? { type: sourceType(values.sourceId), id: values.sourceId } : null };
       if (id) return ok(await run(() => api.updateBill(db(), id, input), 'Conta fixa atualizada'));
-      return ok(await run(() => api.createBill(db(), input), `Conta fixa “${values.name.trim()}” adicionada`));
+      return tracked('add_bill', {}, ok(await run(() => api.createBill(db(), input), `Conta fixa “${values.name.trim()}” adicionada`)));
     },
     async deleteBill(id: string, name: string) {
       return ok(await run(() => api.deleteBill(db(), id), `Conta fixa “${name}” excluída`));
     },
     async toggleBillPaid(bill: Bill) {
       optimistic((s) => ({ ...s, bills: s.bills.map((b) => (b.id === bill.id ? { ...b, paid: !bill.paid } : b)) }));
-      return ok(await run<unknown>(() => (bill.paid ? api.unpayBill(db(), bill.id) : api.payBill(db(), bill.id, toISODate(new Date()))), bill.paid ? `“${bill.name}” desmarcada` : `“${bill.name}” paga`));
+      const done = ok(await run<unknown>(() => (bill.paid ? api.unpayBill(db(), bill.id) : api.payBill(db(), bill.id, toISODate(new Date()))), bill.paid ? `“${bill.name}” desmarcada` : `“${bill.name}” paga`));
+      return bill.paid ? done : tracked('pay_bill', {}, done);
     },
 
     // metas
     async saveGoal(id: string | null, values: GoalFormValues) {
       const input: api.GoalInput = { ...values, accountId: values.accountId ?? undefined };
       if (id) return ok(await run(() => api.updateGoal(db(), id, input), 'Meta atualizada'));
-      return ok(await run(() => api.createGoal(db(), input), `Meta “${values.name.trim()}” criada`));
+      return tracked('add_goal', {}, ok(await run(() => api.createGoal(db(), input), `Meta “${values.name.trim()}” criada`)));
     },
     async deleteGoal(id: string, name: string) {
       return ok(await run(() => api.deleteGoal(db(), id), `Meta “${name}” excluída`));
@@ -203,15 +217,15 @@ export function createActions(qc: QueryClient) {
     /** atalho "+ Guardar R$ 50": soma na meta sem mexer em conta */
     async contributeToGoal(goalId: string, name: string, amount: number) {
       optimistic((s) => ({ ...s, goals: s.goals.map((g) => (g.id === goalId ? { ...g, saved: Math.min(g.target, g.saved + amount) } : g)) }));
-      return ok(await run(() => api.recordGoalDeposit(db(), { goalId, amount }), `${formatBRL(amount)} guardados em “${name}”`));
+      return tracked('goal_deposit', {}, ok(await run(() => api.recordGoalDeposit(db(), { goalId, amount }), `${formatBRL(amount)} guardados em “${name}”`)));
     },
     async recordDeposit(goalId: string, name: string, amount: number, accountId: string | null) {
-      return ok(await run(() => api.recordGoalDeposit(db(), { goalId, amount, accountId: accountId ?? undefined }), `${formatBRL(amount)} depositado em “${name}”`));
+      return tracked('goal_deposit', {}, ok(await run(() => api.recordGoalDeposit(db(), { goalId, amount, accountId: accountId ?? undefined }), `${formatBRL(amount)} depositado em “${name}”`)));
     },
 
     // faturas
     async payInvoice(invoiceId: string, accountId: string, label: string) {
-      return ok(await run(() => api.payInvoice(db(), { invoiceId, accountId }), label));
+      return tracked('pay_invoice', {}, ok(await run(() => api.payInvoice(db(), { invoiceId, accountId }), label)));
     },
 
     // categorias
@@ -235,7 +249,10 @@ export function createActions(qc: QueryClient) {
     async updateSettings(patch: Partial<Settings>, success?: string) {
       optimistic((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
       if (patch.theme) rememberTheme(patch.theme);
-      return ok(await run(() => api.updateSettings(db(), patch), success));
+      const done = ok(await run(() => api.updateSettings(db(), patch), success));
+      if (done && patch.onboardingDone) track('onboarding_complete', { skipped: patch.monthlyBudget === undefined });
+      else if (done && patch.monthlyBudget !== undefined) track('budget_set', { split: (patch.cardBudget ?? 0) > 0 });
+      return done;
     },
     /** devolve a mensagem de erro ou null */
     async changePassword(currentPassword: string, newPassword: string): Promise<string | null> {

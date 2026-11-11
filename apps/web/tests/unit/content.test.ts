@@ -35,9 +35,9 @@ describe('conteúdo da landing', () => {
 });
 
 describe('política de privacidade', () => {
-  it('11 seções com ids únicos (âncoras do índice)', () => {
-    expect(privacySections).toHaveLength(11);
-    expect(new Set(privacySections.map((s) => s.id)).size).toBe(11);
+  it('12 seções com ids únicos (âncoras do índice)', () => {
+    expect(privacySections).toHaveLength(12);
+    expect(new Set(privacySections.map((s) => s.id)).size).toBe(12);
     for (const s of privacySections) expect(s.paragraphs.length + (s.list?.length ?? 0)).toBeGreaterThan(0);
   });
 

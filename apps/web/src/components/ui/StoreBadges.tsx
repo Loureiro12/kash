@@ -1,3 +1,4 @@
+import { StoreLink as TrackedStoreLink } from '@/components/telemetry/StoreLink';
 import { site, type StoreLink } from '@/content/site';
 import styles from './StoreBadges.module.css';
 
@@ -17,7 +18,7 @@ function PlayIcon() {
   );
 }
 
-function Badge({ link, icon, small, soon, big, testId }: { link: StoreLink; icon: React.ReactNode; small: string; soon: string; big: string; testId: string }) {
+function Badge({ link, icon, small, soon, big, testId, store }: { link: StoreLink; icon: React.ReactNode; small: string; soon: string; big: string; testId: string; store: 'app_store' | 'google_play' }) {
   const body = (
     <>
       {icon}
@@ -29,9 +30,9 @@ function Badge({ link, icon, small, soon, big, testId }: { link: StoreLink; icon
   );
   // sem app publicado na loja, não leva a uma página que não existe
   return link.available ? (
-    <a href={link.url} className={styles.badge} data-testid={testId} rel="noopener" target="_blank">
+    <TrackedStoreLink store={store} placement="hero" href={link.url} className={styles.badge} data-testid={testId} rel="noopener" target="_blank">
       {body}
-    </a>
+    </TrackedStoreLink>
   ) : (
     <span className={[styles.badge, styles.soon].join(' ')} data-testid={testId} aria-label={`${big}: em breve`}>
       {body}
@@ -43,8 +44,8 @@ function Badge({ link, icon, small, soon, big, testId }: { link: StoreLink; icon
 export function StoreBadges() {
   return (
     <div className={styles.row}>
-      <Badge link={site.stores.appStore} icon={<AppleIcon />} small="Baixar na" soon="Em breve na" big="App Store" testId="badge-app-store" />
-      <Badge link={site.stores.googlePlay} icon={<PlayIcon />} small="Disponível no" soon="Em breve no" big="Google Play" testId="badge-google-play" />
+      <Badge link={site.stores.appStore} icon={<AppleIcon />} small="Baixar na" soon="Em breve na" big="App Store" testId="badge-app-store" store="app_store" />
+      <Badge link={site.stores.googlePlay} icon={<PlayIcon />} small="Disponível no" soon="Em breve no" big="Google Play" testId="badge-google-play" store="google_play" />
     </div>
   );
 }

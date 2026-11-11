@@ -35,6 +35,15 @@ export const privacySections: PolicySection[] = [
       'Dados financeiros que você mesmo lança: gastos, entradas, cartões (apelido, últimos 4 dígitos, limite e datas), contas bancárias (apelido e saldo), contas fixas e metas.',
       'Dados técnicos: tipo de aparelho, sistema operacional, versão do app e registros de erro, para manter o serviço estável.',
       'Estatísticas de visita e de desempenho do site e do Kash web: páginas vistas, de onde veio a visita, país, tipo de aparelho e navegador, e o tempo de carregamento das páginas, contados de forma agregada e sem cookies (Vercel Web Analytics e Speed Insights). Não usamos isso para identificar você nem para anúncios.',
+      'Dados de uso, erros e desempenho (Google Analytics for Firebase, Firebase Crashlytics e Firebase Performance Monitoring, do Google): quais telas e recursos são usados (por exemplo, "lançou um gasto no cartão" ou "importou uma fatura"), relatórios de falha do app e tempos de carregamento. Esses dados nunca incluem valores, nomes de lançamentos, seu e-mail ou seu nome; você é identificado só por um código interno. Não usamos identificador de anúncios nem compartilhamos com redes de anúncios. Veja como escolher em "Cookies e dados de uso".',
+    ],
+  },
+  {
+    id: 'cookies',
+    title: 'Cookies e dados de uso',
+    paragraphs: [
+      'No site e no Kash web, os cookies de análise do Google Analytics só são gravados se você clicar em "Aceitar" no aviso de cookies. Antes disso, ou se você recusar, o Google Analytics funciona no modo sem cookies, enviando só sinais agregados que não identificam você, e a medição de desempenho do Firebase não é carregada. Você pode mudar a escolha a qualquer momento em "Preferências de cookies", no rodapé do site. Os cookies essenciais (sua sessão no Kash web e suas preferências) não dependem dessa escolha.',
+      'No app, os dados de uso, os relatórios de falha e as medições de desempenho estão ligados por padrão, com base no legítimo interesse de manter o app estável e melhorá-lo. Você pode desligar em Perfil › Compartilhar dados de uso, e a escolha vale para aquele aparelho.',
     ],
   },
   {
@@ -66,7 +75,7 @@ export const privacySections: PolicySection[] = [
     id: 'compartilhamento',
     title: 'Compartilhamento',
     paragraphs: [
-      'Não vendemos seus dados e não usamos seus gastos para mostrar anúncios. Compartilhamos dados apenas com fornecedores que nos ajudam a operar o Kash, como hospedagem em nuvem e envio de e-mails, sempre sob contrato e com o mínimo necessário. Também podemos compartilhar dados se houver ordem judicial ou exigência legal.',
+      'Não vendemos seus dados e não usamos seus gastos para mostrar anúncios. Compartilhamos dados apenas com fornecedores que nos ajudam a operar o Kash, como hospedagem em nuvem, envio de e-mails e o Google (Firebase, para dados de uso, falhas e desempenho, conforme a seção "Cookies e dados de uso"), sempre sob contrato e com o mínimo necessário. Também podemos compartilhar dados se houver ordem judicial ou exigência legal.',
       'Importação com IA (opcional): quando você pede para o Kash ler o PDF de uma fatura e autoriza o uso da IA, o texto dos lançamentos é enviado à Anthropic, fornecedora do modelo de IA, só para identificar data, descrição, valor e parcelas. Antes do envio, o Kash tira do texto CPF, endereço, número do cartão, código de barras e o seu nome. O arquivo PDF não sai do seu aparelho. Arquivos OFX e CSV são lidos no aparelho, sem IA; se você autorizar, só a descrição das compras que o Kash ainda não reconhece (sem números longos, CPF, cartão e o seu nome; Pix e transferências não vão) é enviada para sugerir nomes e categorias.',
     ],
   },

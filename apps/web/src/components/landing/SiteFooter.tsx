@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CookieSettingsLink } from '@/components/telemetry/ConsentBanner';
 import { site } from '@/content/site';
 import { Container } from '../ui/Container';
 import { Logo } from '../ui/Logo';
@@ -18,6 +19,9 @@ export function SiteFooter({ size = 'default' }: { size?: 'default' | 'doc' }) {
           </li>
           <li>
             <Link href="/excluir-conta">Excluir conta</Link>
+          </li>
+          <li>
+            <CookieSettingsLink />
           </li>
           {site.termsUrl ? (
             <li>
