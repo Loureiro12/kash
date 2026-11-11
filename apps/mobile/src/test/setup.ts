@@ -123,3 +123,26 @@ jest.mock('expo-apple-authentication', () => {
   };
 });
 jest.mock('expo-web-browser', () => ({ openAuthSessionAsync: jest.fn(async () => ({ type: 'cancel' })), maybeCompleteAuthSession: jest.fn() }));
+
+// Firebase: sem o app nativo configurado (como num build sem GoogleService-Info.plist), a telemetria
+// fica desligada. O teste de telemetria liga o getApp() e confere as chamadas.
+jest.mock('@react-native-firebase/app', () => ({ getApp: jest.fn(() => { throw new Error('No Firebase App'); }) }));
+jest.mock('@react-native-firebase/analytics', () => ({
+  getAnalytics: jest.fn(() => ({})),
+  logEvent: jest.fn(async () => undefined),
+  logScreenView: jest.fn(async () => undefined),
+  setAnalyticsCollectionEnabled: jest.fn(async () => undefined),
+  setUserId: jest.fn(async () => undefined),
+}));
+jest.mock('@react-native-firebase/crashlytics', () => ({
+  getCrashlytics: jest.fn(() => ({})),
+  log: jest.fn(),
+  recordError: jest.fn(),
+  setCrashlyticsCollectionEnabled: jest.fn(async () => undefined),
+  setUserId: jest.fn(async () => undefined),
+}));
+jest.mock('@react-native-firebase/perf', () => ({
+  getPerformance: jest.fn(() => ({ dataCollectionEnabled: true })),
+  trace: jest.fn(() => ({ start: jest.fn(async () => undefined), stop: jest.fn(async () => undefined) })),
+  httpMetric: jest.fn(() => ({ start: jest.fn(async () => undefined), stop: jest.fn(async () => undefined), setHttpResponseCode: jest.fn(), setResponsePayloadSize: jest.fn(), setResponseContentType: jest.fn() })),
+}));

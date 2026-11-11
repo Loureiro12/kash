@@ -2,6 +2,7 @@ import { loadSnapshot } from '@kash/supabase-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '@/services/supabase';
+import { measure } from '@/services/telemetry';
 import { useKashStore } from '@/store';
 import { queryKeys } from './keys';
 import { useRealtimeSync } from './useRealtimeSync';
@@ -21,7 +22,7 @@ export function useServerSync(userId: string | null) {
 
   const query = useQuery({
     queryKey: queryKeys.snapshot(userId ?? 'anon'),
-    queryFn: () => loadSnapshot(supabase),
+    queryFn: () => measure('snapshot_load', () => loadSnapshot(supabase)),
     enabled,
   });
   useRealtimeSync(userId, enabled);

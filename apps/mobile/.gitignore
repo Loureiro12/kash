@@ -4,3 +4,6 @@
 
 expo-env.d.ts
 # @end expo-cli
+# Firebase: arquivos do projeto ficam fora do Git (EAS env de arquivo ou firebase/)
+GoogleService-Info.plist
+google-services.json

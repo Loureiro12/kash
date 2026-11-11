@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Avatar, Button, Card, ListRow, PageHeader, Screen, Switch, Text } from '@/design-system';
 import { formatBRL } from '@kash/domain';
 import { useToggleBillReminder } from '@/features/notifications';
 import { APP_VERSION } from '@/lib/appVersion';
+import { setTelemetryEnabled, telemetryPreference } from '@/services/telemetry';
 import { useKashStore } from '@/store';
 import { useExportData } from './useExportData';
 
@@ -27,6 +28,16 @@ export function ProfileScreen() {
   const logout = useKashStore((s) => s.logout);
   const openSheet = useKashStore((s) => s.openSheet);
   const { exportData, exporting } = useExportData();
+  // Analytics, Crashlytics e Performance: preferência do aparelho (ligada por padrão)
+  const [shareUsage, setShareUsage] = useState(true);
+  useEffect(() => {
+    void telemetryPreference.get().then(setShareUsage);
+  }, []);
+  const toggleShareUsage = async (on: boolean) => {
+    setShareUsage(on);
+    await setTelemetryEnabled(on);
+    showToast(on ? 'Dados de uso ligados. Obrigado por ajudar a melhorar o Kash!' : 'Dados de uso desligados neste aparelho');
+  };
 
   return (
     <Screen testID="profile-screen" header={<PageHeader title="Perfil" onBack={() => router.back()} testID="profile" />}>
@@ -65,6 +76,13 @@ export function ProfileScreen() {
           trailing={<Switch value={settings.emailReminder} onValueChange={toggleEmailReminder} testID="profile-email-reminder-switch" accessibilityLabel="Lembrete por e-mail" />}
           onPress={toggleEmailReminder}
           testID="profile-email-reminder"
+        />
+        <ListRow
+          title="Compartilhar dados de uso"
+          subtitle={shareUsage ? 'Uso, erros e desempenho, sem seus valores' : 'Desligado neste aparelho'}
+          trailing={<Switch value={shareUsage} onValueChange={(v) => void toggleShareUsage(v)} testID="profile-telemetry-switch" accessibilityLabel="Compartilhar dados de uso" />}
+          onPress={() => void toggleShareUsage(!shareUsage)}
+          testID="profile-telemetry"
         />
         <ListRow title="Moeda" value="Real (R$)" divider={false} onPress={() => router.push('/profile/currency')} testID="profile-currency" />
       </Group>

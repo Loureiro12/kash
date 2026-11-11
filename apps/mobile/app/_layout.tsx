@@ -1,25 +1,49 @@
 import { Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold, useFonts } from '@expo-google-fonts/sora';
-import { Stack } from 'expo-router';
+import { Stack, usePathname, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import React, { useCallback, useEffect, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Pressable, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { QUERY_CACHE_BUSTER, queryClient, queryPersister } from '@/data/queryClient';
 import { installRemoteActions } from '@/data/remoteActions';
-import { ThemeProvider, useTheme } from '@/design-system';
+import { installTelemetryEvents } from '@/data/telemetryEvents';
+import { darkColors, ThemeProvider, useTheme } from '@/design-system';
 import { useAuthLinks } from '@/features/auth/useAuthLinks';
 import { AppLock } from '@/features/security/AppLock';
 import { useAutoLock } from '@/features/security/useBiometrics';
 import { ToastHost } from '@/features/navigation/SheetsHost';
 import { AnimatedSplash } from '@/features/splash/AnimatedSplash';
+import { identify, initTelemetry, reportError, trackScreen } from '@/services/telemetry';
 import { useKashStore } from '@/store';
 
 void SplashScreen.preventAutoHideAsync();
 installRemoteActions();
+installTelemetryEvents();
+void initTelemetry();
+
+/**
+ * Erro ao desenhar uma tela: vai para o Crashlytics e a pessoa pode tentar de novo. Fica fora do
+ * ThemeProvider (o erro pode ter vindo dele), por isso usa os tokens do tema escuro direto.
+ * (Erros fora da renderização e crashes nativos o Crashlytics já captura sozinho.)
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    reportError(error, 'ErrorBoundary');
+  }, [error]);
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16, backgroundColor: darkColors.bg }} testID="error-boundary">
+      <Text style={{ color: darkColors.text, fontSize: 20, fontWeight: '700', textAlign: 'center' }}>Algo deu errado nesta tela.</Text>
+      <Text style={{ color: darkColors.muted, fontSize: 14, textAlign: 'center' }}>Já registramos o problema. Tente de novo; seus dados estão salvos.</Text>
+      <Pressable onPress={() => void retry()} accessibilityRole="button" testID="error-boundary-retry" style={{ paddingHorizontal: 20, paddingVertical: 12, borderRadius: 14, backgroundColor: darkColors.accent }}>
+        <Text style={{ color: darkColors.onAccent, fontWeight: '700' }}>Tentar de novo</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold });
@@ -62,6 +86,7 @@ function RootNavigator() {
   }, [bootstrapAuth]);
   useAuthLinks();
   useAutoLock();
+  useTelemetryTracking();
 
   // Virada de mês: ao abrir e sempre que o app volta pro primeiro plano.
   useEffect(() => {
@@ -90,4 +115,16 @@ function RootNavigator() {
       <ToastHost />
     </>
   );
+}
+
+/** Telas vistas (rota do Expo Router) e a pessoa logada pelo id interno, no Analytics e no Crashlytics. */
+function useTelemetryTracking() {
+  const pathname = usePathname();
+  const userId = useKashStore((s) => s.userId);
+  useEffect(() => {
+    if (pathname) trackScreen(pathname);
+  }, [pathname]);
+  useEffect(() => {
+    identify(userId);
+  }, [userId]);
 }

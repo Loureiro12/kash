@@ -6,6 +6,7 @@ import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { AppState } from 'react-native';
 import { createLoggingFetch, REQUEST_LOG_ENABLED } from './requestLogger';
+import { createMeasuredFetch } from './telemetry';
 
 /**
  * Sessão guardada com segurança: a chave AES fica no SecureStore (Keychain/Keystore, limite de 2 KB)
@@ -60,8 +61,8 @@ export const supabase: KashClient = createKashClient({
       persistSession: true,
       detectSessionInUrl: false,
     },
-    // EXPO_PUBLIC_LOG_REQUESTS=1 → cada chamada aparece no terminal do Metro (ver requestLogger.ts)
-    ...(REQUEST_LOG_ENABLED ? { global: { fetch: createLoggingFetch() } } : {}),
+    // cada chamada medida no Firebase Performance; EXPO_PUBLIC_LOG_REQUESTS=1 também mostra no terminal do Metro
+    global: { fetch: createMeasuredFetch(REQUEST_LOG_ENABLED ? createLoggingFetch() : fetch) },
   },
 });
 

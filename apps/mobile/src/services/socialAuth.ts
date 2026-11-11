@@ -5,6 +5,7 @@ import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
+import { track } from './telemetry';
 
 /** esquema do deep link (app.json → scheme) */
 const SCHEME = 'kash';
@@ -50,6 +51,11 @@ async function signInWithBrowser(provider: SocialProvider): Promise<Session | nu
 
 /** Entrar com Apple ou Google. Apple no iPhone usa a folha nativa; o resto, o navegador do sistema. */
 export async function signInWithProvider(provider: SocialProvider): Promise<Session | null> {
-  if (provider === 'apple' && (await nativeAppleAvailable())) return signInWithAppleNative();
-  return signInWithBrowser(provider);
+  const session = provider === 'apple' && (await nativeAppleAvailable()) ? await signInWithAppleNative() : await signInWithBrowser(provider);
+  if (session) {
+    // conta criada agora (primeiro login pelo provedor) conta como cadastro
+    const fresh = Date.now() - Date.parse(session.user.created_at) < 2 * 60_000;
+    track(fresh ? 'sign_up' : 'login', { method: provider });
+  }
+  return session;
 }

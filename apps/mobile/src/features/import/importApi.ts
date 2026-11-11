@@ -4,6 +4,7 @@ import { queryClient } from '@/data/queryClient';
 import { queryKeys } from '@/data/keys';
 import { DATA_SOURCE } from '@/data/source';
 import { supabase } from '@/services/supabase';
+import { measure, track } from '@/services/telemetry';
 import type { ImportFormat, TargetType } from './readStatement';
 
 /** chaves das listas da importação (fora do snapshot) */
@@ -45,6 +46,8 @@ export async function saveImport(input: SaveImportInput, rules: api.MerchantRule
         : await api.importAccountStatement(supabase, { accountId: input.target.id, fileName: input.fileName, format: input.format, items: input.items, keepBalance: input.keepBalance });
     // regras aprendidas não podem derrubar a importação
     await api.saveMerchantRules(supabase, rules).catch(() => undefined);
+    const count = (type: string) => input.items.filter((i) => i.type === type).length;
+    track('import_statement', { target: input.target.type, format: input.format, plans: count('plan'), txs: count('tx'), transfers: count('transfer'), matched: count('match') });
     return id;
   } catch (err) {
     throw api.toKashError(err);
@@ -56,6 +59,7 @@ export async function saveImport(input: SaveImportInput, rules: api.MerchantRule
 export async function undoImport(importId: string): Promise<void> {
   try {
     await api.undoImport(supabase, importId);
+    track('import_undo', {});
   } catch (err) {
     throw api.toKashError(err);
   } finally {
@@ -66,7 +70,7 @@ export async function undoImport(importId: string): Promise<void> {
 /** Texto do PDF (já sem dados pessoais) lido pela IA na Edge Function. */
 export function readWithAi<T>(input: { text: string; kind: TargetType; categories: string[] }): Promise<T> {
   if (!remote) return Promise.reject(new Error('Ler PDF precisa da sua conta conectada.'));
-  return api.readStatementWithAi<T>(supabase, input);
+  return measure('import_read_pdf_ai', () => api.readStatementWithAi<T>(supabase, input));
 }
 
 /** Nomes e categorias sugeridos pela IA para linhas de OFX/CSV (descrições já limpas; ver `aiNameRequests`). */
