@@ -73,6 +73,20 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
     - Mesmo e-mail em mais de um jeito de entrar (senha e Google, por exemplo): o Supabase junta na mesma conta quando o e-mail está confirmado.
     - Pendente para a App Store: ao excluir a conta de quem entrou com Apple, a Apple pede revogar o token (Sign in with Apple REST API › `revoke`). Ainda não é feito; ver item no CHANGELOG.
 
+11. **Firebase (Analytics, Crashlytics, Performance)**. Sem a configuração, app e web funcionam normalmente, só sem coleta.
+    - console.firebase.google.com › **Criar projeto** (ex.: `kash-app`) › ative o **Google Analytics** e escolha uma conta do Analytics. Em *Configurações do Analytics*, desligue o compartilhamento para anúncios e os Google Signals.
+    - **Web** (site + Kash web): Configurações do projeto › *Seus apps* › **</>** (Web) › copie o `firebaseConfig`. Na Vercel (Settings › Environment Variables, Production), crie: `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID`, `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` (o `G-…`) e `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`. Faça um novo deploy (as variáveis entram no build). Com elas, o banner de cookies aparece.
+    - **iOS**: *Seus apps* › Apple › bundle id `com.andreloureiro.kash` › baixe o `GoogleService-Info.plist`. **Android**: *Seus apps* › Android › pacote `com.andreloureiro.kash` › baixe o `google-services.json`.
+    - Os dois arquivos vão para o EAS como variáveis do tipo arquivo (não entram no Git):
+      ```bash
+      cd apps/mobile
+      eas env:create --environment production --name GOOGLE_SERVICES_PLIST --type file --value ./GoogleService-Info.plist --visibility secret
+      eas env:create --environment production --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json --visibility secret
+      ```
+      Para testar localmente, copie-os para `apps/mobile/firebase/` (ignorada pelo Git). O `app.config.js` só liga o Firebase quando os dois existem.
+    - **Crashlytics no iOS**: os símbolos (dSYM) sobem no build do EAS pelo script do Crashlytics; confira em Crashlytics › *dSYMs ausentes* depois do primeiro build. Para ver o primeiro relatório, abra o app do build de produção uma vez.
+    - **Lojas**: atualize o *App Privacy* (App Store Connect) e a *Segurança dos dados* (Play Console): dados de uso do app, diagnósticos (falhas e desempenho) e ID do usuário (interno), coletados para análise e funcionalidade do app, **não** usados para rastreamento nem publicidade.
+
 ## 2. Expo / EAS — app
 
 1. **[você]** `cd apps/mobile && eas login` (conta Expo), depois:
