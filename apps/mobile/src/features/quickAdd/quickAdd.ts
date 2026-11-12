@@ -4,7 +4,7 @@ import type { TxKind } from '@kash/domain';
 /**
  * Lançamento rápido pelos atalhos do iPhone (Back Tap, Siri, app Atalhos, Spotlight).
  *
- * As App Intents nativas "Lançar gasto" / "Lançar entrada" (plugins/ios/KashQuickAdd.swift) abrem o
+ * As App Intents nativas "Lançar gasto" / "Lançar entrada" (plugins/quick-add/KashQuickAdd.swift) abrem o
  * app e gravam o pedido em UserDefaults com esta chave, no formato `<tipo>:<segundos>`. O JS lê
  * pelo `Settings` do React Native (UserDefaults no iOS), apaga e abre o sheet de lançamento.
  */

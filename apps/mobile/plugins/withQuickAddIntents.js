@@ -7,7 +7,7 @@ const FILE = 'KashQuickAdd.swift';
 
 /**
  * App Intents "Lançar gasto" / "Lançar entrada" (Toque Atrás, Siri, Atalhos): copia
- * `plugins/ios/KashQuickAdd.swift` para o target do app no prebuild e o adiciona ao projeto Xcode.
+ * `plugins/quick-add/KashQuickAdd.swift` para o target do app no prebuild e o adiciona ao projeto Xcode.
  * @type {import('expo/config-plugins').ConfigPlugin}
  */
 const withQuickAddIntents = (config) => {
@@ -15,7 +15,7 @@ const withQuickAddIntents = (config) => {
     'ios',
     (cfg) => {
       const projectName = IOSConfig.XcodeUtils.getProjectName(cfg.modRequest.projectRoot);
-      fs.copyFileSync(path.join(__dirname, 'ios', FILE), path.join(cfg.modRequest.platformProjectRoot, projectName, FILE));
+      fs.copyFileSync(path.join(__dirname, 'quick-add', FILE), path.join(cfg.modRequest.platformProjectRoot, projectName, FILE));
       return Promise.resolve(cfg);
     },
   ]);
