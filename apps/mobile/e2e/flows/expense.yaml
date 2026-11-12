@@ -87,6 +87,11 @@ tags: [smoke, critical]
     element:
       text: "Parcelas em aberto"
     direction: DOWN
+# a lista fica abaixo do título (e da tab bar): rola até o item
+- scrollUntilVisible:
+    element:
+      text: "Fone"
+    direction: DOWN
 - assertVisible: "Fone"
 - assertVisible: "R$ 200,00/mês"
 

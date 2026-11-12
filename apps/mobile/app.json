@@ -122,6 +122,7 @@
         }
       ],
       "expo-sharing",
+      "./plugins/withQuickAddIntents",
       [
         "expo-local-authentication",
         {

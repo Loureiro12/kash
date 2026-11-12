@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Linking, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { Card, Icon, ListRow, PageHeader, Pressable, Screen, Text, useTheme } from '@/design-system';
 import { APP_VERSION } from '@/lib/appVersion';
@@ -11,8 +11,16 @@ const FAQ = [
   { q: 'Como funciona o parcelamento no cartão?', a: 'Ao lançar um gasto no cartão você escolhe o número de parcelas. A primeira entra hoje e as outras aparecem na Previsão, mês a mês.' },
   { q: 'Como registro dinheiro que passei de uma conta pra outra?', a: 'Use Transferir (em Contas bancárias ou na opção Transferência do Lançar gasto). O saldo sai de uma conta e entra na outra, e não conta como gasto nem como entrada.' },
   { q: 'O que acontece quando marco uma conta fixa como paga?', a: 'O Kash cria o lançamento do mês: na fatura, se a conta for cobrada no cartão, ou debitando o saldo, se for na conta.' },
+  {
+    q: 'Dá pra lançar um gasto tocando nas costas do iPhone?',
+    a: 'Dá. No app Ajustes, abra Acessibilidade › Toque › Toque Atrás e escolha Toque Duplo (ou Triplo). Na lista, em Atalhos, escolha "Lançar gasto" ou "Lançar entrada" do Kash. Se elas não aparecerem, abra o app Atalhos, toque em Kash e adicione a ação aos seus atalhos. Também funciona com a Siri ("Lançar gasto no Kash") e no botão de Ação.',
+    ios: true,
+  },
   { q: 'Meus dados ficam salvos onde?', a: 'Em servidores criptografados no Brasil, conforme a LGPD. Você pode apagar tudo em Perfil → Excluir conta.' },
 ] as const;
+
+/** perguntas só de iPhone (atalhos) não aparecem no Android */
+const FAQ_VISIBLE = FAQ.filter((item) => !('ios' in item) || Platform.OS === 'ios');
 
 const SUPPORT_EMAIL = 'oi@kash.app';
 
@@ -40,10 +48,10 @@ export function HelpScreen() {
         Perguntas frequentes
       </Text>
       <Card padding={0} style={{ marginTop: 12, overflow: 'hidden' }}>
-        {FAQ.map((item, i) => {
+        {FAQ_VISIBLE.map((item, i) => {
           const expanded = open === i;
           return (
-            <Animated.View key={item.q} layout={LinearTransition.duration(200)} style={{ borderBottomWidth: i < FAQ.length - 1 ? 1 : 0, borderBottomColor: colors.line }}>
+            <Animated.View key={item.q} layout={LinearTransition.duration(200)} style={{ borderBottomWidth: i < FAQ_VISIBLE.length - 1 ? 1 : 0, borderBottomColor: colors.line }}>
               <Pressable
                 onPress={() => setOpen(expanded ? null : i)}
                 testID={`help-faq-${i}`}

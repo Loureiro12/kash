@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { useTheme } from '@/design-system';
 import { FloatingTabBar } from '@/features/navigation/FloatingTabBar';
 import { SheetsHost } from '@/features/navigation/SheetsHost';
+import { useQuickAdd } from '@/features/quickAdd';
 import { useServerSync } from '@/data/useServerSync';
 import { useNotificationRouting, useReminderSync } from '@/features/notifications';
 import { DATA_SOURCE } from '@/data/source';
@@ -20,6 +21,7 @@ export default function AppLayout() {
   useReminderSync();
   useNotificationRouting();
   useWelcomeRedirect();
+  useQuickAdd();
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
@@ -39,6 +41,7 @@ export default function AppLayout() {
         <Stack.Screen name="profile/help" />
         <Stack.Screen name="terms" />
         <Stack.Screen name="privacy" />
+        <Stack.Screen name="lancar" options={{ animation: 'none' }} />
       </Stack>
       <FloatingTabBar />
       <SheetsHost />

@@ -167,6 +167,10 @@ export interface KashState {
     transferId: string | null;
     /** fatura alvo do sheet de pagamento */
     payInvoiceId: string | null;
+    /** tipo inicial do sheet de lançamento novo (gasto ou entrada) */
+    newTxKind: TxKind;
+    /** lançamento rápido pedido por atalho do iPhone (Back Tap, Siri) ou link; abre quando o app está desbloqueado */
+    quickAdd: TxKind | null;
   };
 
   // auth
@@ -217,6 +221,10 @@ export interface KashState {
 
   // ui
   openSheet: (sheet: SheetName) => void;
+  /** sheet de lançamento novo já no tipo escolhido */
+  openNewTransaction: (kind: TxKind) => void;
+  /** pede o lançamento rápido (atalho/link); `useQuickAdd` abre o sheet quando der */
+  requestQuickAdd: (kind: TxKind | null) => void;
   openDeposit: (goalId: string) => void;
   openTransaction: (txId: string) => void;
   /** sheet de transferência; com id, edita a existente */
@@ -273,7 +281,7 @@ const buildInitial = () => {
     userId: null as string | null,
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null },
+    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, newTxKind: 'expense' as TxKind, quickAdd: null },
   };
 };
 
@@ -509,7 +517,9 @@ export const useKashStore = create<KashState>((set, get) => ({
       },
     })),
 
-  openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editingTxId: sheet === 'expense' ? null : s.ui.editingTxId, editing: null } })),
+  openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editingTxId: sheet === 'expense' ? null : s.ui.editingTxId, editing: null, newTxKind: 'expense' } })),
+  openNewTransaction: (kind) => set((s) => ({ ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: null, editing: null, newTxKind: kind } })),
+  requestQuickAdd: (kind) => set((s) => ({ ui: { ...s.ui, quickAdd: kind } })),
   openEdit: (ref) => {
     const sheet: SheetName = ref.kind === 'card' ? 'addCard' : ref.kind === 'account' ? 'addAccount' : ref.kind === 'bill' ? 'addBill' : ref.kind === 'category' ? 'category' : 'addGoal';
     set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editing: ref } }));

@@ -34,7 +34,8 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   const today = now();
   const todayISO = toISODate(today);
 
-  const [kind, setKind] = useState<TxKind>(editing ? (editing.amount < 0 ? 'expense' : 'income') : 'expense');
+  const newTxKind = useKashStore((s) => s.ui.newTxKind);
+  const [kind, setKind] = useState<TxKind>(editing ? (editing.amount < 0 ? 'expense' : 'income') : newTxKind);
   const [digits, setDigits] = useState(editing ? String(Math.round(Math.abs(editing.amount) * 100)) : '');
   const isInvoicePayment = editing?.category === 'Fatura';
   const { names: categoryNames, colors: categoryColorsMap } = useCategories();

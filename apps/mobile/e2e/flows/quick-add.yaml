@@ -1,0 +1,36 @@
+appId: ${APP_ID}
+name: Lançamento rápido pelo link (o mesmo caminho dos atalhos do iPhone)
+---
+- runFlow: ../subflows/login.yaml
+
+# link de entrada: abre o sheet já em "Entrada"
+- openLink: "com.andreloureiro.kash://lancar?tipo=entrada"
+- assertVisible:
+    id: "sheet-expense"
+- assertVisible:
+    id: "tx-kind-income"
+    selected: true
+- tapOn:
+    id: "key-2"
+- tapOn:
+    id: "key-5"
+- tapOn:
+    id: "key-0"
+- tapOn:
+    id: "key-0"
+- tapOn:
+    id: "key-0"
+- assertVisible: ".*250,00"
+- assertVisible: "Salvar entrada"
+- tapOn:
+    id: "expense-save"
+- assertNotVisible:
+    id: "sheet-expense"
+
+# link de gasto: abre em "Gasto"
+- openLink: "com.andreloureiro.kash://lancar?tipo=gasto"
+- assertVisible:
+    id: "sheet-expense"
+- assertVisible:
+    id: "tx-kind-expense"
+    selected: true
