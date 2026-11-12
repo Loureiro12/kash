@@ -146,3 +146,9 @@ jest.mock('@react-native-firebase/perf', () => ({
   trace: jest.fn(() => ({ start: jest.fn(async () => undefined), stop: jest.fn(async () => undefined) })),
   httpMetric: jest.fn(() => ({ start: jest.fn(async () => undefined), stop: jest.fn(async () => undefined), setHttpResponseCode: jest.fn(), setResponsePayloadSize: jest.fn(), setResponseContentType: jest.fn() })),
 }));
+
+// Settings do RN (UserDefaults no iOS): sem módulo nativo no Jest; usado pelo lançamento rápido (atalhos do iPhone)
+jest.mock('react-native/Libraries/Settings/NativeSettingsManager', () => ({
+  __esModule: true,
+  default: { getConstants: () => ({ settings: {} }), setValues: jest.fn(), deleteValues: jest.fn() },
+}));
