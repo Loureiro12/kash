@@ -12,7 +12,8 @@ export type ModalState =
   | { name: 'payInvoice'; invoiceId: string }
   | { name: 'category'; id?: string }
   | { name: 'changePassword' }
-  | { name: 'deleteAccount' };
+  | { name: 'deleteAccount' }
+  | { name: 'resetData' };
 
 export type ModalName = ModalState['name'];
 

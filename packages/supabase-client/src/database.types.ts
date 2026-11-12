@@ -769,6 +769,7 @@ export type Database = {
           user_id: string;
         }[];
       };
+      reset_my_data: { Args: Record<PropertyKey, never>; Returns: undefined };
       rollover_all: { Args: Record<PropertyKey, never>; Returns: number };
       seed_default_categories: { Args: { p_uid: string }; Returns: undefined };
       soft_delete_transaction: { Args: { p_scope?: string; p_tx_id: string }; Returns: string };

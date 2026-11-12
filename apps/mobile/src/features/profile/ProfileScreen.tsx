@@ -109,6 +109,7 @@ export function ProfileScreen() {
 
       <View style={{ gap: 10, marginTop: 24 }}>
         <Button label="Sair da conta" variant="surface" size="md" onPress={() => void logout()} testID="profile-logout" />
+        <Button label="Zerar meus dados" variant="surface" size="md" onPress={() => openSheet('resetData')} testID="profile-reset" />
         <Button label="Excluir conta" variant="dangerSoft" size="md" onPress={() => openSheet('deleteAccount')} testID="profile-delete" />
       </View>
     </Screen>

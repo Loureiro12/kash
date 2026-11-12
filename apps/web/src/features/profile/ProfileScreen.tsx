@@ -99,6 +99,9 @@ export function ProfileScreen() {
             <Button variant="surface" size="md" onClick={() => void logout()} loading={leaving} testID="profile-logout">
               Sair da conta
             </Button>
+            <Button variant="surface" size="md" onClick={() => openModal({ name: 'resetData' })} testID="profile-reset">
+              Zerar meus dados
+            </Button>
             <Button variant="dangerSoft" size="md" onClick={() => openModal({ name: 'deleteAccount' })} testID="profile-delete">
               Excluir conta
             </Button>

@@ -68,6 +68,7 @@ tags: [critical]
     element:
       id: "profile-delete"
     direction: DOWN
+    centerElement: true
 - tapOn:
     id: "profile-delete"
 - assertVisible:

@@ -10,6 +10,7 @@ import { AddGoalSheet } from '../goals/AddGoalSheet';
 import { DepositSheet } from '../goals/DepositSheet';
 import { ChangePasswordSheet } from '../profile/ChangePasswordSheet';
 import { DeleteAccountSheet } from '../profile/DeleteAccountSheet';
+import { ResetDataSheet } from '../profile/ResetDataSheet';
 import { TransactionSheet } from '../transactions/TransactionSheet';
 import { TransferSheet } from '../transactions/TransferSheet';
 
@@ -28,6 +29,7 @@ export function SheetsHost() {
       <DepositSheet />
       <ChangePasswordSheet />
       <DeleteAccountSheet />
+      <ResetDataSheet />
     </>
   );
 }

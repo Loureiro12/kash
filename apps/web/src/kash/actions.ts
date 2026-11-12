@@ -271,6 +271,10 @@ export function createActions(qc: QueryClient) {
       toast('Arquivo baixado');
       return true;
     },
+    /** "Zerar meus dados": apaga o financeiro e recomeça com o mesmo login (RPC reset_my_data) */
+    async resetMyData() {
+      return tracked('reset_data', {}, ok(await run(() => api.resetMyData(db()), 'Dados zerados. Bora recomeçar!')));
+    },
     async signOut() {
       try {
         await api.signOut(db());

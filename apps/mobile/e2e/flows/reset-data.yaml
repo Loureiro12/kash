@@ -1,0 +1,37 @@
+appId: ${APP_ID}
+name: Zerar meus dados — recomeça do zero com o mesmo login
+---
+- runFlow: ../subflows/login.yaml
+- assertVisible: "R$ 4.225,50"
+
+- tapOn:
+    id: "home-avatar"
+- scrollUntilVisible:
+    element:
+      id: "profile-reset"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "profile-reset"
+- assertVisible:
+    id: "sheet-reset-data"
+- assertVisible: "Zerar seus dados?"
+
+# o botão só libera com a palavra
+- tapOn:
+    id: "reset-word"
+- inputText: "ZERAR"
+- pressKey: Enter
+- tapOn:
+    id: "reset-confirm"
+
+# volta ao Início sem contas: boas-vindas de novo, ainda logada
+- extendedWaitUntil:
+    visible:
+      id: "welcome-screen"
+    timeout: 10000
+- tapOn:
+    id: "welcome-skip"
+- assertVisible:
+    id: "home-avatar"
+- assertNotVisible: "R$ 4.225,50"

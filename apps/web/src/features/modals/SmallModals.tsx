@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Icon } from '@/components/app/Icon';
 import { Modal, modalStyles as m } from '@/components/app/Modal';
-import { Button, Chip, ChipGroup, MoneyInput, PasswordInput } from '@/components/app/ui';
+import { Button, Chip, ChipGroup, MoneyInput, PasswordInput, TextInput } from '@/components/app/ui';
 import { useKashActions } from '@/kash/actions';
 import { useKash } from '@/kash/data';
 import { routes } from '@/features/app/nav';
@@ -228,6 +228,91 @@ export function DeleteAccountModal({ onClose }: { onClose: () => void }) {
           Excluir definitivamente
         </Button>
       </div>
+    </Modal>
+  );
+}
+
+/* ---------- Zerar meus dados ---------- */
+
+/** palavra que a pessoa digita para liberar o botão */
+export const RESET_WORD = 'ZERAR';
+
+export function ResetDataModal({ onClose }: { onClose: () => void }) {
+  const actions = useKashActions();
+  const router = useRouter();
+  const [word, setWord] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const confirmed = word.trim().toUpperCase() === RESET_WORD;
+
+  const onReset = async () => {
+    if (!confirmed || busy) return;
+    setBusy(true);
+    const ok = await actions.resetMyData();
+    setBusy(false);
+    if (ok) {
+      onClose();
+      // no Início, sem contas, as boas-vindas aparecem de novo
+      router.replace(routes.home);
+    }
+  };
+  const onExport = async () => {
+    setExporting(true);
+    await actions.exportData();
+    setExporting(false);
+  };
+
+  return (
+    <Modal
+      title="Zerar seus dados?"
+      onClose={onClose}
+      size="sm"
+      testID="modal-reset-data"
+      icon={
+        <span className={m.dangerIcon} aria-hidden="true">
+          <Icon name="trash" size={24} />
+        </span>
+      }
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void onReset();
+        }}
+      >
+        <p className={m.note} style={{ fontSize: 14 }}>
+          Você continua com a mesma conta, mas recomeça do zero. Não dá pra desfazer.
+        </p>
+        <div className={m.note} style={{ fontSize: 14 }} data-testid="reset-summary">
+          <p>
+            <strong>O que é apagado:</strong> contas, cartões e faturas, todos os lançamentos e parcelados, contas fixas e metas, importações e nomes aprendidos.
+          </p>
+          <p>
+            <strong>O que fica:</strong> seu login, nome, celular, tema e lembretes. As categorias e o limite mensal voltam ao padrão.
+          </p>
+        </div>
+        <Button type="button" variant="secondary" size="md" onClick={() => void onExport()} loading={exporting} testID="reset-export">
+          Exportar meus dados antes
+        </Button>
+        <TextInput
+          label={`Para confirmar, digite ${RESET_WORD}`}
+          value={word}
+          onChange={(e) => setWord(e.target.value)}
+          placeholder={RESET_WORD}
+          autoComplete="off"
+          autoCapitalize="characters"
+          spellCheck={false}
+          testID="reset-word"
+        />
+        <div className={m.actionsRow}>
+          <Button type="button" variant="secondary" size="md" onClick={onClose} testID="reset-cancel">
+            Cancelar
+          </Button>
+          <Button type="submit" variant="danger" size="md" disabled={!confirmed} loading={busy} testID="reset-confirm">
+            Zerar meus dados
+          </Button>
+        </div>
+      </form>
     </Modal>
   );
 }

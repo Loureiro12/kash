@@ -6,7 +6,7 @@ import { BillModal } from './BillModal';
 import { CardModal } from './CardModal';
 import { CategoryModal } from './CategoryModal';
 import { GoalModal } from './GoalModal';
-import { ChangePasswordModal, DeleteAccountModal, DepositModal, PayInvoiceModal } from './SmallModals';
+import { ChangePasswordModal, DeleteAccountModal, ResetDataModal, DepositModal, PayInvoiceModal } from './SmallModals';
 import { TransactionModal } from './TransactionModal';
 import { TransferModal } from './TransferModal';
 
@@ -34,6 +34,8 @@ function renderModal(modal: ModalState, onClose: () => void) {
       return <ChangePasswordModal onClose={onClose} />;
     case 'deleteAccount':
       return <DeleteAccountModal onClose={onClose} />;
+    case 'resetData':
+      return <ResetDataModal onClose={onClose} />;
   }
 }
 

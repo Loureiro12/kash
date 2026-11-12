@@ -11,3 +11,16 @@ export async function deleteOwnAccount(db: KashClient): Promise<void> {
     throw toKashError(err);
   }
 }
+
+/**
+ * "Zerar meus dados": apaga tudo o que é financeiro e volta categorias, limite e boas-vindas ao padrão,
+ * mantendo o login (RPC `reset_my_data`). Não tem volta.
+ */
+export async function resetMyData(db: KashClient): Promise<void> {
+  try {
+    const { error } = await db.rpc('reset_my_data');
+    if (error) throw new KashApiError('unknown', 'Não deu pra zerar seus dados agora. Tenta de novo.', error);
+  } catch (err) {
+    throw toKashError(err);
+  }
+}

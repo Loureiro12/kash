@@ -1,12 +1,14 @@
 import { create } from 'zustand';
-import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, type KashSnapshot, OAUTH_CALLBACK_PATH, RECOVERY_PATH, recoverSessionFromUrl, sessionFromOAuthRedirect, type SocialProvider, verifyRecoveryCode as apiVerifyRecoveryCode, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
+import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, resetMyData, type KashSnapshot, OAUTH_CALLBACK_PATH, RECOVERY_PATH, recoverSessionFromUrl, sessionFromOAuthRedirect, type SocialProvider, verifyRecoveryCode as apiVerifyRecoveryCode, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
 import { biometricLockPreference } from '@/services/biometrics';
 import { onboardingFlag } from '@/services/onboarding';
 import { signInWithProvider as socialSignIn } from '@/services/socialAuth';
 import { supabase } from '@/services/supabase';
 import { queryClient } from '@/data/queryClient';
+import { queryKeys } from '@/data/keys';
+import { DATA_SOURCE } from '@/data/source';
 import type { CardGradient } from '@/design-system/tokens/colors';
-import { addToGoal, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type CategoryDef, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
+import { addToGoal, DEFAULT_CATEGORIES, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type CategoryDef, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 
@@ -27,7 +29,7 @@ export interface SignUpInput extends Credentials {
   name: string;
 }
 export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'transfer' | 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount' | 'category';
+export type SheetName = 'transfer' | 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount' | 'resetData' | 'category';
 
 export interface NewTransaction {
   kind: TxKind;
@@ -194,6 +196,8 @@ export interface KashState {
   resetAuthRequest: () => void;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
+  /** "Zerar meus dados": apaga o financeiro e recomeça com o mesmo login (ver RPC reset_my_data) */
+  resetData: () => Promise<boolean>;
   /** carrega nome/e-mail/configurações do perfil remoto */
   loadProfile: () => Promise<void>;
   /** substitui os dados em memória pelo snapshot do servidor */
@@ -284,6 +288,9 @@ const buildInitial = () => {
     ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, newTxKind: 'expense' as TxKind, quickAdd: null },
   };
 };
+
+/** limite mensal padrão (o mesmo default da coluna profiles.monthly_budget) */
+const DEFAULT_MONTHLY_BUDGET = 1800;
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 export const TOAST_DURATION_MS = 2200;
@@ -456,6 +463,32 @@ export const useKashStore = create<KashState>((set, get) => ({
     queryClient.clear();
     set({ ...buildInitial(), auth: 'onboarding' });
     get().showToast('Conta excluída');
+    return true;
+  },
+  resetData: async () => {
+    if (DATA_SOURCE === 'remote') {
+      try {
+        await resetMyData(supabase);
+      } catch (err) {
+        get().showToast(toKashError(err).message);
+        return false;
+      }
+    }
+    // espelha o servidor na hora; o snapshot recarregado confirma (com os ids reais das categorias)
+    set((s) => ({
+      accounts: [],
+      cards: [],
+      txs: [],
+      plans: [],
+      bills: [],
+      goals: [],
+      invoices: [],
+      categories: DEFAULT_CATEGORIES.map((c) => ({ id: createId('cat'), name: c.name, color: c.color })),
+      settings: { ...s.settings, monthlyBudget: DEFAULT_MONTHLY_BUDGET, cardBudget: 0, onboardingDone: false, checklistHidden: false },
+      ui: { ...s.ui, sheet: null, editing: null, editingTxId: null, lastDeleted: null, selectedCardId: null, transferId: null, payInvoiceId: null, depositGoalId: null },
+    }));
+    if (DATA_SOURCE === 'remote') await queryClient.invalidateQueries({ queryKey: queryKeys.snapshotRoot });
+    get().showToast('Dados zerados. Bora recomeçar!');
     return true;
   },
   hydrateFromServer: (snap) =>

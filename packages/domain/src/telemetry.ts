@@ -20,6 +20,8 @@ export interface TelemetryEvents {
   budget_set: { split: boolean };
   import_statement: { target: 'card' | 'account'; format: 'pdf' | 'ofx' | 'csv'; plans: number; txs: number; transfers: number; matched: number };
   import_undo: Record<string, never>;
+  /** "Zerar meus dados" concluído */
+  reset_data: Record<string, never>;
   /** lançamento rápido aberto por atalho do iPhone (Back Tap, Siri, Atalhos) ou link */
   quick_add: { kind: 'expense' | 'income'; via: 'shortcut' | 'link' };
   /** site: clique no botão de uma loja */

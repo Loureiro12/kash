@@ -623,6 +623,32 @@ test.describe('Kash web — com o Supabase local', () => {
     await expect(page.getByTestId('home-title')).toBeVisible();
   });
 
+  test('zerar meus dados: só com ZERAR; apaga o financeiro, mantém o login e reabre as boas-vindas', async ({ page }, info) => {
+    const email = await createUser(info, 'zerar');
+    await login(page, email);
+    await open(page, '/app/contas');
+    await page.getByTestId('accounts-empty-add').click();
+    await page.getByTestId('add-account-name').fill('Conta antiga');
+    await page.getByTestId('add-account-balance').pressSequentially('50000');
+    await save(page, 'add-account-save', 'modal-account');
+    await expect(page.getByTestId('accounts-total')).toHaveText('R$ 500,00');
+
+    await open(page, '/app/perfil');
+    await page.getByTestId('profile-reset').click();
+    await expect(page.getByTestId('reset-summary')).toContainText('O que fica');
+    await expect(page.getByTestId('reset-confirm')).toBeDisabled();
+    await page.getByTestId('reset-word').fill('zerar');
+    await page.getByTestId('reset-confirm').click();
+    await expect(page.getByTestId('toast-message')).toHaveText('Dados zerados. Bora recomeçar!');
+    // sem contas e com as boas-vindas reabertas, o Início leva ao primeiro acesso
+    await expect(page).toHaveURL(/\/app\/boas-vindas$/);
+
+    // continua logada e sem as contas antigas
+    await page.getByTestId('welcome-skip').click();
+    await open(page, '/app/contas');
+    await expect(page.getByTestId('accounts-empty-add')).toBeVisible();
+  });
+
   test('excluir conta pelo perfil volta ao login e apaga o acesso', async ({ page }, info) => {
     const email = await createUser(info, 'excluir-app');
     await login(page, email);
