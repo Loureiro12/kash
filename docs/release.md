@@ -54,6 +54,17 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
    - Limite: 30 chamadas por pessoa a cada 24 h, somando PDF e sugestões de nome (`ai_calls`, com `purpose` = `import` ou `names`; também serve para acompanhar o custo: `select date(created_at), purpose, count(*), sum(input_tokens), sum(output_tokens) from ai_calls group by 1, 2 order by 1 desc;`).
    - A política de privacidade (seção "Compartilhamento") já cita o envio do texto do PDF e das descrições de OFX/CSV (sem dados pessoais) à Anthropic.
 
+9.1 **Assistente Kash** (Edge Function `assistant`, publicada junto com as outras): chat do app com o Claude sobre as finanças da pessoa. Usa a mesma `ANTHROPIC_API_KEY` do item 9; nada novo é obrigatório.
+   ```bash
+   # opcional: modelo (padrão claude-opus-5-5, o mais capaz; claude-sonnet-5-5 ou claude-haiku-5-5 custam menos)
+   # supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" ASSISTANT_AI_MODEL=claude-opus-5-5
+   # opcional: quanto o modelo pensa antes de responder (low | medium | high; padrão medium)
+   # supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" ASSISTANT_AI_EFFORT=medium
+   ```
+   - Limite próprio: 40 perguntas por pessoa a cada 24 h (`ai_calls` com `purpose` = `assistant`; não gasta o limite da importação). Custo: a consulta do item 9 mostra os tokens por `purpose`.
+   - Recusas por política são refeitas pelo servidor da Anthropic em outro modelo na mesma chamada (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`).
+   - Privacidade: o app pede autorização na primeira vez; o resumo enviado não leva e-mail, celular, sobrenome nem número de cartão, e a conversa fica só no aparelho. A política (app e site) já cita o assistente.
+
 10. **Login social (Apple e Google)**. Uma vez só; nada disso vai para o repositório. Referência: projeto `sqpxugyjnlwpkzuxzcpg`, URL de retorno do Supabase `https://sqpxugyjnlwpkzuxzcpg.supabase.co/auth/v1/callback`.
     - **Apple** (developer.apple.com › Certificates, Identifiers & Profiles):
       1. *Identifiers* › App ID `com.andreloureiro.kash` › marque **Sign In with Apple** (o `eas build` também tenta ligar sozinho, porque o `app.json` tem `usesAppleSignIn`).
