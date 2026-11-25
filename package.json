@@ -26,7 +26,8 @@
     "dev:prod": "pnpm --filter mobile start:prod",
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
-    "e2e:web": "pnpm --filter web test:e2e"
+    "e2e:web": "pnpm --filter web test:e2e",
+    "demo:reset": "bash scripts/demo-reset.sh"
   },
   "devDependencies": {
     "prettier": "^3.9.9",
