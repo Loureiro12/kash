@@ -1,6 +1,9 @@
 import { Platform, Settings } from 'react-native';
 import type { TxKind } from '@kash/domain';
 
+/** o que o atalho pede: lançar gasto/entrada ou abrir o assistente */
+export type QuickAction = TxKind | 'assistant';
+
 /**
  * Lançamento rápido pelos atalhos do iPhone (Back Tap, Siri, app Atalhos, Spotlight).
  *
@@ -20,10 +23,10 @@ export function kindFromParam(value: string | string[] | undefined): TxKind {
 }
 
 /** valor gravado pela App Intent → tipo, ou null se inválido/antigo */
-export function parsePending(value: unknown, nowSeconds: number): TxKind | null {
+export function parsePending(value: unknown, nowSeconds: number): QuickAction | null {
   if (typeof value !== 'string') return null;
   const [kind, at] = value.split(':');
-  if (kind !== 'expense' && kind !== 'income') return null;
+  if (kind !== 'expense' && kind !== 'income' && kind !== 'assistant') return null;
   const seconds = Number(at);
   if (!Number.isFinite(seconds) || nowSeconds - seconds > MAX_AGE_SECONDS || seconds - nowSeconds > 60) return null;
   return kind;
@@ -32,7 +35,7 @@ export function parsePending(value: unknown, nowSeconds: number): TxKind | null 
 const supported = Platform.OS === 'ios';
 
 /** lê e apaga o pedido pendente da App Intent (só iOS) */
-export function takePendingShortcut(nowSeconds = Date.now() / 1000): TxKind | null {
+export function takePendingShortcut(nowSeconds = Date.now() / 1000): QuickAction | null {
   if (!supported) return null;
   const raw = Settings.get(QUICK_ADD_KEY);
   if (raw == null) return null;

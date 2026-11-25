@@ -184,7 +184,7 @@ export interface KashState {
     /** campos já preenchidos do lançamento novo (ex.: proposta do assistente aberta para editar) */
     newTxDraft: NewTxDraft | null;
     /** lançamento rápido pedido por atalho do iPhone (Back Tap, Siri) ou link; abre quando o app está desbloqueado */
-    quickAdd: TxKind | null;
+    quickAdd: TxKind | 'assistant' | null;
   };
 
   // auth
@@ -240,7 +240,7 @@ export interface KashState {
   /** sheet de lançamento novo já no tipo escolhido (e, opcionalmente, com campos preenchidos) */
   openNewTransaction: (kind: TxKind, draft?: NewTxDraft) => void;
   /** pede o lançamento rápido (atalho/link); `useQuickAdd` abre o sheet quando der */
-  requestQuickAdd: (kind: TxKind | null) => void;
+  requestQuickAdd: (kind: TxKind | 'assistant' | null) => void;
   openDeposit: (goalId: string) => void;
   openTransaction: (txId: string) => void;
   /** sheet de transferência; com id, edita a existente */

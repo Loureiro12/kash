@@ -39,6 +39,19 @@ struct LancarEntradaIntent: AppIntent {
   }
 }
 
+@available(iOS 16.0, *)
+struct PerguntarAoKashIntent: AppIntent {
+  static let title: LocalizedStringResource = "Perguntar ao Kash"
+  static let description: IntentDescription? = IntentDescription("Abre o assistente do Kash para perguntar sobre seus gastos ou lançar uma compra escrevendo.")
+  static let openAppWhenRun: Bool = true
+
+  @MainActor
+  func perform() async throws -> some IntentResult {
+    KashQuickAdd.request("assistant")
+    return .result()
+  }
+}
+
 /// Aparecem sozinhas no app Atalhos (seção Kash), no Spotlight e na Siri, sem a pessoa montar nada.
 @available(iOS 16.0, *)
 struct KashAppShortcuts: AppShortcutsProvider {
@@ -54,6 +67,12 @@ struct KashAppShortcuts: AppShortcutsProvider {
       phrases: ["Lançar entrada no \(.applicationName)", "Nova entrada no \(.applicationName)", "\(.applicationName) entrada"],
       shortTitle: "Lançar entrada",
       systemImageName: "plus.circle"
+    )
+    AppShortcut(
+      intent: PerguntarAoKashIntent(),
+      phrases: ["Perguntar ao \(.applicationName)", "Abrir o assistente do \(.applicationName)", "\(.applicationName) assistente"],
+      shortTitle: "Perguntar ao Kash",
+      systemImageName: "sparkles"
     )
   }
 }

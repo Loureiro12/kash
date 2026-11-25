@@ -38,6 +38,7 @@ beforeEach(() => {
   track.mockClear();
   mockRouter.replace.mockClear();
   mockRouter.back.mockClear();
+  mockRouter.push.mockClear();
 });
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
@@ -97,6 +98,16 @@ describe('useQuickAdd', () => {
     expect(useKashStore.getState().ui.sheet).toBeNull();
     await act(async () => useKashStore.getState().unlock());
     expect(useKashStore.getState().ui.sheet).toBe('expense');
+  });
+});
+
+describe('Perguntar ao Kash (Atalhos, Siri, botão de Ação)', () => {
+  it('abre o assistente em vez do lançamento', async () => {
+    expect(parsePending(`assistant:${nowSeconds()}`, nowSeconds())).toBe('assistant');
+    defaults[QUICK_ADD_KEY] = `assistant:${nowSeconds()}`;
+    await render(<Host />);
+    expect(mockRouter.push).toHaveBeenCalledWith('/assistant');
+    expect(useKashStore.getState().ui.sheet).toBeNull();
   });
 });
 

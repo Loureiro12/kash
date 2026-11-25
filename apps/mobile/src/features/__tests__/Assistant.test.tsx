@@ -106,6 +106,18 @@ describe('Assistente Kash', () => {
     expect(screen.getByTestId('assistant-msg-1')).toHaveTextContent('Agora foi');
   });
 
+  it('aberto pelo widget antes dos dados chegarem: espera para enviar (o resumo não vai com dados de exemplo)', async () => {
+    useKashStore.getState().setDataStatus('loading');
+    await openAccepted();
+    expect(screen.getByTestId('assistant-loading')).toHaveTextContent('Carregando seus dados…');
+    await fireEvent.changeText(screen.getByTestId('assistant-input'), 'Como estão meus gastos?');
+    expect(screen.getByTestId('assistant-send')).toBeDisabled();
+    await press('assistant-suggestion-0');
+    expect(mocked.askAssistant).not.toHaveBeenCalled();
+    await act(async () => useKashStore.getState().setDataStatus('ready'));
+    expect(screen.getByTestId('assistant-send')).toBeEnabled();
+  });
+
   it('botão de enviar fica desligado sem texto', async () => {
     await openAccepted();
     expect(screen.getByTestId('assistant-send')).toBeDisabled();

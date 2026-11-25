@@ -96,6 +96,9 @@ function Chat() {
   const [draft, setDraft] = useState('');
   const scroll = useRef<ScrollView>(null);
   const remote = DATA_SOURCE === 'remote';
+  // aberto pelo widget/atalho com o app frio: espera os dados do servidor (o resumo não pode ir com os de exemplo)
+  const ready = useKashStore((s) => s.ui.dataStatus === 'ready');
+  const canSend = remote && ready && !sending;
 
   useEffect(() => {
     const t = setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
@@ -103,7 +106,7 @@ function Chat() {
   }, [messages.length, sending, error]);
 
   const submit = (text = draft, suggested = false) => {
-    if (!text.trim() || sending) return;
+    if (!text.trim() || !canSend) return;
     setDraft('');
     void send(text, suggested);
   };
@@ -119,7 +122,7 @@ function Chat() {
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {ASSISTANT_SUGGESTIONS.map((s, i) => (
-                <Chip key={s} label={s} onPress={() => submit(s, true)} testID={`assistant-suggestion-${i}`} />
+                <Chip key={s} label={s} onPress={canSend ? () => submit(s, true) : undefined} testID={`assistant-suggestion-${i}`} />
               ))}
             </View>
           </View>
@@ -174,6 +177,10 @@ function Chat() {
           <Text variant="micro" color="neg">
             O assistente precisa da sua conta conectada.
           </Text>
+        ) : !ready ? (
+          <Text variant="micro" color="muted" testID="assistant-loading">
+            Carregando seus dados…
+          </Text>
         ) : remaining !== null && remaining <= 10 ? (
           <Text variant="micro" color="muted" testID="assistant-remaining">
             {remaining === 0 ? 'Acabaram as perguntas de hoje. Volte amanhã!' : `${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'} hoje`}
@@ -194,13 +201,13 @@ function Chat() {
           />
           <Pressable
             onPress={() => submit()}
-            disabled={!draft.trim() || sending || !remote}
+            disabled={!draft.trim() || !canSend}
             haptic="light"
             accessibilityRole="button"
             accessibilityLabel="Enviar pergunta"
-            accessibilityState={{ disabled: !draft.trim() || sending || !remote }}
+            accessibilityState={{ disabled: !draft.trim() || !canSend }}
             testID="assistant-send"
-            style={{ width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent, opacity: !draft.trim() || sending || !remote ? 0.4 : 1 }}
+            style={{ width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent, opacity: !draft.trim() || !canSend ? 0.4 : 1 }}
           >
             <Icon name="send" size={20} color={staticColors.ink} />
           </Pressable>

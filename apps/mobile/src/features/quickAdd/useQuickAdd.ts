@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { track } from '@/services/telemetry';
@@ -6,10 +7,11 @@ import { takePendingShortcut, watchPendingShortcut } from './quickAdd';
 
 /**
  * Área logada: recebe os pedidos de lançamento rápido (atalhos do iPhone e o link `…://lancar`)
- * e abre o sheet "Lançar" no tipo pedido, só com o app desbloqueado (Face ID antes, se ligado)
+ * e abre o sheet "Lançar" no tipo pedido (ou o assistente), só com o app desbloqueado (Face ID antes, se ligado)
  * e com os dados do servidor já carregados.
  */
 export function useQuickAdd() {
+  const router = useRouter();
   const requestQuickAdd = useKashStore((s) => s.requestQuickAdd);
   const openNewTransaction = useKashStore((s) => s.openNewTransaction);
   const pending = useKashStore((s) => s.ui.quickAdd);
@@ -22,7 +24,7 @@ export function useQuickAdd() {
     const check = () => {
       const kind = takePendingShortcut();
       if (!kind) return;
-      track('quick_add', { kind, via: 'shortcut' });
+      if (kind !== 'assistant') track('quick_add', { kind, via: 'shortcut' });
       requestQuickAdd(kind);
     };
     check();
@@ -39,6 +41,8 @@ export function useQuickAdd() {
   useEffect(() => {
     if (!pending || locked || !ready) return;
     requestQuickAdd(null);
-    openNewTransaction(pending);
-  }, [pending, locked, ready, requestQuickAdd, openNewTransaction]);
+    // "Perguntar ao Kash" (Atalhos, Siri, botão de Ação): abre o assistente
+    if (pending === 'assistant') router.push('/assistant');
+    else openNewTransaction(pending);
+  }, [pending, locked, ready, requestQuickAdd, openNewTransaction, router]);
 }
