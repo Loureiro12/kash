@@ -26,6 +26,8 @@ export interface AiStatement {
 export interface ModelResult {
   input: unknown;
   usage: { input_tokens: number; output_tokens: number };
+  /** 'max_tokens' = a resposta foi cortada: a lista de linhas veio incompleta */
+  stopReason?: string | null;
 }
 
 export interface ImportAssistDeps {
@@ -294,6 +296,11 @@ export async function handleImportAssist(req: Request, deps: ImportAssistDeps): 
     return aiFailed(err);
   }
   await deps.logCall(userId, result.usage, 'import');
+  // resposta cortada: as linhas vieram pela metade. Nunca devolve fatura incompleta como se fosse inteira
+  if (result.stopReason === 'max_tokens') {
+    console.error('import-assist: resposta cortada (max_tokens)', result.usage);
+    return json(422, { error: 'statement_too_long' });
+  }
   return json(200, { statement: toStatement(result.input, kind, categories) });
 }
 

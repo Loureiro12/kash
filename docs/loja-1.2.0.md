@@ -178,10 +178,38 @@ O Kash não pede senha de banco e nunca mexe no seu dinheiro: você lança o que
 
 ### Segurança dos dados (Play Console › Conteúdo do app › Segurança dos dados)
 
-Revise antes de enviar:
-- **Informações financeiras** e **mensagens no app** (as perguntas ao assistente): coletadas, finalidade **Funcionalidade do app**.
-- Envio a um fornecedor que processa por você (Anthropic) **não** conta como "compartilhamento" para o Google.
-- Criptografia em trânsito: sim. Exclusão: pelo app (Perfil › Excluir conta) e por https://www.kash.app.br/excluir-conta.
+A versão 7 foi recusada porque o **telefone** (Perfil › Dados pessoais › Celular) não estava declarado. Preenchimento completo, conferido com o código:
+
+**Coleta e segurança**
+- O app coleta ou compartilha algum dos tipos de dados exigidos? **Sim**
+- Os dados são criptografados em trânsito? **Sim**
+- Os usuários podem pedir a exclusão dos dados? **Sim** (no app, em Perfil › Excluir conta, e em https://www.kash.app.br/excluir-conta)
+
+**Tipos de dados** (em todos: *Coletado* = sim, *Compartilhado* = **não**, *Processado de forma temporária* = não)
+
+| Categoria › tipo | Obrigatório ou opcional | Finalidades |
+|---|---|---|
+| Informações pessoais › **Nome** | Opcional | Funcionalidade do app, Gerenciamento da conta |
+| Informações pessoais › **Endereço de e-mail** | Obrigatório | Funcionalidade do app, Gerenciamento da conta, Comunicações do desenvolvedor (lembretes por e-mail, se ligados) |
+| Informações pessoais › **Número de telefone** | Opcional | Gerenciamento da conta |
+| Informações pessoais › **IDs de usuário** | Obrigatório | Funcionalidade do app, Gerenciamento da conta, Análise |
+| Informações financeiras › **Histórico de compras** | Obrigatório | Funcionalidade do app |
+| Informações financeiras › **Outras informações financeiras** (saldos, cartões, faturas, metas) | Obrigatório | Funcionalidade do app |
+| Mensagens › **Outras mensagens no app** (perguntas ao assistente) | Opcional | Funcionalidade do app |
+| Atividade no app › **Interações com o app** | Opcional | Análise |
+| Informações e desempenho do app › **Registros de falhas** | Opcional | Análise |
+| Informações e desempenho do app › **Diagnóstico** | Opcional | Análise |
+| IDs de dispositivo ou outros › **IDs de dispositivo ou outros** | Opcional | Análise |
+
+Por que cada um:
+- **Telefone, nome e e-mail:** Perfil › Dados pessoais e o login.
+- **IDs de usuário:** id da conta, também enviado ao Firebase.
+- **Informações financeiras:** os lançamentos, saldos, cartões e metas, guardados no Supabase; um resumo vai para o assistente.
+- **Mensagens:** as perguntas ao assistente vão para a Anthropic, que processa por nós. Fornecedor que processa em nome do app **não** conta como compartilhamento para o Google.
+- **Atividade, falhas, diagnóstico e IDs de dispositivo:** Firebase Analytics, Crashlytics e Performance (o id de instância do app). São opcionais porque a pessoa desliga em Perfil › Compartilhar dados de uso.
+- **Não coletados:** localização, contatos, fotos, arquivos (OFX, CSV e PDF são lidos no aparelho; do PDF só vai o texto dos lançamentos, já coberto em Informações financeiras) e ID de publicidade (desligado no `firebase.json`).
+
+Em **Conteúdo do app › ID de publicidade**, responda **Não**.
 
 ### Acesso ao app (Play Console › Conteúdo do app › Acesso ao app)
 

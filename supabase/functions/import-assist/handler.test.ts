@@ -166,3 +166,19 @@ Deno.test('extrato: tipos de fatura viram entrada ou saída pelo sinal', () => {
   ] }, 'account', categories);
   assertEquals(s.lines.map((l) => l.kind), ['purchase', 'income', 'fee']);
 });
+
+Deno.test('resposta cortada pela IA (max_tokens) não vira fatura incompleta', async () => {
+  const { d, logged } = deps({ callModel: async () => ({ input: aiOutput, usage: { input_tokens: 8385, output_tokens: 32000 }, stopReason: 'max_tokens' }) });
+  const res = await handleImportAssist(post(valid), d);
+  assertEquals(res.status, 422);
+  assertEquals((await res.json()).error, 'statement_too_long');
+  // a chamada custou: entra no limite diário
+  assertEquals(logged, [8385]);
+});
+
+Deno.test('resposta completa segue normal', async () => {
+  const { d } = deps({ callModel: async () => ({ input: aiOutput, usage: { input_tokens: 1, output_tokens: 1 }, stopReason: 'tool_use' }) });
+  const res = await handleImportAssist(post(valid), d);
+  assertEquals(res.status, 200);
+  assertEquals((await res.json()).statement.lines.length > 0, true);
+});

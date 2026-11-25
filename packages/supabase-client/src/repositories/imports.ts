@@ -75,6 +75,7 @@ const AI_ERRORS: Record<string, string> = {
   text_too_long: 'Esse PDF é grande demais. Envie só a fatura de um mês.',
   empty_text: 'Não encontramos texto nesse PDF. Ele pode ser uma imagem escaneada; use o OFX ou CSV do banco.',
   ai_failed: 'A leitura com IA falhou agora. Tente de novo em instantes ou use o OFX/CSV do banco.',
+  statement_too_long: 'Essa fatura tem lançamentos demais para ler de uma vez. Tente o OFX ou CSV do banco, ou fale com a gente.',
 };
 
 async function invokeAssist<T>(db: KashClient, body: Record<string, unknown>, fallback: string): Promise<T> {

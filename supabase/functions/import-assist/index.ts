@@ -1,3 +1,4 @@
+import Anthropic from 'npm:@anthropic-ai/sdk@1.13.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { handleImportAssist, jsonFromText } from './handler.ts';
 
@@ -11,6 +12,8 @@ const namesModel = Deno.env.get('IMPORT_AI_NAMES_MODEL') ?? 'claude-haiku-5-5';
 /** chave de organização (sem workspace) exige o workspace no cabeçalho; chave de workspace dispensa */
 const workspaceId = Deno.env.get('ANTHROPIC_WORKSPACE_ID');
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+// até ~400 linhas numa fatura: 3 min de folga (o SDK já refaz 429/529 sozinho)
+const anthropic = apiKey ? new Anthropic({ apiKey, timeout: 180_000, maxRetries: 1, defaultHeaders: workspaceId ? { 'anthropic-workspace-id': workspaceId } : undefined }) : null;
 
 Deno.serve((req) =>
   handleImportAssist(req, {
@@ -28,41 +31,38 @@ Deno.serve((req) =>
     logCall: async (userId, usage, purpose) => {
       await admin.from('ai_calls').insert({ user_id: userId, purpose, input_tokens: usage.input_tokens, output_tokens: usage.output_tokens });
     },
-    callModel: apiKey
+    callModel: anthropic
       ? async ({ system, user, tool, purpose }) => {
-          const body = JSON.stringify({
-            model: purpose === 'names' ? namesModel : model,
-            // uma fatura tem dezenas de linhas (~3 mil tokens de saída); 8 mil dá folga. Nomes: ~30 tokens por item
-            max_tokens: purpose === 'names' ? 6000 : 8000,
-            system,
-            tools: [tool],
-            // modelos atuais não aceitam forçar a ferramenta (tool/any): o prompt manda usar e o texto é plano B
-            tool_choice: { type: 'auto' },
-            messages: [{ role: 'user', content: user }],
-          });
-          // uma nova tentativa quando a API está sobrecarregada ou limitando (429/529)
-          for (let attempt = 1; ; attempt++) {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json', ...(workspaceId ? { 'anthropic-workspace-id': workspaceId } : {}) },
-              body,
-              signal: AbortSignal.timeout(120_000),
+          let message: Anthropic.Message;
+          try {
+            // streaming: uma fatura grande (100+ linhas) passa de 10 mil tokens e levaria a requisição ao limite de tempo
+            const stream = anthropic.messages.stream({
+              model: purpose === 'names' ? namesModel : model,
+              // Fatura: ~70 tokens por linha; 32 mil cobrem ~400 linhas. Nomes: ~30 tokens por item
+              max_tokens: purpose === 'names' ? 8000 : 32000,
+              // copiar linhas não pede raciocínio: esforço baixo deixa a resposta para as linhas (e mais rápida)
+              output_config: { effort: 'low' },
+              system,
+              tools: [tool as Anthropic.Tool],
+              // modelos atuais não aceitam forçar a ferramenta (tool/any): o prompt manda usar e o texto é plano B
+              tool_choice: { type: 'auto' },
+              messages: [{ role: 'user', content: user }],
             });
-            if ((res.status === 429 || res.status === 529) && attempt === 1) {
-              await new Promise((r) => setTimeout(r, 2000));
-              continue;
-            }
-            if (!res.ok) throw new Error(`anthropic ${res.status}: ${await res.text()}`);
-            const data = await res.json();
-            const usage = { input_tokens: data.usage?.input_tokens ?? 0, output_tokens: data.usage?.output_tokens ?? 0 };
-            const block = (data.content ?? []).find((c: { type: string }) => c.type === 'tool_use');
-            if (block) return { input: block.input ?? {}, usage };
-            // sem a ferramenta: aproveita um JSON no texto, se houver
-            const text = (data.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n');
-            const parsed = jsonFromText(text, purpose === 'names' ? 'suggestions' : 'lines');
-            if (parsed) return { input: parsed, usage };
-            throw new Error(`anthropic ${res.status}: resposta sem tool_use (stop_reason ${data.stop_reason})`);
+            message = await stream.finalMessage();
+          } catch (err) {
+            // mantém o formato "anthropic <status>: …" que failureReason/failureDetail entendem
+            if (err instanceof Anthropic.APIError) throw new Error(`anthropic ${err.status ?? 0}: ${JSON.stringify(err.error ?? err.message)}`);
+            throw err;
           }
+          const usage = { input_tokens: message.usage.input_tokens, output_tokens: message.usage.output_tokens };
+          const stopReason = message.stop_reason;
+          const block = message.content.find((c): c is Anthropic.ToolUseBlock => c.type === 'tool_use');
+          if (block) return { input: block.input ?? {}, usage, stopReason };
+          // sem a ferramenta: aproveita um JSON no texto, se houver
+          const text = message.content.filter((c): c is Anthropic.TextBlock => c.type === 'text').map((c) => c.text).join('\n');
+          const parsed = jsonFromText(text, purpose === 'names' ? 'suggestions' : 'lines');
+          if (parsed) return { input: parsed, usage, stopReason };
+          throw new Error(`anthropic 200: resposta sem tool_use (stop_reason ${stopReason})`);
         }
       : null,
   }),
