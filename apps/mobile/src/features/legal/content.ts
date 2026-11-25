@@ -23,13 +23,17 @@ export const LEGAL_DOCS = {
   },
   privacy: {
     title: 'Privacidade',
-    updatedAt: 'Atualizado em 10 de novembro de 2026',
+    updatedAt: 'Atualizado em 25 de novembro de 2026',
     sections: [
       { heading: 'Quais dados coletamos', body: 'Nome, e-mail e os lançamentos que você cadastra. Se você entra com Apple ou Google, recebemos deles só o nome e o e-mail, nunca a senha. Não coletamos dados bancários nem localização.' },
       { heading: 'Como usamos', body: 'Apenas para mostrar seus relatórios, metas e lembretes dentro do app. Não vendemos nem compartilhamos com anunciantes.' },
       {
         heading: 'Importação com IA (opcional)',
         body: 'Quando você pede para o Kash ler o PDF de uma fatura e autoriza o uso da IA, o texto dos lançamentos é enviado à Anthropic, fornecedora do modelo de IA, só para identificar data, descrição, valor e parcelas. Antes do envio, o Kash tira do texto CPF, endereço, número do cartão, código de barras e o seu nome. O arquivo PDF e a senha dele não saem do seu aparelho. Arquivos OFX e CSV são lidos no aparelho, sem IA; se você autorizar, só a descrição das compras que o Kash ainda não reconhece (sem números longos, CPF, cartão e o seu nome; Pix e transferências não vão) é enviada para sugerir nomes e categorias.',
+      },
+      {
+        heading: 'Assistente com IA (opcional)',
+        body: 'O assistente do Kash (balão no Início) responde suas perguntas sobre finanças com o Claude, modelo de IA da Anthropic. Na primeira vez ele pede sua autorização; depois, a cada pergunta, vão para a Anthropic a pergunta, as mensagens anteriores da conversa e um resumo dos seus dados no Kash (saldos, cartões e faturas, gastos por categoria, parcelas, contas fixas, metas e os lançamentos dos últimos 60 dias). Não enviamos seu e-mail, celular, sobrenome nem números de cartão. A Anthropic processa esses dados só para gerar a resposta e não os usa para treinar modelos. A conversa não é guardada nos nossos servidores: fica só no seu aparelho, e "Nova conversa" apaga. As respostas são geradas por IA e não substituem orientação profissional.',
       },
       {
         heading: 'Dados de uso, falhas e desempenho',

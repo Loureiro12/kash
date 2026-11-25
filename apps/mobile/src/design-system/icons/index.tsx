@@ -22,6 +22,9 @@ import {
   Wallet,
   X,
   Delete,
+  MessageCircle,
+  SendHorizontal,
+  Sparkles,
 } from 'lucide-react-native';
 import React from 'react';
 
@@ -43,7 +46,10 @@ export type IconName =
   | 'edit'
   | 'plus-minus'
   | 'close'
-  | 'backspace';
+  | 'backspace'
+  | 'chat'
+  | 'send'
+  | 'sparkles';
 
 const map = {
   home: Home,
@@ -64,6 +70,9 @@ const map = {
   'plus-minus': Diff,
   close: X,
   backspace: Delete,
+  chat: MessageCircle,
+  send: SendHorizontal,
+  sparkles: Sparkles,
 } as const;
 
 export interface IconProps {

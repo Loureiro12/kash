@@ -12,13 +12,16 @@ import {
   Screen,
   SectionHeader,
   Text,
+  layout,
   staticColors,
   useTheme,
 } from '@/design-system';
 import { forecastHeights, formatBRL, greetingFor, type BudgetPart } from '@kash/domain';
 import { now } from '@/lib/clock';
+import { DATA_SOURCE } from '@/data/source';
 import { useForecast, useHomeSummary, useKashStore, useMoney, useOpenInvoices, usePeriodReport, useRecentTxs, useUpcomingBills } from '@/store';
 import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
+import { AssistantFab } from '../assistant/AssistantFab';
 import { DataGate } from '../navigation/DataGate';
 import { TxRow } from '../transactions/TxRow';
 import { HomeHeaderSkeleton, HomeSkeleton } from './HomeSkeleton';
@@ -44,6 +47,7 @@ export function HomeScreen() {
   const nextMonth = forecast[0];
   // até o snapshot chegar, nada do conteúdo (nem o nome) aparece: só o esqueleto
   const loading = useKashStore((s) => s.ui.dataStatus === 'loading');
+  const showFab = !loading && DATA_SOURCE === 'remote';
 
   const goToBills = () => {
     setAccountsSegment('bills');
@@ -72,7 +76,8 @@ export function HomeScreen() {
   );
 
   return (
-    <Screen testID="home-screen" header={loading ? <HomeHeaderSkeleton /> : header}>
+    <View style={{ flex: 1 }}>
+    <Screen testID="home-screen" header={loading ? <HomeHeaderSkeleton /> : header} contentStyle={showFab ? { paddingBottom: layout.screenPaddingBottom + 72 } : undefined}>
       <DataGate skeleton={<HomeSkeleton />}>
       <ChecklistCard />
 
@@ -203,6 +208,9 @@ export function HomeScreen() {
       </View>
       </DataGate>
     </Screen>
+    {/* assistente (Claude): só com o servidor e os dados carregados */}
+    {showFab ? <AssistantFab /> : null}
+    </View>
   );
 }
 

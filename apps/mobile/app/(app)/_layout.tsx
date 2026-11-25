@@ -42,6 +42,7 @@ export default function AppLayout() {
         <Stack.Screen name="terms" />
         <Stack.Screen name="privacy" />
         <Stack.Screen name="lancar" options={{ animation: 'none' }} />
+        <Stack.Screen name="assistant" options={{ animation: 'slide_from_bottom' }} />
       </Stack>
       <FloatingTabBar />
       <SheetsHost />
