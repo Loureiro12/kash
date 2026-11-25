@@ -16,6 +16,11 @@ const FAQ = [
     a: 'Dá. No app Ajustes, abra Acessibilidade › Toque › Toque Atrás e escolha Toque Duplo (ou Triplo). Na lista, em Atalhos, escolha "Lançar gasto" ou "Lançar entrada" do Kash. Se elas não aparecerem, abra o app Atalhos, toque em Kash e adicione a ação aos seus atalhos. Também funciona com a Siri ("Lançar gasto no Kash") e no botão de Ação.',
     ios: true,
   },
+  {
+    q: 'Como coloco o Kash na tela inicial ou na tela bloqueada?',
+    a: 'Toque e segure num espaço vazio da tela inicial, toque em Editar › Adicionar widget e procure Kash. O widget pequeno abre o assistente; o médio tem Perguntar e Lançar gasto. Na tela bloqueada: toque e segure nela, Personalizar › Tela Bloqueada › Adicionar widgets › Kash. O widget não mostra valores.',
+    ios: true,
+  },
   { q: 'Meus dados ficam salvos onde?', a: 'Em servidores criptografados no Brasil, conforme a LGPD. Você pode apagar tudo em Perfil → Excluir conta.' },
 ] as const;
 

@@ -12,6 +12,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.andreloureiro.kash",
+      "appleTeamId": "G58V8BP6VH",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleDocumentTypes": [
@@ -123,6 +124,7 @@
       ],
       "expo-sharing",
       "./plugins/withQuickAddIntents",
+      "@bacons/apple-targets",
       [
         "expo-local-authentication",
         {

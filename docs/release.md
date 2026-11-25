@@ -66,6 +66,8 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
    - Recusas por política são refeitas pelo servidor da Anthropic em outro modelo na mesma chamada (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`).
    - Privacidade: o app pede autorização na primeira vez; o resumo enviado não leva e-mail, celular, sobrenome nem número de cartão, e a conversa fica só no aparelho. A política (app e site) já cita o assistente.
 
+9.2 **Widget do iPhone** (`apps/mobile/targets/widget`, gerado no prebuild pelo `@bacons/apple-targets`): extensão `com.andreloureiro.kash.widget`. No **primeiro** build depois dele, rode `eas build -p ios --profile production` no terminal (interativo) e aceite criar o App ID e o perfil da extensão com o seu Apple ID; depois os builds seguem normais. O widget só abre links do app (`com.andreloureiro.kash://assistant` e `…://lancar?tipo=gasto`), sem dados.
+
 10. **Login social (Apple e Google)**. Uma vez só; nada disso vai para o repositório. Referência: projeto `sqpxugyjnlwpkzuxzcpg`, URL de retorno do Supabase `https://sqpxugyjnlwpkzuxzcpg.supabase.co/auth/v1/callback`.
     - **Apple** (developer.apple.com › Certificates, Identifiers & Profiles):
       1. *Identifiers* › App ID `com.andreloureiro.kash` › marque **Sign In with Apple** (o `eas build` também tenta ligar sozinho, porque o `app.json` tem `usesAppleSignIn`).

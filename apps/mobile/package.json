@@ -18,6 +18,7 @@
     "start:prod": "env $(grep -v '^#' .env.prod | xargs) expo start --dev-client --clear"
   },
   "dependencies": {
+    "@bacons/apple-targets": "^5.0.0",
     "@expo-google-fonts/sora": "^0.4.2",
     "@kash/domain": "workspace:*",
     "@kash/importers": "workspace:*",
