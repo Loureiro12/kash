@@ -1,12 +1,12 @@
 import { askAssistant, toKashError } from '@kash/supabase-client';
-import { ASSISTANT_LIMITS, buildAssistantContext } from '@kash/domain';
+import { ASSISTANT_LIMITS, assistantLedger, buildAssistantContext, checkProposal, describeProposal, toISODate, type AssistantLedger, type TxProposal } from '@kash/domain';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 import { supabase } from '@/services/supabase';
 import { track } from '@/services/telemetry';
 import { useKashStore } from '@/store';
-import { loadChat, saveChat, type ChatMessage } from './chatStorage';
+import { loadChat, saveChat, type ChatMessage, type ProposalStatus } from './chatStorage';
 
 /** resumo dos dados atuais da pessoa (montado na hora de cada pergunta, com o que está no app) */
 function currentContext(): string {
@@ -14,9 +14,29 @@ function currentContext(): string {
   return buildAssistantContext({ user: s.user, settings: s.settings, accounts: s.accounts, cards: s.cards, txs: s.txs, plans: s.plans, bills: s.bills, goals: s.goals, invoices: s.invoices }, now());
 }
 
+/** onde dá pra lançar agora: categorias e contas/cartões (sem números de cartão) */
+export function currentLedger(): AssistantLedger {
+  const s = useKashStore.getState();
+  return assistantLedger(s.categories, s.cards, s.accounts);
+}
+
+const STATUS_NOTE: Record<ProposalStatus, string> = {
+  pending: 'aguardando a pessoa confirmar',
+  saved: 'a pessoa lançou',
+  edited: 'a pessoa abriu para editar',
+  dismissed: 'a pessoa descartou',
+};
+
+/** o que vai no histórico: o texto e, para o assistente saber, o que foi proposto e o que a pessoa fez */
+function toTurn(m: ChatMessage, ledger: AssistantLedger) {
+  const notes = (m.proposals ?? []).map((p) => `[Proposta: ${describeProposal(p.proposal, ledger)} — ${STATUS_NOTE[p.status]}]`);
+  return { role: m.role, content: [m.content, ...notes].join('\n') };
+}
+
 /**
  * Conversa com o assistente (Claude, pela Edge Function `assistant`): envia as mensagens mais
- * recentes e o resumo financeiro, guarda a conversa neste aparelho e trata erro e limite diário.
+ * recentes, o resumo financeiro e as opções de lançamento; guarda a conversa neste aparelho; trata
+ * erro e limite diário; e cuida dos lançamentos propostos (lançar, editar no sheet, descartar).
  */
 export function useAssistantChat() {
   const userId = useKashStore((s) => s.userId) ?? 'anon';
@@ -54,10 +74,15 @@ export function useAssistantChat() {
       setSending(true);
       setError(null);
       try {
-        const turns = history.slice(-ASSISTANT_LIMITS.history).map((m) => ({ role: m.role, content: m.content }));
-        const res = await askAssistant(supabase, { messages: turns, context: currentContext() });
+        const ledger = currentLedger();
+        const turns = history.slice(-ASSISTANT_LIMITS.history).map((m) => toTurn(m, ledger));
+        const res = await askAssistant(supabase, { messages: turns, context: currentContext(), ledger });
         setRemaining(res.remaining);
-        update([...latest.current, { id: createId('msg'), role: 'assistant', content: res.reply }]);
+        // confere cada proposta contra os dados de agora (conta excluída, categoria renomeada…)
+        const today = toISODate(now());
+        const proposals = (res.proposals ?? []).map((p) => checkProposal(p, ledger, today)).filter((p): p is TxProposal => p !== null);
+        if (proposals.length) track('assistant_proposal', { action: 'shown' });
+        update([...latest.current, { id: createId('msg'), role: 'assistant', content: res.reply, ...(proposals.length ? { proposals: proposals.map((proposal) => ({ proposal, status: 'pending' as const })) } : {}) }]);
       } catch (err) {
         setError(toKashError(err).message);
       } finally {
@@ -91,5 +116,44 @@ export function useAssistantChat() {
     update([]);
   }, [update]);
 
-  return { messages, loaded, sending, error, remaining, send, retry, reset };
+  const setStatus = useCallback(
+    (messageId: string, index: number, status: ProposalStatus) => {
+      update(latest.current.map((m) => (m.id === messageId && m.proposals ? { ...m, proposals: m.proposals.map((p, i) => (i === index ? { ...p, status } : p)) } : m)));
+      track('assistant_proposal', { action: status === 'saved' ? 'saved' : status === 'edited' ? 'edited' : 'dismissed' });
+    },
+    [update],
+  );
+
+  /** "Lançar": confere de novo e cria o lançamento como o sheet faria */
+  const confirmProposal = useCallback(
+    (messageId: string, index: number) => {
+      const item = latest.current.find((m) => m.id === messageId)?.proposals?.[index];
+      if (!item || item.status !== 'pending') return false;
+      const p = checkProposal(item.proposal, currentLedger(), toISODate(now()));
+      if (!p) {
+        useKashStore.getState().showToast('Essa conta ou cartão não existe mais. Toque em Editar pra escolher outro.');
+        return false;
+      }
+      useKashStore.getState().addTransaction({ kind: p.kind, amountCents: Math.round(p.amount * 100), category: p.category, sourceId: p.sourceId, note: p.title, installments: p.installments, date: p.date });
+      setStatus(messageId, index, 'saved');
+      return true;
+    },
+    [setStatus],
+  );
+
+  /** "Editar": abre o sheet de lançamento já preenchido (a pessoa salva por lá) */
+  const editProposal = useCallback(
+    (messageId: string, index: number) => {
+      const item = latest.current.find((m) => m.id === messageId)?.proposals?.[index];
+      if (!item || item.status !== 'pending') return;
+      const p = item.proposal;
+      useKashStore.getState().openNewTransaction(p.kind, { amountCents: Math.round(p.amount * 100), category: p.category, sourceId: p.sourceId, note: p.title, date: p.date, installments: p.installments });
+      setStatus(messageId, index, 'edited');
+    },
+    [setStatus],
+  );
+
+  const dismissProposal = useCallback((messageId: string, index: number) => setStatus(messageId, index, 'dismissed'), [setStatus]);
+
+  return { messages, loaded, sending, error, remaining, send, retry, reset, confirmProposal, editProposal, dismissProposal };
 }

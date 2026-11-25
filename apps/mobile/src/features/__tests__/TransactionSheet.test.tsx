@@ -17,6 +17,20 @@ afterAll(() => setClock(null));
 const press = (id: string) => fireEvent.press(screen.getByTestId(id));
 
 describe('TransactionSheet', () => {
+  it('rascunho (proposta do assistente aberta para editar) preenche valor, descrição, origem, data e parcelas', async () => {
+    const card = useKashStore.getState().cards[0]!;
+    await act(async () => useKashStore.getState().openNewTransaction('expense', { amountCents: 30000, category: 'Lazer', sourceId: card.id, note: 'Fone', date: '2026-10-14', installments: 3 }));
+    await renderWithTheme(<TransactionSheet />);
+    expect(screen.getByText('R$ 300,00')).toBeOnTheScreen();
+    expect(screen.getByTestId('expense-note')).toHaveDisplayValue('Fone');
+    expect(screen.getByTestId('expense-installments-label')).toHaveTextContent('3x de R$ 100,00');
+    await press('expense-save');
+    expect(useKashStore.getState().plans.at(-1)).toMatchObject({ title: 'Fone', category: 'Lazer', cardId: card.id, installments: 3 });
+    // o próximo lançamento novo nasce limpo
+    await act(async () => useKashStore.getState().openSheet('expense'));
+    expect(useKashStore.getState().ui.newTxDraft).toBeNull();
+  });
+
   it('compra parcelada antiga: 1ª parcela há 8 meses lança só a 9/12 e mostra o que já foi pago', async () => {
     await renderWithTheme(<TransactionSheet />);
     for (const k of ['1', '2', '0', '0', '0', '0']) await press(`key-${k}`);

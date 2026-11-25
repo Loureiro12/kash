@@ -35,16 +35,18 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   const todayISO = toISODate(today);
 
   const newTxKind = useKashStore((s) => s.ui.newTxKind);
+  // proposta do assistente aberta para editar (só vale para lançamento novo)
+  const draft = useKashStore((s) => (editingId ? null : s.ui.newTxDraft));
   const [kind, setKind] = useState<TxKind>(editing ? (editing.amount < 0 ? 'expense' : 'income') : newTxKind);
-  const [digits, setDigits] = useState(editing ? String(Math.round(Math.abs(editing.amount) * 100)) : '');
+  const [digits, setDigits] = useState(editing ? String(Math.round(Math.abs(editing.amount) * 100)) : draft?.amountCents ? String(draft.amountCents) : '');
   const isInvoicePayment = editing?.category === 'Fatura';
   const { names: categoryNames, colors: categoryColorsMap } = useCategories();
   const defaultCategory = categoryNames.includes('Comida') ? 'Comida' : (categoryNames[0] ?? 'Outros');
-  const [category, setCategory] = useState<Category>(editing && editing.category !== 'Entrada' && editing.category !== 'Fatura' ? editing.category : defaultCategory);
-  const [sourceId, setSourceId] = useState(editing?.sourceId ?? sources[0]?.id ?? '');
-  const [note, setNote] = useState(editing?.title ?? '');
-  const [installments, setInstallments] = useState(1);
-  const [date, setDate] = useState(editing?.date ?? todayISO);
+  const [category, setCategory] = useState<Category>(editing && editing.category !== 'Entrada' && editing.category !== 'Fatura' ? editing.category : draft?.category && categoryNames.includes(draft.category) ? draft.category : defaultCategory);
+  const [sourceId, setSourceId] = useState(editing?.sourceId ?? (draft?.sourceId && sources.some((x) => x.id === draft.sourceId) ? draft.sourceId : undefined) ?? sources[0]?.id ?? '');
+  const [note, setNote] = useState(editing?.title ?? draft?.note ?? '');
+  const [installments, setInstallments] = useState(draft?.installments && draft.installments > 1 ? Math.min(MAX_INSTALLMENTS, draft.installments) : 1);
+  const [date, setDate] = useState(editing?.date ?? draft?.date ?? todayISO);
   /** parcelado: mês da 1ª parcela (pode ser no passado) e se o valor digitado é o total ou o da parcela */
   const [firstMonth, setFirstMonth] = useState(monthKey(today));
   const [valueMode, setValueMode] = useState<'total' | 'parcela'>('total');

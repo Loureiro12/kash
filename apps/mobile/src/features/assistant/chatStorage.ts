@@ -1,13 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { TxProposal } from '@kash/domain';
 
 /**
  * A conversa com o assistente fica só neste aparelho (o servidor não guarda nada): a última conversa
  * de cada pessoa, para continuar de onde parou. "Nova conversa" apaga.
  */
+export type ProposalStatus = 'pending' | 'saved' | 'edited' | 'dismissed';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** lançamentos propostos pelo assistente nesta resposta */
+  proposals?: { proposal: TxProposal; status: ProposalStatus }[];
 }
 
 const MAX_SAVED = 40;

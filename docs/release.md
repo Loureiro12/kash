@@ -61,6 +61,7 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
    # opcional: quanto o modelo pensa antes de responder (low | medium | high; padrão medium)
    # supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" ASSISTANT_AI_EFFORT=medium
    ```
+   - Lançamento assistido: a função manda ao modelo a ferramenta `propor_lancamento` (esquema estrito com as categorias e as contas/cartões da pessoa); as propostas voltam ao app, que só lança quando a pessoa confirma.
    - Limite próprio: 40 perguntas por pessoa a cada 24 h (`ai_calls` com `purpose` = `assistant`; não gasta o limite da importação). Custo: a consulta do item 9 mostra os tokens por `purpose`.
    - Recusas por política são refeitas pelo servidor da Anthropic em outro modelo na mesma chamada (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`).
    - Privacidade: o app pede autorização na primeira vez; o resumo enviado não leva e-mail, celular, sobrenome nem número de cartão, e a conversa fica só no aparelho. A política (app e site) já cita o assistente.

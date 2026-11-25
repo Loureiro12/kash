@@ -2,10 +2,12 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ASSISTANT_LIMITS, ASSISTANT_SUGGESTIONS } from '@kash/domain';
+import { ASSISTANT_LIMITS, ASSISTANT_SUGGESTIONS, formatBRL, relativeDayLabel, round2, type TxProposal } from '@kash/domain';
 import { Button, Chip, Icon, IconButton, Pressable, Text, fontFamily, layout, radii, staticColors, useTheme } from '@/design-system';
 import { DATA_SOURCE } from '@/data/source';
-import { assistantConsent } from './chatStorage';
+import { now } from '@/lib/clock';
+import { useCategories, useKashStore } from '@/store';
+import { assistantConsent, type ProposalStatus } from './chatStorage';
 import { RichText } from './RichText';
 import { useAssistantChat } from './useAssistantChat';
 
@@ -90,7 +92,7 @@ function Consent({ onAccept, onDecline }: { onAccept: () => void; onDecline: () 
 function Chat() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { messages, loaded, sending, error, remaining, send, retry, reset } = useAssistantChat();
+  const { messages, loaded, sending, error, remaining, send, retry, reset, confirmProposal, editProposal, dismissProposal } = useAssistantChat();
   const [draft, setDraft] = useState('');
   const scroll = useRef<ScrollView>(null);
   const remote = DATA_SOURCE === 'remote';
@@ -113,7 +115,7 @@ function Chat() {
           <View style={{ gap: 12, marginTop: 8 }} testID="assistant-empty">
             <Text variant="titleBold">Oi! Como posso ajudar com as suas finanças?</Text>
             <Text variant="body" color="muted">
-              Toque numa sugestão ou escreva a sua pergunta.
+              Toque numa sugestão, escreva a sua pergunta ou peça pra lançar um gasto: “gastei 45 no iFood no Nubank”.
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {ASSISTANT_SUGGESTIONS.map((s, i) => (
@@ -124,7 +126,20 @@ function Chat() {
         ) : null}
 
         {messages.map((m, i) => (
-          <Bubble key={m.id} role={m.role} content={m.content} testID={`assistant-msg-${i}`} />
+          <React.Fragment key={m.id}>
+            <Bubble role={m.role} content={m.content} testID={`assistant-msg-${i}`} />
+            {m.proposals?.map((p, j) => (
+              <ProposalCard
+                key={j}
+                proposal={p.proposal}
+                status={p.status}
+                onConfirm={() => confirmProposal(m.id, j)}
+                onEdit={() => editProposal(m.id, j)}
+                onDismiss={() => dismissProposal(m.id, j)}
+                testID={`assistant-proposal-${i}-${j}`}
+              />
+            ))}
+          </React.Fragment>
         ))}
 
         {sending ? (
@@ -168,7 +183,7 @@ function Chat() {
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder="Pergunte sobre seus gastos…"
+            placeholder="Pergunte ou lance: “gastei 30 no Uber”"
             placeholderTextColor={colors.muted}
             multiline
             maxLength={ASSISTANT_LIMITS.messageChars}
@@ -226,6 +241,58 @@ function Bubble({ role, content, testID }: { role: 'user' | 'assistant'; content
       ) : (
         <RichText text={content} />
       )}
+    </View>
+  );
+}
+
+const STATUS_LABEL: Record<Exclude<ProposalStatus, 'pending'>, string> = {
+  saved: 'Lançado ✓',
+  edited: 'Aberto para editar',
+  dismissed: 'Descartado',
+};
+
+/** Lançamento proposto pelo assistente: nada é salvo sem a pessoa tocar em "Lançar" */
+function ProposalCard({ proposal: p, status, onConfirm, onEdit, onDismiss, testID }: { proposal: TxProposal; status: ProposalStatus; onConfirm: () => void; onEdit: () => void; onDismiss: () => void; testID: string }) {
+  const { colors } = useTheme();
+  const { colors: categoryColors } = useCategories();
+  const source = useKashStore((s) => s.cards.find((c) => c.id === p.sourceId)?.name ?? s.accounts.find((a) => a.id === p.sourceId)?.name ?? '');
+  const income = p.kind === 'income';
+  const pending = status === 'pending';
+  const details = [income ? 'Entrada' : p.category, source, relativeDayLabel(p.date, now())].filter(Boolean).join(' · ');
+  return (
+    <View
+      testID={testID}
+      style={{ alignSelf: 'flex-start', width: '88%', gap: 10, padding: 14, borderRadius: radii.card, backgroundColor: colors.surface, borderWidth: 1, borderColor: pending ? colors.accent : colors.line, opacity: status === 'dismissed' ? 0.55 : 1 }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: income ? colors.accentText : (categoryColors[p.category] ?? colors.muted) }} />
+        <Text variant="metaMedium" color="muted" style={{ flex: 1 }}>
+          {income ? 'Entrada proposta' : 'Gasto proposto'}
+        </Text>
+        {!pending ? (
+          <Text variant="chip" color={status === 'saved' ? 'accentText' : 'muted'} testID={`${testID}-status`}>
+            {STATUS_LABEL[status]}
+          </Text>
+        ) : null}
+      </View>
+      <View style={{ gap: 2 }}>
+        <Text variant="amountMedium" color={income ? 'accentText' : 'text'} testID={`${testID}-amount`}>
+          {income ? '+' : '−'}
+          {formatBRL(p.amount)}
+        </Text>
+        <Text variant="bodySemibold">{p.title}</Text>
+        <Text variant="meta" color="muted" testID={`${testID}-details`}>
+          {details}
+          {p.installments > 1 ? ` · ${p.installments}x de ${formatBRL(round2(p.amount / p.installments))}` : ''}
+        </Text>
+      </View>
+      {pending ? (
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Button label="Lançar" size="xs" fullWidth={false} onPress={onConfirm} testID={`${testID}-confirm`} haptic="medium" />
+          <Button label="Editar" variant="secondary" size="xs" fullWidth={false} onPress={onEdit} testID={`${testID}-edit`} />
+          <Button label="Descartar" variant="ghost" size="xs" fullWidth={false} onPress={onDismiss} testID={`${testID}-dismiss`} />
+        </View>
+      ) : null}
     </View>
   );
 }
