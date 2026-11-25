@@ -161,7 +161,7 @@ Quando decidir lançar:
    - Antes do build, teste num aparelho de verdade o "Abrir com o Kash" (PDF do e-mail do banco no iOS; "Abrir com" no Android) e um PDF com senha: o leitor do PDF vem da CDN (jsdelivr, `pdfjs-dist@4.10.38`), então precisa de internet.
 2. Builds: `cd apps/mobile && eas build -p all --profile production` (build number / version code sobem sozinhos).
 3. Envio: `eas submit -p ios --latest` e `eas submit -p android --latest` (Android na faixa de teste interno primeiro).
-4. Nas lojas, cole o texto de "Novidades" do CHANGELOG.
+4. Nas lojas, cole os textos de `docs/loja-1.2.0.md` (novidades, descrição, palavras-chave, notas da revisão e privacidade).
 5. Depois de publicado: renomeie a seção do CHANGELOG para "1.1.0" e abra uma nova "Próxima versão". Correções só de JS para o 1.1.0 voltam a poder ir por `eas update --branch production --environment production`.
 
 ## 6. Fluxo do dia a dia
