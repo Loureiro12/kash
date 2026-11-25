@@ -19,9 +19,10 @@ Deno.serve((req) =>
       const { data, error } = await client.auth.getUser();
       return error || !data.user ? null : data.user.id;
     },
+    // o assistente tem o próprio limite (ver functions/assistant)
     countRecentCalls: async (userId) => {
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-      const { count } = await admin.from('ai_calls').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', since);
+      const { count } = await admin.from('ai_calls').select('id', { count: 'exact', head: true }).eq('user_id', userId).neq('purpose', 'assistant').gte('created_at', since);
       return count ?? 0;
     },
     logCall: async (userId, usage, purpose) => {
