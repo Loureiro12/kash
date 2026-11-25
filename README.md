@@ -261,6 +261,7 @@ Se a mudança inclui migração de banco, ela precisa estar em produção **ante
 
 ## Documentação complementar
 
+- [`docs/kash.md`](docs/kash.md): visão geral do produto e do projeto (todas as funcionalidades, IA, privacidade, publicação, pendências).
 - [`docs/release.md`](docs/release.md): checklist de produção, Supabase, EAS e lojas.
 - [`docs/plano-integracao-supabase.md`](docs/plano-integracao-supabase.md): decisões e fases da integração com o backend.
 - [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md): como rodar os E2E no iOS e no Android.
