@@ -5,3 +5,4 @@ export * from './money';
 export * from './selectors';
 export * from './types';
 export * from './telemetry';
+export * from './assistant';

@@ -5,6 +5,7 @@ export type { Database } from './database.types';
 export * from './errors';
 export * from './mappers';
 export * from './repositories/accounts';
+export * from './repositories/assistant';
 export * from './repositories/bills';
 export * from './repositories/cards';
 export * from './repositories/categories';
