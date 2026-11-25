@@ -22,11 +22,14 @@ test.describe('landing', () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
-  test('Google Play publicado: o botão leva à loja; App Store segue "em breve"', async ({ page }) => {
+  test('App Store e Google Play publicados: os dois botões levam às lojas', async ({ page }) => {
     const play = page.getByTestId('badge-google-play');
     await expect(play).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=com.andreloureiro.kash');
     await expect(play).toContainText('Disponível no');
-    await expect(page.getByTestId('badge-app-store')).toContainText('Em breve na');
+    const apple = page.getByTestId('badge-app-store');
+    await expect(apple).toHaveAttribute('href', 'https://apps.apple.com/br/app/id6820170870');
+    await expect(apple).toContainText('Baixar na');
+    await expect(page.getByText('em breve', { exact: false })).toHaveCount(0);
   });
 
   test('"Baixar grátis" leva aos botões das lojas', async ({ page }) => {

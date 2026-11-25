@@ -21,7 +21,7 @@ export const site = {
     privacy: 'privacidade@kash.app',
   },
   stores: {
-    appStore: { url: 'https://apps.apple.com/app/id6820170870', available: false } satisfies StoreLink,
+    appStore: { url: 'https://apps.apple.com/br/app/id6820170870', available: true } satisfies StoreLink,
     googlePlay: { url: 'https://play.google.com/store/apps/details?id=com.andreloureiro.kash', available: true } satisfies StoreLink,
   },
   /** URL do Kash no navegador (login do app web); null esconde os links da landing */
