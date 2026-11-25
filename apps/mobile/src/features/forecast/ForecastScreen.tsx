@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { Card, PageHeader, Pressable, Screen, Text, useTheme } from '@/design-system';
 import { forecastHeights, forecastSelection, formatBRL } from '@kash/domain';
 import { useForecast, useKashStore } from '@/store';
+import { DataGate } from '@/features/navigation/DataGate';
 
 /** Tela 8 — Previsão (página interna). Tocar num mês recalcula o cartão: total, divisão, limite e acumulado. */
 export function ForecastScreen() {
@@ -18,6 +19,7 @@ export function ForecastScreen() {
 
   return (
     <Screen testID="forecast-screen" header={<PageHeader title="Previsão" onBack={() => router.back()} testID="forecast" />}>
+      <DataGate>
       <Text variant="body" color="muted">
         Quanto já está comprometido nos próximos meses com contas fixas e parcelas do cartão. Toque num mês pra ver o total dele.
       </Text>
@@ -123,6 +125,7 @@ export function ForecastScreen() {
           </View>
         </>
       ) : null}
+      </DataGate>
     </Screen>
   );
 }

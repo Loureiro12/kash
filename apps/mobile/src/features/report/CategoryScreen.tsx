@@ -5,6 +5,7 @@ import { Card, Chip, PageHeader, Pressable, ProgressBar, Screen, Text, useTheme 
 import { formatBRL } from '@kash/domain';
 import { useCategories, useCategoryDetail, useMoney } from '@/store';
 import { TxRow } from '../transactions/TxRow';
+import { DataGate } from '@/features/navigation/DataGate';
 
 /**
  * Gastos de uma categoria, no estilo da Previsão: barras dos últimos 6 meses (toque escolhe o mês),
@@ -27,6 +28,7 @@ export function CategoryScreen() {
 
   return (
     <Screen testID="category-screen" header={<PageHeader title={category} onBack={() => router.back()} testID="category" />}>
+      <DataGate>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} testID="category-chips">
         {names.map((c) => (
           <Chip key={c} label={c} dotColor={categoryColors[c]} selected={c === category} onPress={() => pick(c)} testID={`category-chip-${c}`} />
@@ -133,6 +135,7 @@ export function CategoryScreen() {
         ))
       )}
       <View style={{ height: 1, backgroundColor: colors.bg }} />
+      </DataGate>
     </Screen>
   );
 }

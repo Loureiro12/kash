@@ -6,13 +6,16 @@ import { takePendingShortcut, watchPendingShortcut } from './quickAdd';
 
 /**
  * Área logada: recebe os pedidos de lançamento rápido (atalhos do iPhone e o link `…://lancar`)
- * e abre o sheet "Lançar" no tipo pedido, só com o app desbloqueado (Face ID antes, se ligado).
+ * e abre o sheet "Lançar" no tipo pedido, só com o app desbloqueado (Face ID antes, se ligado)
+ * e com os dados do servidor já carregados.
  */
 export function useQuickAdd() {
   const requestQuickAdd = useKashStore((s) => s.requestQuickAdd);
   const openNewTransaction = useKashStore((s) => s.openNewTransaction);
   const pending = useKashStore((s) => s.ui.quickAdd);
   const locked = useKashStore((s) => s.locked);
+  // com os dados ainda carregando, o sheet mostraria contas de exemplo: espera o snapshot
+  const ready = useKashStore((s) => s.ui.dataStatus === 'ready');
 
   // atalho do iPhone: na abertura, ao voltar para o app e com o app já aberto
   useEffect(() => {
@@ -34,8 +37,8 @@ export function useQuickAdd() {
   }, [requestQuickAdd]);
 
   useEffect(() => {
-    if (!pending || locked) return;
+    if (!pending || locked || !ready) return;
     requestQuickAdd(null);
     openNewTransaction(pending);
-  }, [pending, locked, requestQuickAdd, openNewTransaction]);
+  }, [pending, locked, ready, requestQuickAdd, openNewTransaction]);
 }

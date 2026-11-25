@@ -19,7 +19,9 @@ import { forecastHeights, formatBRL, greetingFor, type BudgetPart } from '@kash/
 import { now } from '@/lib/clock';
 import { useForecast, useHomeSummary, useKashStore, useMoney, useOpenInvoices, useRecentTxs, useUpcomingBills } from '@/store';
 import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
+import { DataGate } from '../navigation/DataGate';
 import { TxRow } from '../transactions/TxRow';
+import { HomeHeaderSkeleton, HomeSkeleton } from './HomeSkeleton';
 
 /** Tela 3 — Início. */
 export function HomeScreen() {
@@ -38,6 +40,8 @@ export function HomeScreen() {
   const recent = useRecentTxs(6);
   const heights = forecastHeights(forecast, 10);
   const nextMonth = forecast[0];
+  // até o snapshot chegar, nada do conteúdo (nem o nome) aparece: só o esqueleto
+  const loading = useKashStore((s) => s.ui.dataStatus === 'loading');
 
   const goToBills = () => {
     setAccountsSegment('bills');
@@ -66,7 +70,8 @@ export function HomeScreen() {
   );
 
   return (
-    <Screen testID="home-screen" header={header}>
+    <Screen testID="home-screen" header={loading ? <HomeHeaderSkeleton /> : header}>
+      <DataGate skeleton={<HomeSkeleton />}>
       <ChecklistCard />
 
       {/* Saldo total */}
@@ -188,6 +193,7 @@ export function HomeScreen() {
           <TxRow key={t.id} tx={t} testID={`tx-${t.id}`} />
         ))}
       </View>
+      </DataGate>
     </Screen>
   );
 }

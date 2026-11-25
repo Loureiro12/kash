@@ -5,6 +5,7 @@ import { Chip, Icon, PageHeader, Pressable, Screen, SegmentedControl, Text, useT
 import { DEFAULT_TX_FILTERS, formatBRL, type TxFilters, type TxKindFilter } from '@kash/domain';
 import { useCategories, useTransactionsList } from '@/store';
 import { TxRow } from './TxRow';
+import { DataGate } from '@/features/navigation/DataGate';
 
 const MIN_MONTH_OFFSET = -11;
 
@@ -19,6 +20,7 @@ export function TransactionsScreen() {
 
   return (
     <Screen testID="transactions-screen" header={<PageHeader title="Lançamentos" onBack={() => router.back()} testID="transactions" />}>
+      <DataGate>
       {/* Mês */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
         <MonthButton icon="arrow-left" label="Mês anterior" disabled={filters.monthOffset <= MIN_MONTH_OFFSET} onPress={() => set({ monthOffset: filters.monthOffset - 1 })} testID="tx-month-prev" />
@@ -93,6 +95,7 @@ export function TransactionsScreen() {
         </Text>
       </Pressable>
       <View style={{ height: 1, backgroundColor: colors.bg }} />
+      </DataGate>
     </Screen>
   );
 }

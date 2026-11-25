@@ -5,6 +5,7 @@ import { Card, PageHeader, Pressable, ProgressBar, Screen, Text, useTheme } from
 import { monthName } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useMoney, useReport } from '@/store';
+import { DataGate } from '@/features/navigation/DataGate';
 
 /** Tela 7 — Relatório (página interna). */
 export function ReportScreen() {
@@ -15,6 +16,7 @@ export function ReportScreen() {
 
   return (
     <Screen testID="report-screen" header={<PageHeader title="Relatório" onBack={() => router.back()} testID="report" />}>
+      <DataGate>
       <Card padding={20} style={{ marginTop: 6 }}>
         <Text variant="meta" color="muted">
           Gastos · {monthName(0, now())}
@@ -66,6 +68,7 @@ export function ReportScreen() {
           </Pressable>
         ))}
       </View>
+      </DataGate>
     </Screen>
   );
 }

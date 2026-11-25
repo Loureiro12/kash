@@ -277,7 +277,11 @@ export interface KashState {
   reset: () => void;
 }
 
-const buildInitial = () => {
+/**
+ * Estado inicial. Com o servidor (`remote`), nasce em "carregando": as telas mostram o esqueleto até o
+ * snapshot chegar, em vez dos dados de exemplo do seed (que só servem ao modo `seed` e aos testes).
+ */
+const buildInitial = (dataStatus: DataStatus = DATA_SOURCE === 'remote' ? 'loading' : 'ready') => {
   const seed = seedData(now());
   return {
     auth: 'booting' as AuthStatus,
@@ -285,7 +289,7 @@ const buildInitial = () => {
     userId: null as string | null,
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus: 'ready' as DataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, newTxKind: 'expense' as TxKind, quickAdd: null },
+    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, newTxKind: 'expense' as TxKind, quickAdd: null },
   };
 };
 
@@ -918,5 +922,6 @@ export const useKashStore = create<KashState>((set, get) => ({
     }));
   },
 
-  reset: () => set(buildInitial()),
+  // testes: seed já "carregado"
+  reset: () => set(buildInitial('ready')),
 }));

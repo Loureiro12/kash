@@ -100,6 +100,17 @@ describe('useQuickAdd', () => {
   });
 });
 
+describe('useQuickAdd com os dados carregando', () => {
+  it('espera o snapshot antes de abrir (o sheet não mostra contas de exemplo)', async () => {
+    useKashStore.getState().setDataStatus('loading');
+    defaults[QUICK_ADD_KEY] = `expense:${nowSeconds()}`;
+    await render(<Host />);
+    expect(useKashStore.getState().ui.sheet).toBeNull();
+    await act(async () => useKashStore.getState().setDataStatus('ready'));
+    expect(useKashStore.getState().ui.sheet).toBe('expense');
+  });
+});
+
 describe('link …://lancar', () => {
   it('pede a entrada e volta ao Início quando o app abriu pelo link', async () => {
     mockParams.tipo = 'entrada';
