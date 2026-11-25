@@ -6,8 +6,16 @@ export interface AssistantTurn {
   content: string;
 }
 
+/** categorias de gasto e contas/cartões da pessoa: o assistente só propõe lançamentos entre elas */
+export interface AssistantLedgerInput {
+  categories: string[];
+  sources: { id: string; name: string; type: 'card' | 'account' }[];
+}
+
 export interface AssistantReply {
   reply: string;
+  /** lançamentos propostos (o app confere com `checkProposal` e a pessoa confirma) */
+  proposals?: unknown[];
   /** perguntas que ainda restam hoje */
   remaining: number;
   /** o modelo recusou (a resposta é um texto padrão) */
@@ -29,7 +37,7 @@ const ERRORS: Record<string, string> = {
  * Pergunta ao assistente financeiro (Edge Function `assistant`, Claude). `context` é o resumo dos
  * dados da pessoa (`buildAssistantContext` de @kash/domain); a conversa não é guardada no servidor.
  */
-export async function askAssistant(db: KashClient, input: { messages: AssistantTurn[]; context: string }): Promise<AssistantReply> {
+export async function askAssistant(db: KashClient, input: { messages: AssistantTurn[]; context: string; ledger?: AssistantLedgerInput }): Promise<AssistantReply> {
   try {
     const { data, error } = await db.functions.invoke('assistant', { body: input });
     if (error) {

@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { ASSISTANT_DAILY_LIMIT, failureReason, handleAssistant, MAX_HISTORY, MAX_USER_CHARS, sanitizeMessages, type AssistantDeps, type AssistantPrompt } from './handler.ts';
+import { ASSISTANT_DAILY_LIMIT, failureReason, handleAssistant, MAX_HISTORY, MAX_USER_CHARS, proposalTool, sanitizeLedger, sanitizeMessages, type AssistantDeps, type AssistantPrompt } from './handler.ts';
 
 function deps(over: Partial<AssistantDeps> = {}) {
   const prompts: AssistantPrompt[] = [];
@@ -74,4 +74,61 @@ Deno.test('recusa do modelo vira resposta amigável; falha da API vira 502 com m
   assertEquals(res.status, 502);
   assertEquals((await res.json()).reason, 'overloaded');
   assertEquals(failureReason(new Error('Your credit balance is too low')), 'credit');
+});
+
+const ledger = {
+  categories: ['Comida', 'Transporte', 'Outros', 'Entrada'],
+  sources: [
+    { id: 'card1', name: 'Nubank', type: 'card' },
+    { id: 'acc1', name: 'Corrente', type: 'account' },
+    { id: '', name: 'sem id', type: 'account' },
+  ],
+};
+
+Deno.test('lançamento assistido: a ferramenta só aceita as opções da pessoa', () => {
+  const clean = sanitizeLedger(ledger)!;
+  assertEquals(clean.categories, ['Comida', 'Transporte', 'Outros']);
+  assertEquals(clean.sources.map((s) => s.id), ['card1', 'acc1']);
+  const tool = proposalTool(clean);
+  assertEquals(tool.strict, true);
+  assertEquals(tool.input_schema.additionalProperties, false);
+  assertEquals(tool.input_schema.properties.origem_id.enum, ['card1', 'acc1']);
+  assertEquals(tool.input_schema.properties.categoria.enum, ['Comida', 'Transporte', 'Outros', 'Entrada']);
+  assertStringIncludes(tool.description, 'card1 = Nubank (cartão)');
+  // sem contas nem cartões não há ferramenta
+  assertEquals(sanitizeLedger({ categories: ['Comida'], sources: [] }), null);
+});
+
+Deno.test('devolve as propostas válidas e descarta as impossíveis', async () => {
+  const { d, prompts } = deps({
+    callModel: async (p) => {
+      prompts.push(p);
+      return {
+        text: '',
+        stopReason: 'tool_use',
+        usage: { input_tokens: 3000, output_tokens: 80 },
+        toolInputs: [
+          { tipo: 'gasto', valor: 45.9, descricao: 'iFood', categoria: 'Comida', origem_id: 'card1', data: '2026-11-25', parcelas: 1 },
+          { tipo: 'gasto', valor: 300, descricao: 'Fone', categoria: 'Outros', origem_id: 'acc1', data: '2026-11-25', parcelas: 3 },
+          // entrada no cartão não existe
+          { tipo: 'entrada', valor: 100, descricao: 'Pix', categoria: 'Entrada', origem_id: 'card1', data: '2026-11-25', parcelas: 1 },
+        ],
+      };
+    },
+  });
+  const body = await (await handleAssistant(post({ ...valid, ledger }), d)).json();
+  assertEquals(prompts[0]!.ledger?.sources.length, 2);
+  assertEquals(body.reply, 'Separei os lançamentos. Confere e toque em Lançar.');
+  assertEquals(body.proposals, [
+    { kind: 'expense', amount: 45.9, title: 'iFood', category: 'Comida', sourceId: 'card1', date: '2026-11-25', installments: 1 },
+    // parcelas fora do cartão viram à vista
+    { kind: 'expense', amount: 300, title: 'Fone', category: 'Outros', sourceId: 'acc1', date: '2026-11-25', installments: 1 },
+  ]);
+});
+
+Deno.test('sem as opções do app, ou resposta cortada, nada é proposto', async () => {
+  const withTool = (stopReason: string) =>
+    deps({ callModel: async () => ({ text: 'Ok', stopReason, usage: { input_tokens: 1, output_tokens: 1 }, toolInputs: [{ tipo: 'gasto', valor: 10, descricao: 'x', categoria: 'Comida', origem_id: 'card1', data: '2026-11-25', parcelas: 1 }] }) }).d;
+  assertEquals((await (await handleAssistant(post(valid), withTool('tool_use'))).json()).proposals, []);
+  assertEquals((await (await handleAssistant(post({ ...valid, ledger }), withTool('max_tokens'))).json()).proposals, []);
 });

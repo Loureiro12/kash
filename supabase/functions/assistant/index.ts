@@ -1,6 +1,6 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@1.13.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { handleAssistant, type AssistantPrompt } from './handler.ts';
+import { handleAssistant, PROPOSAL_TOOL, proposalTool, type AssistantPrompt } from './handler.ts';
 
 const url = Deno.env.get('SUPABASE_URL')!;
 const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -29,6 +29,8 @@ async function callModel(prompt: AssistantPrompt) {
       { type: 'text', text: prompt.system, cache_control: { type: 'ephemeral' } },
       { type: 'text', text: `<dados_financeiros>\n${prompt.context}\n</dados_financeiros>`, cache_control: { type: 'ephemeral' } },
     ],
+    // lançamento assistido: o modelo só propõe (tool_choice automático; forçar não é aceito nos modelos atuais)
+    ...(prompt.ledger ? { tools: [proposalTool(prompt.ledger)] } : {}),
     // a conversa cresce a cada pergunta: o cache automático cobre o histórico
     cache_control: { type: 'ephemeral' },
     messages: prompt.messages.map((m) => ({ role: m.role, content: m.content })),
@@ -38,7 +40,9 @@ async function callModel(prompt: AssistantPrompt) {
     .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
     .map((b) => b.text)
     .join('\n');
-  return { text, stopReason: message.stop_reason, usage: { input_tokens: message.usage.input_tokens, output_tokens: message.usage.output_tokens } };
+  // as propostas voltam ao app para confirmação; não há tool_result (a conversa segue como texto)
+  const toolInputs = message.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use' && b.name === PROPOSAL_TOOL).map((b) => b.input);
+  return { text, toolInputs, stopReason: message.stop_reason, usage: { input_tokens: message.usage.input_tokens, output_tokens: message.usage.output_tokens } };
 }
 
 Deno.serve((req) =>

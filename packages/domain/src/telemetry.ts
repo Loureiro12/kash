@@ -22,6 +22,8 @@ export interface TelemetryEvents {
   import_undo: Record<string, never>;
   /** assistente (Claude): pergunta enviada; `suggested` = tocou numa sugestão pronta */
   assistant_message: { suggested: boolean };
+  /** lançamento proposto pelo assistente: mostrado, lançado direto, aberto para editar ou descartado */
+  assistant_proposal: { action: 'shown' | 'saved' | 'edited' | 'dismissed' };
   /** "Zerar meus dados" concluído */
   reset_data: Record<string, never>;
   /** lançamento rápido aberto por atalho do iPhone (Back Tap, Siri, Atalhos) ou link */

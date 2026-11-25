@@ -142,3 +142,70 @@ export function buildAssistantContext(input: AssistantInput, now: Date): string 
   const text = lines.join('\n');
   return text.length > ASSISTANT_LIMITS.contextChars ? text.slice(0, ASSISTANT_LIMITS.contextChars) : text;
 }
+
+/* ---------- Lançamento assistido ---------- */
+
+/** opções que o assistente pode usar para propor um lançamento (sem números de cartão) */
+export interface AssistantLedger {
+  /** categorias de gasto da pessoa (sem as do sistema) */
+  categories: string[];
+  sources: { id: string; name: string; type: 'card' | 'account' }[];
+}
+
+export function assistantLedger(categories: readonly { name: string }[], cards: Card[], accounts: Account[]): AssistantLedger {
+  return {
+    categories: categories.map((c) => c.name).filter((n) => n !== 'Entrada' && n !== 'Fatura' && n !== 'Transferência'),
+    sources: [...cards.map((c) => ({ id: c.id, name: c.name, type: 'card' as const })), ...accounts.map((a) => ({ id: a.id, name: a.name, type: 'account' as const }))],
+  };
+}
+
+/** lançamento proposto pelo assistente; só entra no app quando a pessoa confirma */
+export interface TxProposal {
+  kind: 'expense' | 'income';
+  /** reais, positivo */
+  amount: number;
+  title: string;
+  category: string;
+  sourceId: string;
+  /** yyyy-mm-dd */
+  date: string;
+  /** 1 = à vista (parcelado só no cartão) */
+  installments: number;
+}
+
+export const MAX_PROPOSAL_INSTALLMENTS = 24;
+
+/**
+ * Confere uma proposta contra o que existe agora no app (a conta pode ter sido excluída, a categoria
+ * renomeada…) e ajusta o que dá: data no futuro vira hoje, parcelas fora do cartão viram à vista,
+ * categoria desconhecida vira "Outros". Devolve null quando não dá pra lançar.
+ */
+export function checkProposal(raw: unknown, ledger: AssistantLedger, today: string): TxProposal | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const p = raw as Record<string, unknown>;
+  const kind = p.kind === 'income' ? 'income' : p.kind === 'expense' ? 'expense' : null;
+  const amount = typeof p.amount === 'number' && Number.isFinite(p.amount) ? round2(Math.abs(p.amount)) : 0;
+  const source = ledger.sources.find((s) => s.id === p.sourceId);
+  if (!kind || amount <= 0 || amount > 10_000_000 || !source) return null;
+  // entrada só em conta
+  if (kind === 'income' && source.type !== 'account') return null;
+  const title = typeof p.title === 'string' ? p.title.trim().slice(0, 60) : '';
+  const category =
+    kind === 'income'
+      ? 'Entrada'
+      : typeof p.category === 'string' && ledger.categories.includes(p.category)
+        ? p.category
+        : ledger.categories.includes('Outros')
+          ? 'Outros'
+          : (ledger.categories[0] ?? 'Outros');
+  const date = typeof p.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.date) && p.date <= today ? p.date : today;
+  const n = typeof p.installments === 'number' && Number.isInteger(p.installments) ? p.installments : 1;
+  const installments = kind === 'expense' && source.type === 'card' ? Math.min(MAX_PROPOSAL_INSTALLMENTS, Math.max(1, n)) : 1;
+  return { kind, amount, title: title || (kind === 'income' ? 'Entrada' : category), category, sourceId: source.id, date, installments };
+}
+
+/** "Gasto de R$ 45,00 · iFood · Comida · Nubank · 25/11 · 3x" (vai no histórico para o assistente saber o que foi proposto) */
+export function describeProposal(p: TxProposal, ledger: AssistantLedger): string {
+  const source = ledger.sources.find((s) => s.id === p.sourceId)?.name ?? '';
+  return [`${p.kind === 'income' ? 'Entrada' : 'Gasto'} de ${money(p.amount)}`, p.title, p.kind === 'expense' ? p.category : null, source, day(p.date), p.installments > 1 ? `${p.installments}x` : null].filter(Boolean).join(' · ');
+}
