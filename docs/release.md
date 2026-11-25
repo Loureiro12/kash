@@ -138,7 +138,7 @@ Compilado e validado localmente no emulador Pixel 7 (debug, dev client): ícone 
 
 O Face ID adicionou um módulo nativo (`expo-local-authentication`). A versão subiu para **1.0.1**, o que muda a `runtimeVersion`: updates OTA publicados a partir daqui só chegam a binários 1.0.1. Para entregar, gere e envie um build novo (`eas build -p ios --profile production` e `eas submit -p ios --latest`); quem está no 1.0.0 continua recebendo só updates do 1.0.0.
 
-## 5.2 Versão 1.1.0 (em preparação — sai junto com as próximas melhorias)
+## 5.2 Próxima versão (hoje 1.2.0; a 1.1.0 já saiu: iOS build 12, Android versionCode 5)
 
 As mudanças do app vão se acumulando em `apps/mobile/CHANGELOG.md` › "Próxima versão". A versão em `app.json` já está em **1.1.0**, então nenhum `eas update` alcança quem está no 1.0.1 por engano. **Não publique updates até o build 1.1.0 estar nas lojas.**
 

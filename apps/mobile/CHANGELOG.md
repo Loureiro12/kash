@@ -1,11 +1,28 @@
 # Kash (app) — histórico de versões
 
 As melhorias do app ficam acumuladas em **Próxima versão** e vão juntas para as lojas num build novo.
-Enquanto isso, **não publique `eas update`**: com `runtimeVersion = appVersion`, um update feito agora
-só alcançaria binários 1.1.0 (que ainda não existem), e quem está no 1.0.1 continua como está.
+Com `runtimeVersion = appVersion`, um `eas update` só alcança binários da mesma versão do `app.json`:
+com o `app.json` em 1.2.0, nenhum update chega a quem está na 1.1.0 por engano.
 Checklist de lançamento em `docs/release.md` › 5.2.
 
-## Próxima versão — 1.1.0 (em preparação)
+## Próxima versão — 1.2.0 (em preparação, vai junto para as duas lojas)
+
+Base: iOS 1.1.0 build 12 (commit `cb22f16`) e Android 1.1.0 versionCode 5 (commit `10a19eb`).
+
+- **Relatório por dia, semana e mês** (Início › "Hoje" e "Esta semana", ou o card Gastos do mês): quanto saiu e entrou no período, comparação com o anterior (no período atual, até o mesmo ponto: "a semana passada até quarta"), ritmo contra o limite (o mensal proporcional: dia = mês ÷ dias, semana = 7 dias; no mês atual, "no ritmo atual você fecha o mês em…"), média dos períodos anteriores, dia de maior gasto, por categoria e maiores gastos. Gráfico com os dias (toque numa barra abre o dia) e navegação para períodos anteriores. A semana começa na segunda.
+- **Carregamento sem dados de exemplo**: ao abrir o app (e logo depois do login), o Início mostra um esqueleto no formato da tela até seus dados chegarem, em vez de valores de exemplo por um instante. Lançamentos, Relatório, Previsão e Categoria também esperam os dados, e o lançamento pelo Toque Atrás só abre depois deles.
+- **Zerar meus dados** chega ao iPhone (no Android já foi na 1.1.0).
+
+### Texto de "Novidades" para as lojas
+
+> Novidades desta versão:
+> • Relatórios do dia, da semana e do mês: veja quanto gastou, com o quê, compare com o período anterior e saiba se está no ritmo do seu limite.
+> • Atalhos "Hoje" e "Esta semana" no Início.
+> • Abertura mais limpa: enquanto seus dados carregam, você vê um esqueleto da tela em vez de números provisórios.
+> • Zerar meus dados: recomece do zero sem criar outra conta (Perfil).
+> • Pequenas correções.
+
+## 1.1.0 — iOS build 12 (App Store) · Android versionCode 5
 
 Base: builds 1.0.1 (iOS 6, Android 3), feitos no commit `9ea8010`.
 
@@ -28,8 +45,7 @@ Base: builds 1.0.1 (iOS 6, Android 3), feitos no commit `9ea8010`.
 - **Entrar com Apple e Google** (login e cadastro): no iPhone, "Continuar com Apple" usa a folha nativa; o Google (e a Apple no Android) abre o login do provedor numa janela segura do sistema e volta para o app. Mesmo login na web. Quem entra só por Apple/Google vê em Segurança "Você entra com …" no lugar de "Alterar senha". Novos módulos nativos (`expo-apple-authentication`, `expo-web-browser`) e a capacidade Sign In with Apple: exige build novo. Configuração na Apple, no Google e no Supabase: `docs/release.md` › 1.10 (migração `20261019000000_social_login`).
   - **Falta antes da loja:** revogar o token da Apple ao excluir a conta (exigência da Apple para quem oferece Sign in with Apple).
 - **Firebase Analytics, Crashlytics e Performance**: eventos de uso (sem valores, nomes ou e-mail; a pessoa só pelo id interno), telas vistas, relatórios de falha (inclusive erros de tela, com "Tentar de novo") e desempenho (abertura do app, carregamento dos dados, leitura de PDF e cada chamada ao servidor). Sem identificador de anúncios (não pede rastreamento à Apple). Perfil › **Compartilhar dados de uso** desliga as três coletas. Exige build novo (React Native Firebase 27, frameworks dinâmicos no iOS) e os arquivos do Firebase no EAS (`docs/release.md` › 1.11).
-- **Carregamento sem dados de exemplo**: ao abrir o app (e logo depois do login), o Início mostra um esqueleto no formato da tela até seus dados chegarem, em vez de valores de exemplo por um instante. Lançamentos, Relatório, Previsão e Categoria também esperam os dados, e o lançamento pelo Toque Atrás só abre depois deles.
-- **Zerar meus dados** (Perfil, também na web): recomeça do zero sem criar outra conta. Apaga contas, cartões, faturas, lançamentos, parcelados, contas fixas, metas, importações e nomes aprendidos; categorias e limite mensal voltam ao padrão e as boas-vindas aparecem de novo. Mantém login, nome, celular, tema e lembretes. Confirmação digitando ZERAR, com atalho para exportar os dados antes. Migração `20261021000000_reset_my_data` (backend antes do app).
+- **Zerar meus dados** (Perfil, também na web; no Android 1.1.0, no iPhone só na 1.2.0): recomeça do zero sem criar outra conta. Apaga contas, cartões, faturas, lançamentos, parcelados, contas fixas, metas, importações e nomes aprendidos; categorias e limite mensal voltam ao padrão e as boas-vindas aparecem de novo. Mantém login, nome, celular, tema e lembretes. Confirmação digitando ZERAR, com atalho para exportar os dados antes. Migração `20261021000000_reset_my_data` (backend antes do app).
 - **Lançar pelo Toque Atrás do iPhone** (e Siri, app Atalhos, Spotlight, botão de Ação): ações "Lançar gasto" e "Lançar entrada" do Kash (App Intents) abrem o app direto no lançamento, já no tipo certo; com Face ID ligado, pede o desbloqueio antes. Como configurar está em Perfil › Ajuda. Também pelo link `com.andreloureiro.kash://lancar?tipo=gasto|entrada` (atalho "Abrir URL", automações). Código Swift novo (`plugins/quick-add/KashQuickAdd.swift`): exige build novo.
 - O texto do lembrete push passou a "Notificação 2 dias antes do vencimento", para diferenciar do e-mail.
 - **Correção:** Perfil e Ajuda mostravam "1.0.0" fixo; agora mostram a versão real do app.

@@ -7,6 +7,7 @@ export * from './forecast';
 export * from './goals';
 export * from './reminders';
 export * from './report';
+export * from './periodReport';
 export * from './rollover';
 export * from './transactions';
 export * from './transfers';

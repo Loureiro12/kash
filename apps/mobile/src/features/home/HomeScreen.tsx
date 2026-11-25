@@ -17,7 +17,7 @@ import {
 } from '@/design-system';
 import { forecastHeights, formatBRL, greetingFor, type BudgetPart } from '@kash/domain';
 import { now } from '@/lib/clock';
-import { useForecast, useHomeSummary, useKashStore, useMoney, useOpenInvoices, useRecentTxs, useUpcomingBills } from '@/store';
+import { useForecast, useHomeSummary, useKashStore, useMoney, useOpenInvoices, usePeriodReport, useRecentTxs, useUpcomingBills } from '@/store';
 import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
 import { DataGate } from '../navigation/DataGate';
 import { TxRow } from '../transactions/TxRow';
@@ -38,6 +38,8 @@ export function HomeScreen() {
   const invoices = useOpenInvoices();
   const forecast = useForecast();
   const recent = useRecentTxs(6);
+  const today = usePeriodReport('day', 0);
+  const week = usePeriodReport('week', 0);
   const heights = forecastHeights(forecast, 10);
   const nextMonth = forecast[0];
   // até o snapshot chegar, nada do conteúdo (nem o nome) aparece: só o esqueleto
@@ -118,6 +120,12 @@ export function HomeScreen() {
         ) : null}
       </Card>
 
+      {/* Relatório do dia e da semana */}
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+        <PeriodCard title="Hoje" amount={money(today.spent)} hint={today.delta.message} up={today.delta.pct > 0} onPress={() => router.push({ pathname: '/report', params: { periodo: 'dia' } })} testID="home-report-day" />
+        <PeriodCard title="Esta semana" amount={money(week.spent)} hint={week.delta.message} up={week.delta.pct > 0} onPress={() => router.push({ pathname: '/report', params: { periodo: 'semana' } })} testID="home-report-week" />
+      </View>
+
       {/* Ações rápidas */}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
         <QuickAction label="Lançar gasto" onPress={() => openSheet('expense')} testID="action-add-expense" accent>
@@ -195,6 +203,22 @@ export function HomeScreen() {
       </View>
       </DataGate>
     </Screen>
+  );
+}
+
+function PeriodCard({ title, amount, hint, up, onPress, testID }: { title: string; amount: string; hint: string; up: boolean; onPress: () => void; testID: string }) {
+  return (
+    <Card radius="card" padding={14} onPress={onPress} testID={testID} accessibilityLabel={`Gastos ${title.toLowerCase()}: ${amount}. ${hint}. Ver relatório`} style={{ flex: 1, gap: 4 }}>
+      <Text variant="metaMedium" color="muted">
+        {title} ›
+      </Text>
+      <Text variant="amountMedium" numberOfLines={1} adjustsFontSizeToFit>
+        {amount}
+      </Text>
+      <Text variant="micro" color={up ? 'neg' : 'muted'} numberOfLines={2}>
+        {hint}
+      </Text>
+    </Card>
   );
 }
 
