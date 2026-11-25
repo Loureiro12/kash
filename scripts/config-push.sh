@@ -10,10 +10,14 @@ cd "$(dirname "$0")/.."
 # Sem elas o push gravaria valores vazios e o login social pararia; então não envia nada.
 missing=()
 for v in SUPABASE_AUTH_EXTERNAL_APPLE_CLIENT_ID SUPABASE_AUTH_EXTERNAL_APPLE_SECRET SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET; do
-  [ -n "${!v:-}" ] || missing+=("$v")
+  val="${!v:-}"
+  # vazio ou valor de exemplo ("...", "xxx", "<...>"): o push gravaria um provedor quebrado (invalid_client)
+  if [ -z "$val" ] || [[ "$val" =~ ^[.[:space:]]*$ ]] || [[ "$val" == *"..."* ]] || [[ "$val" =~ ^[xX]+$ ]] || [[ "$val" == \<*\> ]]; then
+    missing+=("$v")
+  fi
 done
 if [ ${#missing[@]} -gt 0 ]; then
-  echo "::error::Config de auth NÃO enviada: faltam ${missing[*]} (login com Apple/Google). Ver docs/release.md › 1.10."
+  echo "::error::Config de auth NÃO enviada: faltam ou estão com valor de exemplo: ${missing[*]} (login com Apple/Google). Ver docs/release.md › 1.10."
   exit 1
 fi
 tmp=$(mktemp -d)
