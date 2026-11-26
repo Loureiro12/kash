@@ -22,6 +22,10 @@ const FAQ = [
     ios: true,
   },
   {
+    q: 'O Kash encontra minhas assinaturas?',
+    a: 'Encontra. Quando a mesma cobrança aparece todo mês (streaming, academia, apps), em dias e valores parecidos, ela aparece em Contas › Fixas com o custo no ano. Toque em "Virar conta fixa" para receber lembrete e ver na previsão; se a deste mês já foi lançada, a conta já entra como paga, sem lançar de novo. Se o preço subir, o Kash avisa.',
+  },
+  {
     q: 'Que alertas de gastos o Kash manda?',
     a: 'Com as notificações permitidas, o Kash avisa quando você chega a 80% do limite do mês e quando passa dele (e do limite do cartão, se ele for dividido), quando o ritmo do mês indica que você vai passar do limite e quando uma categoria fica bem acima do normal na semana. No domingo às 19h chega o resumo da semana. Cada aviso vem uma vez só. Tudo é calculado no seu celular; ligue ou desligue em Perfil › Preferências.',
   },

@@ -13,3 +13,4 @@ export * from './transactions';
 export * from './transfers';
 export * from './onboarding';
 export * from './spendingAlerts';
+export * from './recurring';

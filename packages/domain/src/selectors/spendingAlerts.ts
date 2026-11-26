@@ -1,15 +1,16 @@
 import { addDays, toISODate } from '../dates';
 import { formatBRL, round2 } from '../money';
-import { isTransfer, type Settings, type Tx } from '../types';
+import { isTransfer, type Bill, type Settings, type Tx } from '../types';
 import { budgetSplit, type BudgetPart } from './budget';
 import { periodRange, periodReport } from './periodReport';
+import { detectRecurring } from './recurring';
 import type { Reminder } from './reminders';
 
 /**
  * Alertas de gastos: avisos sobre o que já aconteceu (não sobre vencimentos). Funções puras:
  * o app decide quando mostrar e guarda os ids já avisados (cada id é avisado uma vez só).
  */
-export type SpendingAlertKind = 'budget-80' | 'budget-100' | 'pace' | 'category';
+export type SpendingAlertKind = 'budget-80' | 'budget-100' | 'pace' | 'category' | 'price-increase';
 
 export interface SpendingAlert {
   /** estável por mês/semana: o mesmo alerta nunca é mostrado duas vezes */
@@ -28,6 +29,8 @@ export interface SpendingAlertInput {
   txs: readonly Tx[];
   cardIds: readonly string[];
   settings: Pick<Settings, 'monthlyBudget' | 'cardBudget'>;
+  /** contas fixas (para reconhecer assinaturas que ficaram mais caras) */
+  bills?: readonly Bill[];
 }
 
 /** porcentagem do limite que dispara o primeiro aviso */
@@ -146,6 +149,24 @@ function categoryAlert(txs: readonly Tx[], now: Date): SpendingAlert | null {
   };
 }
 
+/** assinatura/cobrança recorrente que ficou mais cara neste mês */
+function priceAlerts(input: SpendingAlertInput, month: string, now: Date): SpendingAlert[] {
+  return detectRecurring(input.txs, input.bills ?? [], now)
+    .filter((c) => c.priceChange && c.priceChange.month === month)
+    .map((c) => {
+      const diff = round2(c.priceChange!.to - c.priceChange!.from);
+      return {
+        id: `price:${c.key}:${month}`,
+        kind: 'price-increase' as const,
+        title: `${c.title} ficou mais cara`,
+        body: `Passou de ${formatBRL(c.priceChange!.from)} para ${formatBRL(c.priceChange!.to)} por mês: ${formatBRL(round2(diff * 12))} a mais por ano.`,
+        route: '/accounts?segmento=fixas',
+        priority: 15,
+        supersedes: [],
+      };
+    });
+}
+
 /**
  * Alertas que valem agora, do mais importante para o menos. O app filtra os já avisados e mostra
  * no máximo um por vez (os que um alerta torna desnecessários vão junto como avisados).
@@ -160,6 +181,7 @@ export function spendingAlerts(input: SpendingAlertInput, now: Date): SpendingAl
   if (pace) out.push(pace);
   const category = categoryAlert(input.txs, now);
   if (category) out.push(category);
+  out.push(...priceAlerts(input, month, now));
   return out.sort((a, b) => b.priority - a.priority);
 }
 

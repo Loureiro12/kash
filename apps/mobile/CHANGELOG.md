@@ -15,6 +15,12 @@ Base: iOS 1.1.0 build 12 (commit `cb22f16`) e Android 1.1.0 versionCode 5 (commi
 - **Assistente Kash (IA)**: balão no canto do Início abre um chat com o Claude (Anthropic) para perguntar sobre as próprias finanças ("vale a pena comprar um celular em 10x?", "onde economizo?", "quanto posso gastar por dia?"). Responde com os números da pessoa: saldos, cartões e faturas, gastos do mês e por categoria, limite, parcelas e contas fixas dos próximos meses, metas e os lançamentos dos últimos 60 dias. Pede autorização na primeira vez; não envia e-mail, celular, sobrenome nem número de cartão; a conversa fica só no aparelho ("Nova conversa" apaga). **Lançamento assistido**: "gastei 45 no iFood no Nubank", "300 num fone em 3x", "recebi o salário ontem" viram cartões de confirmação (até 5 por mensagem) com valor, descrição, categoria, conta/cartão, data e parcelas; nada é salvo sem tocar em **Lançar** (Editar abre o sheet de lançamento já preenchido; Descartar ignora). O assistente só pode escolher entre as categorias e as contas/cartões da pessoa (ferramenta com esquema estrito), e o app confere de novo antes de lançar. 40 perguntas por dia. Backend: Edge Function `assistant` (mesma `ANTHROPIC_API_KEY` da importação; `docs/release.md` › 9.1). Política de privacidade atualizada (app e site).
 
 - **Widget do Kash no iPhone** (iOS 17+): tela inicial pequeno (abre o assistente) e médio (Perguntar e Lançar gasto), e na tela bloqueada (redondo e retangular). Não mostra valores, só abre o app. Nova ação **Perguntar ao Kash** no app Atalhos, Siri, Spotlight, botão de Ação e Toque Atrás. O chat espera os dados carregarem antes de enviar (aberto pelo widget com o app fechado). Novo target nativo (`targets/widget`, via `@bacons/apple-targets`) e extensão `com.andreloureiro.kash.widget`: exige build novo, e o primeiro `eas build` cria a assinatura da extensão (interativo, com o Apple ID).
+- **Assinaturas detectadas** (Contas › Fixas): o Kash encontra as cobranças que se repetem todo mês nos seus lançamentos (streaming, academia, apps), mostra quanto custam no ano e se o preço subiu.
+  - **Virar conta fixa** cria a conta com lembrete e previsão. Se a cobrança do mês já foi lançada, a conta já entra como paga, ligada a ela, sem lançar de novo; desmarcar depois não apaga o gasto.
+  - **Ignorar** tira a sugestão.
+  - **Preço maior** vira alerta ("Netflix ficou mais cara").
+  - **Assistente:** também passa a conhecer essas cobranças.
+  - **Backend:** migração `20261022000000_bill_from_recurring`, que precisa ir para produção antes do app.
 - **Alertas de gastos e resumo da semana** (Perfil › Preferências, ligados por padrão; precisam da permissão de notificações):
   - **Limite:** aviso ao chegar a 80% do limite do mês e ao passar dele (também do cartão e do restante, se o limite for dividido), com quanto sobra por dia.
   - **Ritmo:** "no ritmo atual, o mês fecha em…", quando a projeção passa do limite.
@@ -35,6 +41,7 @@ Base: iOS 1.1.0 build 12 (commit `cb22f16`) e Android 1.1.0 versionCode 5 (commi
 > • Atalhos "Hoje" e "Esta semana" no Início.
 > • Widget do Kash na tela inicial e na tela bloqueada: abra o assistente ou lance um gasto com um toque.
 > • Assistente Kash: pergunte se vale a pena fazer uma compra, onde dá pra economizar ou como estão seus gastos, e receba uma resposta com os seus números. Também dá pra lançar escrevendo: “gastei 45 no iFood” — é só conferir e tocar em Lançar.
+> • Assinaturas: o Kash encontra as cobranças que se repetem todo mês, mostra quanto custam no ano e avisa quando ficam mais caras. Um toque e elas viram conta fixa.
 > • Alertas de gastos: o Kash avisa quando você chega a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal. E todo domingo chega o resumo da semana.
 > • Lance pela foto: fotografe a nota ou o comprovante e o Kash preenche o lançamento para você conferir.
 > • Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição.

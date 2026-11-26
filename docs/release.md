@@ -160,6 +160,7 @@ As mudanças do app vão se acumulando em `apps/mobile/CHANGELOG.md` › "Próxi
 Quando decidir lançar:
 1. Backend primeiro (o app 1.1.0 usa `email_reminder` e a importação): merge em `main` ou `pnpm deploy:backend`, os segredos dos lembretes (item 1.8) e o da IA da importação (item 1.9).
    - Antes do build, teste num aparelho de verdade o "Abrir com o Kash" (PDF do e-mail do banco no iOS; "Abrir com" no Android) e um PDF com senha: o leitor do PDF vem da CDN (jsdelivr, `pdfjs-dist@4.10.38`), então precisa de internet.
+   - 1.2.0: a migração `20261022000000_bill_from_recurring` (função `link_bill_payment` e coluna `bills.paid_tx_linked`) precisa estar em produção **antes** do app, senão "Virar conta fixa" de uma assinatura já cobrada no mês falha ao sincronizar. Também publique a Edge Function `assistant` (foto do comprovante).
 2. Builds: `cd apps/mobile && eas build -p all --profile production` (build number / version code sobem sozinhos).
 3. Envio: `eas submit -p ios --latest` e `eas submit -p android --latest` (Android na faixa de teste interno primeiro).
 4. Nas lojas, cole os textos de `docs/loja-1.2.0.md` (novidades, descrição, palavras-chave, notas da revisão e privacidade).

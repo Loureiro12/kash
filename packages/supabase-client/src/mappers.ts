@@ -73,6 +73,7 @@ export function toBill(row: BillRow): Bill {
     sourceId: row.source_id ?? undefined,
     sourceType: row.source_type ?? undefined,
     paidTxId: row.paid_tx_id ?? undefined,
+    ...(row.paid_tx_linked ? { paidTxLinked: true } : {}),
   };
 }
 

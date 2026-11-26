@@ -129,7 +129,12 @@ export function installRemoteActions() {
     if (!bill) return undefined;
     return bill.paid ? api.unpayBill(db, id) : api.payBill(db, id);
   });
-  wrap('addBill', ([input], before) => api.createBill(db, { name: input.name, amount: input.amount, dueDay: input.dueDay, category: input.category, source: input.sourceId ? { type: sourceTypeOf(before, input.sourceId), id: input.sourceId } : null }));
+  wrap('addBill', ([input], before, after) => {
+    const created = api.createBill(db, { name: input.name, amount: input.amount, dueDay: input.dueDay, category: input.category, source: input.sourceId ? { type: sourceTypeOf(before, input.sourceId), id: input.sourceId } : null });
+    // assinatura detectada com a cobrança deste mês já lançada: liga como pagamento (sem criar outro lançamento)
+    const linked = input.linkTxId && after.bills.some((b) => b.paidTxId === input.linkTxId);
+    return linked ? created.then((bill) => api.linkBillPayment(db, bill.id, input.linkTxId!)) : created;
+  });
   wrap('updateBill', ([id, input], before) => api.updateBill(db, id, { name: input.name, amount: input.amount, dueDay: input.dueDay, category: input.category, source: input.sourceId ? { type: sourceTypeOf(before, input.sourceId), id: input.sourceId } : null }));
   wrap('removeBill', ([id]) => api.deleteBill(db, id));
 

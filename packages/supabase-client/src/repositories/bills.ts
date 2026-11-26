@@ -41,6 +41,14 @@ export async function payBill(db: KashClient, id: string, date?: string): Promis
   return unwrap(await db.rpc('pay_bill', { p_bill_id: id, ...(date ? { p_date: date } : {}) }));
 }
 
+/**
+ * Marca a conta como paga com um lançamento que já existe neste mês (a cobrança da assinatura já
+ * lançada ou importada), sem criar outro. Desmarcar depois não apaga esse lançamento.
+ */
+export async function linkBillPayment(db: KashClient, billId: string, txId: string): Promise<void> {
+  unwrap(await db.rpc('link_bill_payment', { p_bill_id: billId, p_tx_id: txId }));
+}
+
 export async function unpayBill(db: KashClient, id: string): Promise<void> {
   unwrap(await db.rpc('unpay_bill', { p_bill_id: id }));
 }

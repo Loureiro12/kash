@@ -27,6 +27,7 @@ jest.mock('expo-linear-gradient', () => {
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), navigate: jest.fn(), replace: jest.fn(), back: jest.fn() }),
   usePathname: () => '/',
+  useLocalSearchParams: () => ({}),
 }));
 
 // Supabase: o serviço real precisa de módulos nativos; nos testes usamos um cliente falso e mocks da API.

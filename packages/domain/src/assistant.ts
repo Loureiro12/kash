@@ -5,6 +5,7 @@ import { cardUsage } from './selectors/cards';
 import { forecast } from './selectors/forecast';
 import { goalProgress } from './selectors/goals';
 import { periodReport } from './selectors/periodReport';
+import { detectRecurring } from './selectors/recurring';
 import { previousMonthsSpent } from './selectors/report';
 import { invoiceView } from './selectors/rollover';
 import { isTransfer, type Account, type Bill, type Card, type Goal, type Invoice, type Plan, type Settings, type Tx, type User } from './types';
@@ -106,6 +107,12 @@ export function buildAssistantContext(input: AssistantInput, now: Date): string 
   if (fixed.length) {
     push('', `## Contas fixas (${money(round2(fixed.reduce((a, b) => a + b.amount, 0)))} por mês)`);
     for (const b of [...fixed].sort((a, b) => a.dueDay - b.dueDay)) push(`- ${b.name}: ${money(b.amount)}, dia ${b.dueDay}${b.paid ? ' (paga este mês)' : ' (a pagar este mês)'}${b.sourceType === 'card' ? ', no cartão' : ''}`);
+  }
+  // assinaturas e cobranças que se repetem nos lançamentos e ainda não são conta fixa
+  const recurring = detectRecurring(txs, bills, now).filter((c) => !c.isBill);
+  if (recurring.length) {
+    push('', `## Cobranças recorrentes detectadas, ainda não cadastradas como conta fixa (${money(round2(recurring.reduce((a, c) => a + c.amount, 0)))} por mês)`);
+    for (const c of recurring.slice(0, 10)) push(`- ${c.title}: ${money(c.amount)}, por volta do dia ${c.dueDay}, há ${c.months} meses${c.priceChange ? ` (subiu de ${money(c.priceChange.from)})` : ''}`);
   }
   const open = plans.filter((p) => p.current < p.installments);
   if (open.length) {

@@ -83,6 +83,8 @@ export interface Bill {
   sourceType?: SourceType;
   /** lançamento gerado ao marcar como paga neste mês (removido ao desmarcar) */
   paidTxId?: ID;
+  /** o pagamento é um lançamento que já existia (cobrança importada/lançada): desmarcar não o apaga */
+  paidTxLinked?: boolean;
 }
 
 export interface Goal {

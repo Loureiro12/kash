@@ -103,6 +103,12 @@ Navegação: barra de abas flutuante com **Início, Cartões, botão central "+"
 
 - Aluguel, internet, assinaturas etc., cobradas numa conta ou num cartão, com dia de vencimento e categoria.
 - **Marcar como paga** gera o lançamento; desmarcar remove. Voltam a "a pagar" todo mês.
+- **Assinaturas detectadas** *(1.2.0)*: card "Encontramos cobranças que se repetem" no topo de Contas › Fixas.
+  - **Regras** (`detectRecurring` em `@kash/domain`): mesma descrição, no máximo uma vez por mês, em pelo menos 3 dos últimos 6 meses (sem pular mais de um mês), em dias parecidos (até 7 de diferença) e com valores perto da mediana (±25%). A última cobrança precisa ser dos últimos 55 dias. Ficam de fora parcelas, transferências, fatura e o que já é conta fixa (nome igual ou contido).
+  - **Virar conta fixa** usa nome, valor, dia, categoria e cartão/conta da última cobrança. Se a cobrança deste mês já existe, a conta nasce **paga e ligada** a ela (`link_bill_payment`, coluna `bills.paid_tx_linked`): não cria outro lançamento, e desmarcar não apaga o gasto real.
+  - **Ignorar** fica guardado no aparelho.
+  - **Aumento de preço** (≥ 3% e ≥ R$ 1) aparece no card e vira alerta ("Netflix ficou mais cara"), que abre Contas › Fixas.
+  - **Assistente:** as recorrentes ainda não cadastradas vão no resumo financeiro, então ele também sabe delas.
 
 ### 3.7 Metas
 

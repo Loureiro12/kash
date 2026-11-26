@@ -1,16 +1,23 @@
-import { useRouter } from 'expo-router';
-import React from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { Button, Card, CheckCircle, DashedButton, EmptyState, Pressable, Screen, SegmentedControl, Text, TileIcon } from '@/design-system';
 import { DataGate } from '../navigation/DataGate';
 import { formatBRL, totalBalance } from '@kash/domain';
 import { useBillsSummary, useBillsView, useKashStore, useMoney } from '@/store';
 import type { AccountsSegment } from '@/store';
+import { RecurringSuggestions } from './RecurringSuggestions';
 
 /** Tela 5 — Contas (segmentado Bancárias | Fixas). */
 export function AccountsScreen() {
   const segment = useKashStore((s) => s.ui.accountsSegment);
   const setSegment = useKashStore((s) => s.setAccountsSegment);
+  // aberto por notificação (ex.: assinatura que ficou mais cara): /accounts?segmento=fixas
+  const { segmento } = useLocalSearchParams<{ segmento?: string }>();
+  useEffect(() => {
+    if (segmento === 'fixas') setSegment('bills');
+    else if (segmento === 'bancarias') setSegment('bank');
+  }, [segmento, setSegment]);
   return (
     <Screen testID="accounts-screen" header={<Text variant="screenTitle">Contas</Text>}>
       <View style={{ marginTop: 4 }}>
@@ -92,12 +99,14 @@ function FixedBills() {
   if (bills.length === 0) {
     return (
       <View testID="accounts-bills">
+        <RecurringSuggestions />
         <EmptyState icon="calendar" title="Nenhuma conta fixa" description="Aluguel, internet, streaming: cadastre o que vence todo mês e nunca mais esqueça." actionLabel="Nova conta fixa" onAction={() => openSheet('addBill')} testID="bills-empty-state" />
       </View>
     );
   }
   return (
     <View testID="accounts-bills">
+      <RecurringSuggestions />
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 18 }}>
         <Card radius="card" padding={16} style={{ flex: 1, gap: 4 }}>
           <Text variant="micro" color="muted">

@@ -100,6 +100,7 @@ export type Database = {
           id: string;
           name: string;
           paid_tx_id: string | null;
+          paid_tx_linked: boolean;
           source_id: string | null;
           source_type: Database['public']['Enums']['source_type'] | null;
           updated_at: string;
@@ -114,6 +115,7 @@ export type Database = {
           id?: string;
           name: string;
           paid_tx_id?: string | null;
+          paid_tx_linked?: boolean;
           source_id?: string | null;
           source_type?: Database['public']['Enums']['source_type'] | null;
           updated_at?: string;
@@ -127,6 +129,7 @@ export type Database = {
           id?: string;
           name?: string;
           paid_tx_id?: string | null;
+          paid_tx_linked?: boolean;
           source_id?: string | null;
           source_type?: Database['public']['Enums']['source_type'] | null;
           updated_at?: string;
@@ -741,6 +744,7 @@ export type Database = {
         Returns: string;
       };
       kash_today: { Args: Record<PropertyKey, never>; Returns: string };
+      link_bill_payment: { Args: { p_bill_id: string; p_tx_id: string }; Returns: undefined };
       mark_reminder_sent: {
         Args: { p_day: string; p_items: number; p_user_id: string };
         Returns: undefined;

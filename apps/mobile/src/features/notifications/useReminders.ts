@@ -70,6 +70,7 @@ export function useReminderSync() {
 export function useSpendingAlerts() {
   const userId = useKashStore((s) => s.userId);
   const txs = useKashStore((s) => s.txs);
+  const bills = useKashStore((s) => s.bills);
   const cards = useKashStore((s) => s.cards);
   const monthlyBudget = useKashStore((s) => s.settings.monthlyBudget);
   const cardBudget = useKashStore((s) => s.settings.cardBudget);
@@ -87,8 +88,8 @@ export function useSpendingAlerts() {
   }, []);
 
   const alerts = useMemo(
-    () => (enabled && ready && userId ? spendingAlerts({ txs, cardIds: cards.map((c) => c.id), settings: { monthlyBudget, cardBudget } }, now()) : []),
-    [enabled, ready, userId, txs, cards, monthlyBudget, cardBudget, tick], // eslint-disable-line react-hooks/exhaustive-deps
+    () => (enabled && ready && userId ? spendingAlerts({ txs, cardIds: cards.map((c) => c.id), settings: { monthlyBudget, cardBudget }, bills }, now()) : []),
+    [enabled, ready, userId, txs, bills, cards, monthlyBudget, cardBudget, tick], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const signature = alerts.map((a) => a.id).join('|');
 

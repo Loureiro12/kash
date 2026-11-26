@@ -16,6 +16,7 @@ Novidades desta versão:
 • Lance gastos escrevendo: "gastei 45 no iFood no Nubank" vira um lançamento pronto. É só conferir e tocar em Lançar.
 • Ou pela foto: fotografe a nota fiscal, o cupom ou o comprovante do Pix e o Kash preenche valor, lugar, data e categoria.
 • Alertas de gastos: aviso ao chegar a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal. E todo domingo, o resumo da semana.
+• Assinaturas encontradas: o Kash acha as cobranças que se repetem todo mês, mostra quanto custam no ano e avisa quando ficam mais caras.
 • Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição.
 • Relatórios do dia, da semana e do mês: quanto saiu, com o quê, comparado com o período anterior e com o ritmo do seu limite.
 • Atalhos "Hoje" e "Esta semana" no Início.
@@ -104,8 +105,9 @@ What's new in 1.2.0:
 3. Daily, weekly and monthly reports (Home > "Hoje" / "Esta semana").
 4. Home Screen and Lock Screen widget (opens the assistant or the expense entry; shows no financial data).
 5. Spending alerts (local notifications computed on the device; Profile > "Alertas de gastos" and "Resumo da semana"): 80%/100% of the monthly budget, spending pace and unusual category spending, plus a weekly summary on Sundays at 7 pm. No data leaves the device for this.
-6. App Intents: "Perguntar ao Kash", "Lançar gasto", "Lançar entrada" (Shortcuts, Siri, Action button).
-7. Reset my data: Profile > "Zerar meus dados" (asks the user to type ZERAR).
+6. Detected subscriptions (Accounts > "Fixas" tab): recurring charges found in the user's own entries, with "Virar conta fixa" (turn into a fixed bill) and "Ignorar".
+7. App Intents: "Perguntar ao Kash", "Lançar gasto", "Lançar entrada" (Shortcuts, Siri, Action button).
+8. Reset my data: Profile > "Zerar meus dados" (asks the user to type ZERAR).
 
 Account deletion: Profile > "Excluir conta". The app does not connect to bank accounts; all data is entered or imported by the user.
 ```
@@ -126,12 +128,12 @@ No Android não há widget nem Siri, e o "Zerar meus dados" já saiu na 1.1.0: a
 ### Novidades da versão (até 500)
 
 ```
-• Assistente Kash: pergunte se vale a pena comprar, onde economizar ou quanto ainda pode gastar. Ele responde com os seus números.
-• Lance escrevendo ("gastei 45 no iFood") ou pela foto da nota ou do comprovante.
+• Assistente Kash: pergunte se vale a pena comprar, onde economizar ou quanto ainda pode gastar.
+• Lance escrevendo ("gastei 45 no iFood") ou pela foto da nota.
 • Lançar mais rápido: teclado do celular, calendário e categoria sugerida.
-• Relatórios do dia, da semana e do mês, com comparação e ritmo do limite.
-• Alertas de limite e de gastos fora do normal, e resumo da semana no domingo.
-• Correções e melhorias.
+• Relatórios do dia, da semana e do mês.
+• Alertas de limite e de gastos fora do normal, e resumo no domingo.
+• Assinaturas encontradas, com aviso quando ficam mais caras.
 ```
 
 ### Descrição curta (até 80)

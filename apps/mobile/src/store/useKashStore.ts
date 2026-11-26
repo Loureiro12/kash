@@ -136,6 +136,8 @@ export interface NewBill {
   dueDay: number;
   category: Category;
   sourceId?: string;
+  /** cobrança deste mês já lançada (assinatura detectada): a conta nasce paga, ligada a ela */
+  linkTxId?: string;
 }
 
 export interface NewDeposit {
@@ -815,6 +817,8 @@ export const useKashStore = create<KashState>((set, get) => ({
           accounts: debit ? s.accounts.map((a) => (a.id === debit ? { ...a, balance: round2(a.balance - bill.amount) } : a)) : s.accounts,
         };
       }
+      // pagamento ligado a uma cobrança que já existia: desmarcar não apaga o gasto real
+      if (bill.paidTxLinked) return { bills: s.bills.map((b) => (b.id === id ? { ...b, paid: false, paidTxId: undefined, paidTxLinked: undefined } : b)) };
       const paidTx = bill.paidTxId ? s.txs.find((t) => t.id === bill.paidTxId) : undefined;
       const refund = paidTx && s.accounts.some((a) => a.id === paidTx.sourceId) ? paidTx.sourceId : null;
       return {
@@ -824,9 +828,10 @@ export const useKashStore = create<KashState>((set, get) => ({
       };
     }),
 
-  addBill: ({ name, amount, dueDay, category, sourceId }) => {
+  addBill: ({ name, amount, dueDay, category, sourceId, linkTxId }) => {
     if (!name.trim() || amount <= 0 || dueDay < 1 || dueDay > 31) return;
-    const bill: Bill = { id: createId('bill'), name: name.trim(), amount: round2(amount), dueDay, paid: false, category, sourceId };
+    const linked = linkTxId ? get().txs.find((t) => t.id === linkTxId && t.amount < 0 && t.date.slice(0, 7) === toISODate(now()).slice(0, 7)) : undefined;
+    const bill: Bill = { id: createId('bill'), name: name.trim(), amount: round2(amount), dueDay, paid: !!linked, category, sourceId, ...(linked ? { paidTxId: linked.id, paidTxLinked: true } : {}) };
     set((s) => ({ bills: [...s.bills, bill].sort((a, b) => a.dueDay - b.dueDay), ui: { ...s.ui, sheet: null } }));
   },
 
