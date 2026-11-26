@@ -5,6 +5,7 @@ import { __resetRemoteActionsForTests, installRemoteActions } from '@/data/remot
 import { TransferSheet } from '@/features/transactions/TransferSheet';
 import { setClock } from '@/lib/clock';
 import { useKashStore } from '@/store';
+import { typeAmount } from '@/test/amount';
 import { renderWithTheme } from '@/test/render';
 
 jest.mock('@/data/source', () => ({ DATA_SOURCE: 'remote' }));
@@ -81,12 +82,32 @@ describe('sheet de transferência', () => {
     useKashStore.getState().openTransfer();
     await renderWithTheme(<TransferSheet />);
     expect(screen.getByTestId('transfer-save')).toBeDisabled();
-    for (const k of ['5', '00', '00']) await fireEvent.press(screen.getByTestId(`key-${k}`));
+    await typeAmount('transfer-amount', ['5', '00', '00']);
     expect(screen.getByTestId('transfer-amount')).toHaveTextContent('R$ 500,00');
     expect(screen.getByTestId('transfer-preview')).toHaveTextContent('Conta corrente fica com R$ 1.840,50 · Poupança fica com R$ 2.300,00.');
     await fireEvent.press(screen.getByTestId('transfer-to-acc3'));
     await fireEvent.press(screen.getByTestId('transfer-save'));
     expect(balance('acc3')).toBe(585);
     expect(useKashStore.getState().ui.toast).toBe('R$ 500,00 transferidos');
+  });
+
+  it('vem do gasto com o valor digitado e volta para Gasto/Entrada levando tudo', async () => {
+    useKashStore.getState().openTransfer(undefined, { amountCents: 5000, note: 'Reserva', date: '2026-10-14' });
+    await renderWithTheme(<TransferSheet />);
+    expect(screen.getByTestId('transfer-amount')).toHaveTextContent('R$ 50,00');
+    expect(screen.getByTestId('transfer-note')).toHaveDisplayValue('Reserva');
+    expect(screen.getByTestId('transfer-date-label')).toHaveTextContent('Ontem');
+    await fireEvent.press(screen.getByTestId('tx-kind-income'));
+    const ui = useKashStore.getState().ui;
+    expect(ui).toMatchObject({ sheet: 'expense', newTxKind: 'income', newTxDraft: { amountCents: 5000, note: 'Reserva', date: '2026-10-14' } });
+  });
+
+  it('editando não mostra a troca de tipo; com uma conta só ainda dá para voltar', async () => {
+    useKashStore.setState((s) => ({ accounts: s.accounts.slice(0, 1) }));
+    useKashStore.getState().openTransfer();
+    await renderWithTheme(<TransferSheet />);
+    expect(screen.getByTestId('transfer-unavailable')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('tx-kind-expense'));
+    expect(useKashStore.getState().ui).toMatchObject({ sheet: 'expense', newTxKind: 'expense' });
   });
 });

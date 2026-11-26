@@ -46,12 +46,10 @@ name: Categorias — criar, usar num gasto, renomear e excluir movendo os lança
 - tapOn:
     id: "tab-add"
 # R$ 50,00 = 5 · 0 · 00 (centavos)
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-5"
-- tapOn:
-    id: "key-0"
-- tapOn:
-    id: "key-00"
+    id: "expense-amount-input"
+- inputText: "5000"
 - assertVisible: "R$ 50,00"
 # categorias novas ficam no fim da fileira rolável
 - swipe:

@@ -15,19 +15,19 @@ tags: [critical]
     id: "chip-cat-Comida"
 - assertNotVisible:
     id: "chip-src-c0000000-0000-4000-8000-000000000001"
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-3"
-- tapOn:
-    id: "key-00"
-- tapOn:
-    id: "key-00"
+    id: "expense-amount-input"
+- inputText: "30000"
 - assertVisible: "+ R$ 300,00"
 - tapOn:
     id: "expense-note"
 - inputText: "Freela"
 - pressKey: Enter
 - tapOn:
-    id: "expense-date-prev"
+    id: "expense-date"
+- tapOn:
+    id: "expense-date-picker-ontem"
 - assertVisible: "Ontem"
 - tapOn:
     id: "expense-save"
@@ -45,8 +45,10 @@ tags: [critical]
     id: "tx-f0000000-0000-4000-8000-000000000001"
 - assertVisible: "Editar lançamento"
 - assertVisible: "R$ 14,50"
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-0"
+    id: "expense-amount-input"
+- inputText: "0"
 - assertVisible: "R$ 145,00"
 - tapOn:
     id: "expense-save"

@@ -51,7 +51,7 @@
 **Dinheiro do dia a dia**
 - Saldo total, entradas e saídas do mês, com opção de esconder os valores.
 - Limite mensal de gastos com barra de progresso e "quanto sobra pra fechar o mês no verde".
-- Lançamento de gasto ou entrada pelo botão central: teclado numérico próprio, categoria, origem (cartão ou conta), descrição e data.
+- Lançamento de gasto ou entrada pelo botão central: valor no teclado numérico do sistema, categoria (sugerida pela descrição já usada), origem (cartão ou conta), descrição e data com calendário.
 - Lista completa de lançamentos por mês, com filtros, edição e exclusão com "Desfazer".
 
 **Cartões de crédito**
@@ -229,7 +229,7 @@ Todo elemento interativo tem `testID` em kebab-case (`tab-add`, `chip-cat-Comida
 - **`Text` só aceita variantes da escala** tipográfica Sora.
 - **Acessibilidade:** alvos de toque de 44 px ou mais, rótulos e estados em todos os controles, campos de senha com botão de mostrar e ocultar.
 - **Cores personalizadas** em cartões e contas: além das cores prontas, a bolinha "Personalizar" abre o `ColorPickerModal` (área de saturação e brilho, barra de matiz, sugestões e código hex; a tecla retorno confirma). Para cartões, `cardAppearance` gera o gradiente a partir da cor e escolhe o texto claro ou escuro pelo contraste WCAG. A cor do cartão fica em `cards.color` (nula = gradiente pronto) e a da conta em `accounts.color`, ambas validadas como `#RRGGBB` no banco.
-- **Valores em dinheiro** usam `MoneyInput`: o usuário digita só números, que entram pelos centavos, e o campo mostra o valor já formatado (`R$ 1.234,56`). Com `allowNegative`, um botão ± troca o sinal, usado no saldo da conta. O lançamento de gasto tem teclado próprio com a mesma lógica.
+- **Valores em dinheiro** usam `MoneyInput`: o usuário digita só números, que entram pelos centavos, e o campo mostra o valor já formatado (`R$ 1.234,56`). Com `allowNegative`, um botão ± troca o sinal, usado no saldo da conta. No lançamento de gasto/entrada/transferência, o valor grande do sheet é o `AmountField`, com a mesma lógica no teclado numérico do sistema (o `Keypad` próprio continua só no Limite mensal e no depósito em metas).
 - **Movimento:** sheets em 300 ms, barras e anéis em 400 ms, haptics leves em ações.
 - **Ícone e splash** em `apps/mobile/assets/brand`. A splash animada fica em `src/features/splash/AnimatedSplash.tsx`.
 

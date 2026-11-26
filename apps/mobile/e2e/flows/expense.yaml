@@ -12,14 +12,10 @@ tags: [smoke, critical]
 - assertVisible:
     id: "tx-kind-expense"
 - assertVisible: "R$ 0,00"
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-1"
-- tapOn:
-    id: "key-4"
-- tapOn:
-    id: "key-5"
-- tapOn:
-    id: "key-0"
+    id: "expense-amount-input"
+- inputText: "1450"
 - assertVisible: "R$ 14,50"
 - tapOn:
     id: "chip-cat-Comida"
@@ -44,21 +40,28 @@ tags: [smoke, critical]
 - tapOn:
     id: "expense-save"
 - assertVisible: "R$ 14,50 lançado em Comida"
-- assertVisible: 'Lanche na cantina, menos R\$ 14,50.*'
 # saldo da conta corrente caiu de 2.340,50 → 2.326,00 (total 4.211,00)
 - assertVisible: "R$ 4.211,00"
+# a lista fica abaixo dos cards de relatório
+- scrollUntilVisible:
+    element: 'Lanche na cantina, menos R\$ 14,50.*'
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: "action-add-expense"
+    direction: UP
+    centerElement: true
+- waitForAnimationToEnd
 
 # 2) Gasto parcelado no cartão, pelo atalho da Início
 - tapOn:
     id: "action-add-expense"
 - assertVisible:
     id: "sheet-expense"
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-6"
-- tapOn:
-    id: "key-00"
-- tapOn:
-    id: "key-00"
+    id: "expense-amount-input"
+- inputText: "60000"
 - assertVisible: "R$ 600,00"
 - tapOn:
     id: "chip-src-c0000000-0000-4000-8000-000000000001"
@@ -78,7 +81,9 @@ tags: [smoke, critical]
 - tapOn:
     id: "expense-save"
 - assertVisible: "3x de R$ 200,00 no cartão"
-- assertVisible: 'Fone \(1/3\), menos R\$ 200,00.*'
+- scrollUntilVisible:
+    element: 'Fone \(1/3\), menos R\$ 200,00.*'
+    direction: DOWN
 
 # O plano aparece em Cartões › Parcelas em aberto
 - tapOn:

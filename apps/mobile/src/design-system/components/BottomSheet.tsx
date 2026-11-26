@@ -49,6 +49,7 @@ export function BottomSheet({ visible, onClose, title, headerContent, children, 
   const progress = useSharedValue(0);
   const scrollRef = useRef<ScrollView>(null);
   const offsetRef = useRef(0);
+  const keyboardUp = useKeyboardVisible();
 
   const ensureVisible = useCallback((node: TextInput | View | null) => {
     const run = () => {
@@ -127,7 +128,8 @@ export function BottomSheet({ visible, onClose, title, headerContent, children, 
                 backgroundColor: colors.bg,
                 borderTopLeftRadius: radii.sheet,
                 borderTopRightRadius: radii.sheet,
-                paddingBottom: Math.max(insets.bottom, 20) + 20,
+                // com o teclado aberto a área segura de baixo fica atrás dele: sobra mais espaço para o conteúdo
+                paddingBottom: keyboardUp ? 12 : Math.max(insets.bottom, 20) + 20,
                 // Percentual aqui resolveria contra o container (dimensionado pelo conteúdo),
                 // então o limite vem da janela, sempre abaixo da status bar.
                 maxHeight: Math.round(windowHeight - insets.top - 8),
@@ -162,6 +164,19 @@ export function BottomSheet({ visible, onClose, title, headerContent, children, 
       </View>
     </Modal>
   );
+}
+
+function useKeyboardVisible(): boolean {
+  const [up, setUp] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setUp(true));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return up;
 }
 
 const styles = StyleSheet.create({

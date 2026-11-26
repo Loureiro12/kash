@@ -10,16 +10,10 @@ name: Lançamento rápido pelo link (o mesmo caminho dos atalhos do iPhone)
 - assertVisible:
     id: "tx-kind-income"
     selected: true
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-2"
-- tapOn:
-    id: "key-5"
-- tapOn:
-    id: "key-0"
-- tapOn:
-    id: "key-0"
-- tapOn:
-    id: "key-0"
+    id: "expense-amount-input"
+- inputText: "25000"
 - assertVisible: ".*250,00"
 - assertVisible: "Salvar entrada"
 - tapOn:

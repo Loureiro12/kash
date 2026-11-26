@@ -45,6 +45,12 @@ export interface NewTransaction {
 }
 
 /** rascunho de lançamento novo: o que vier preenche o sheet */
+export interface TransferDraft {
+  amountCents?: number;
+  note?: string;
+  date?: string;
+}
+
 export interface NewTxDraft {
   amountCents?: number;
   category?: Category;
@@ -177,6 +183,8 @@ export interface KashState {
     depositGoalId: string | null;
     /** transferência em edição no sheet de transferência (null = nova) */
     transferId: string | null;
+    /** valor/descrição/data trazidos do sheet de gasto ao trocar para Transferência */
+    transferDraft: TransferDraft | null;
     /** fatura alvo do sheet de pagamento */
     payInvoiceId: string | null;
     /** tipo inicial do sheet de lançamento novo (gasto ou entrada) */
@@ -244,7 +252,7 @@ export interface KashState {
   openDeposit: (goalId: string) => void;
   openTransaction: (txId: string) => void;
   /** sheet de transferência; com id, edita a existente */
-  openTransfer: (transferId?: string) => void;
+  openTransfer: (transferId?: string, draft?: TransferDraft) => void;
   openPayInvoice: (invoiceId: string) => void;
   openEdit: (ref: EditingRef) => void;
   setDataStatus: (status: DataStatus) => void;
@@ -301,7 +309,7 @@ const buildInitial = (dataStatus: DataStatus = DATA_SOURCE === 'remote' ? 'loadi
     userId: null as string | null,
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, newTxKind: 'expense' as TxKind, newTxDraft: null as NewTxDraft | null, quickAdd: null },
+    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, transferDraft: null as TransferDraft | null, newTxKind: 'expense' as TxKind, newTxDraft: null as NewTxDraft | null, quickAdd: null },
   };
 };
 
@@ -578,10 +586,10 @@ export const useKashStore = create<KashState>((set, get) => ({
     set((s) => {
       // transferência abre o próprio sheet (edita as duas pernas juntas)
       const transferId = s.txs.find((t) => t.id === txId)?.transferId;
-      if (transferId) return { ui: { ...s.ui, sheet: 'transfer', sheetNonce: s.ui.sheetNonce + 1, transferId } };
+      if (transferId) return { ui: { ...s.ui, sheet: 'transfer', sheetNonce: s.ui.sheetNonce + 1, transferId, transferDraft: null } };
       return { ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: txId } };
     }),
-  openTransfer: (transferId) => set((s) => ({ ui: { ...s.ui, sheet: 'transfer', sheetNonce: s.ui.sheetNonce + 1, transferId: transferId ?? null } })),
+  openTransfer: (transferId, draft) => set((s) => ({ ui: { ...s.ui, sheet: 'transfer', sheetNonce: s.ui.sheetNonce + 1, transferId: transferId ?? null, transferDraft: transferId ? null : (draft ?? null) } })),
   openPayInvoice: (invoiceId) => set((s) => ({ ui: { ...s.ui, sheet: 'payInvoice', sheetNonce: s.ui.sheetNonce + 1, payInvoiceId: invoiceId } })),
   openDeposit: (goalId) => set((s) => ({ ui: { ...s.ui, sheet: 'deposit', sheetNonce: s.ui.sheetNonce + 1, depositGoalId: goalId } })),
   closeSheet: () => set((s) => ({ ui: { ...s.ui, sheet: null } })),

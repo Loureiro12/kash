@@ -69,12 +69,10 @@ name: Primeiro acesso — criar conta, boas-vindas em 3 passos e primeiros passo
     id: "checklist-expense-action"
 - assertVisible:
     id: "sheet-expense"
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-2"
-- tapOn:
-    id: "key-5"
-- tapOn:
-    id: "key-00"
+    id: "expense-amount-input"
+- inputText: "2500"
 - tapOn:
     id: "expense-save"
 - extendedWaitUntil:

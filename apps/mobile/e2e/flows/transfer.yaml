@@ -17,12 +17,10 @@ name: Transferência entre contas — move o saldo, não muda o total e persiste
 - assertVisible:
     id: "sheet-transfer"
 # R$ 200,00 da conta corrente para a carteira
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-2"
-- tapOn:
-    id: "key-00"
-- tapOn:
-    id: "key-00"
+    id: "transfer-amount-input"
+- inputText: "20000"
 - tapOn:
     id: "transfer-to-a0000000-0000-4000-8000-000000000003"
 - assertVisible:
@@ -39,3 +37,18 @@ name: Transferência entre contas — move o saldo, não muda o total e persiste
 - extendedWaitUntil:
     visible: "Carteira, .*R\\$ 285,00"
     timeout: 8000
+
+# o seletor de tipo também fica na transferência: dá para voltar a Gasto levando o valor digitado
+- tapOn:
+    id: "accounts-transfer"
+- assertVisible:
+    id: "sheet-transfer"
+- tapOn:
+    id: "transfer-amount-input"
+- inputText: "1500"
+- tapOn:
+    id: "tx-kind-expense"
+- assertVisible:
+    id: "sheet-expense"
+- assertVisible: "R$ 15,00"
+

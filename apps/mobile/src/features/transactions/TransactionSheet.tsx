@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, Keyboard, ScrollView, View } from 'react-native';
-import { BottomSheet, Button, Chip, DateStepper, Input, Keypad, Pressable, SegmentedControl, Text, useTheme, type KeypadKey } from '@/design-system';
-import { addDays, applyKeypadKey, digitsToAmount, formatBRL, installmentSchedule, monthKey, monthKeyToDate, parseISODate, relativeDayLabel, round2, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Keyboard, ScrollView, View, type TextInput } from 'react-native';
+import { AmountField, BottomSheet, Button, Chip, DateButton, DateStepper, Input, Pressable, SegmentedControl, Text, useTheme } from '@/design-system';
+import { formatBRL, installmentSchedule, monthKey, monthKeyToDate, relativeDayLabel, round2, suggestFromHistory, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useCategories, useKashStore, useSourceOptions } from '@/store';
+import { TxDatePicker, TxKindSwitch } from './TxSheetParts';
 
 const MAX_INSTALLMENTS = 24;
 
@@ -29,6 +30,7 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   const undoDelete = useKashStore((s) => s.undoDelete);
   const showToast = useKashStore((s) => s.showToast);
   const openTransfer = useKashStore((s) => s.openTransfer);
+  const txs = useKashStore((s) => s.txs);
   const sources = useSourceOptions();
   const accountSources = sources.filter((s) => !s.isCard);
   const today = now();
@@ -38,7 +40,7 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   // proposta do assistente aberta para editar (só vale para lançamento novo)
   const draft = useKashStore((s) => (editingId ? null : s.ui.newTxDraft));
   const [kind, setKind] = useState<TxKind>(editing ? (editing.amount < 0 ? 'expense' : 'income') : newTxKind);
-  const [digits, setDigits] = useState(editing ? String(Math.round(Math.abs(editing.amount) * 100)) : draft?.amountCents ? String(draft.amountCents) : '');
+  const [typed, setTyped] = useState(editing ? Math.abs(editing.amount) : draft?.amountCents ? draft.amountCents / 100 : 0);
   const isInvoicePayment = editing?.category === 'Fatura';
   const { names: categoryNames, colors: categoryColorsMap } = useCategories();
   const defaultCategory = categoryNames.includes('Comida') ? 'Comida' : (categoryNames[0] ?? 'Outros');
@@ -50,9 +52,21 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   /** parcelado: mês da 1ª parcela (pode ser no passado) e se o valor digitado é o total ou o da parcela */
   const [firstMonth, setFirstMonth] = useState(monthKey(today));
   const [valueMode, setValueMode] = useState<'total' | 'parcela'>('total');
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  /** escolhas feitas à mão não são trocadas pela sugestão do histórico */
+  const touched = useRef({ category: !!editing || !!draft?.category, source: !!editing || !!draft?.sourceId });
+  const amountRef = useRef<TextInput>(null);
+  const catScroll = useRef<ScrollView>(null);
+  const catX = useRef<Record<string, number>>({});
+
+  // lançamento novo sem valor: já abre com o teclado numérico, depois da animação do sheet
+  useEffect(() => {
+    if (!visible || editing || draft?.amountCents) return;
+    const t = setTimeout(() => amountRef.current?.focus(), 320);
+    return () => clearTimeout(t);
+  }, [visible, editing, draft?.amountCents]);
 
   const isIncome = kind === 'income';
-  const typed = digitsToAmount(digits);
   const srcIsCard = sources.find((s) => s.id === sourceId)?.isCard ?? false;
   const effectiveSource = isIncome && srcIsCard ? (accountSources[0]?.id ?? '') : sourceId;
   const n = !editing && !isIncome && srcIsCard ? installments : 1;
@@ -73,16 +87,36 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
     const d = monthKeyToDate(key);
     return key === monthKey(today) ? 'Este mês' : `${d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}/${String(d.getFullYear()).slice(2)}`;
   };
-  const isToday = date === todayISO;
 
-  const onKey = (key: KeypadKey) => {
-    Keyboard.dismiss();
-    setDigits((d) => applyKeypadKey(d, key));
+  const pickCategory = (c: Category) => {
+    touched.current.category = true;
+    setCategory(c);
   };
-  const shiftDate = (days: number) => setDate((d) => {
-    const next = toISODate(addDays(parseISODate(d), days));
-    return next > todayISO ? todayISO : next;
-  });
+  const pickSource = (id: string) => {
+    touched.current.source = true;
+    setSourceId(id);
+  };
+  /** descrição já usada antes ("ifood", "uber"): traz a categoria e a origem daquela vez */
+  const onNoteChange = (text: string) => {
+    setNote(text);
+    if (editing || isIncome) return;
+    const hint = suggestFromHistory(txs, text);
+    if (!hint) return;
+    if (!touched.current.category && categoryNames.includes(hint.category) && hint.category !== category) {
+      setCategory(hint.category);
+      const x = catX.current[hint.category];
+      if (x !== undefined) catScroll.current?.scrollTo({ x: Math.max(0, x - 20), animated: true });
+    }
+    if (!touched.current.source && sources.some((x) => x.id === hint.sourceId)) setSourceId(hint.sourceId);
+  };
+  const toggleCalendar = () => {
+    Keyboard.dismiss();
+    setCalendarOpen((o) => !o);
+  };
+  const pickDate = (iso: string) => {
+    setDate(iso);
+    setCalendarOpen(false);
+  };
 
   const onSave = () => {
     if (!canSave) return;
@@ -136,24 +170,17 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
       title={title}
       headerContent={
         !editing ? (
-          <SegmentedControl<TxKind | 'transfer'>
-            compact
+          <TxKindSwitch
             value={kind}
             onChange={(k) => {
               if (k === 'transfer') {
-                openTransfer();
+                // leva o que já foi digitado
+                openTransfer(undefined, { amountCents: typed > 0 ? Math.round(typed * 100) : undefined, note, date });
                 return;
               }
               setKind(k);
               if (k === 'income' && srcIsCard) setSourceId(accountSources[0]?.id ?? '');
             }}
-            options={[
-              { value: 'expense', label: 'Gasto', testID: 'tx-kind-expense' },
-              { value: 'income', label: 'Entrada', testID: 'tx-kind-income' },
-              { value: 'transfer', label: 'Transferência', testID: 'tx-kind-transfer' },
-            ]}
-            testID="tx-kind"
-            style={{ alignSelf: 'flex-start' }}
           />
         ) : undefined
       }
@@ -166,41 +193,54 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
         </>
       }
     >
-      <View style={{ alignItems: 'center', paddingVertical: 2 }}>
-        <Text variant="amountSheet" color={amount > 0 ? (isIncome ? 'accentText' : 'text') : 'muted'} testID="expense-amount">
-          {isIncome && amount > 0 ? '+ ' : ''}
-          {formatBRL(amount)}
-        </Text>
-      </View>
+      {/* no modo "parcela" o número digitado é a parcela; o total aparece na linha do parcelamento */}
+      <AmountField
+        ref={amountRef}
+        value={typed}
+        onChangeValue={setTyped}
+        color={isIncome ? 'accentText' : 'text'}
+        prefix={isIncome ? '+ ' : ''}
+        testID="expense-amount"
+        accessibilityLabel={n > 1 && valueMode === 'parcela' ? 'Valor da parcela' : 'Valor'}
+        onFocus={() => setCalendarOpen(false)}
+      />
 
       {!isIncome && !isInvoicePayment ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={catScroll} horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
           {categoryNames.map((c) => (
-            <Chip key={c} label={c} dotColor={categoryColorsMap[c]} selected={category === c} onPress={() => setCategory(c)} testID={`chip-cat-${c}`} />
+            <View
+              key={c}
+              onLayout={(e) => {
+                catX.current[c] = e.nativeEvent.layout.x;
+              }}
+            >
+              <Chip label={c} dotColor={categoryColorsMap[c]} selected={category === c} onPress={() => pickCategory(c)} testID={`chip-cat-${c}`} />
+            </View>
           ))}
         </ScrollView>
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
         {(isIncome ? accountSources : editing && plan ? sources.filter((src) => src.isCard) : sources).map((s) => (
-          <Chip key={s.id} label={s.label} tone="soft" shape="rounded" height={34} selected={effectiveSource === s.id} onPress={() => setSourceId(s.id)} testID={`chip-src-${s.id}`} />
+          <Chip key={s.id} label={s.label} tone="soft" shape="rounded" height={34} selected={effectiveSource === s.id} onPress={() => pickSource(s.id)} testID={`chip-src-${s.id}`} />
         ))}
       </ScrollView>
 
-      {/* descrição + data na mesma linha para o keypad caber sem rolar */}
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Input containerStyle={{ flex: 1, minWidth: 0 }} height={46} placeholder={isIncome ? 'Descrição (ex.: freela)' : 'Descrição (ex.: lanche)'} value={note} onChangeText={setNote} testID="expense-note" returnKeyType="done" />
-        <DateStepper
-          compact
-          label={relativeDayLabel(date, today)}
-          isToday={isToday}
-          onPrev={() => shiftDate(-1)}
-          onNext={() => shiftDate(1)}
-          nextDisabled={isToday}
-          onToday={() => setDate(todayISO)}
-          testID="expense-date"
+        <Input
+          containerStyle={{ flex: 1, minWidth: 0 }}
+          height={46}
+          placeholder={isIncome ? 'Descrição (ex.: freela)' : 'Descrição (ex.: lanche)'}
+          value={note}
+          onChangeText={onNoteChange}
+          onFocus={() => setCalendarOpen(false)}
+          testID="expense-note"
+          returnKeyType="done"
+          autoCapitalize="sentences"
         />
+        <DateButton label={relativeDayLabel(date, today)} open={calendarOpen} onPress={toggleCalendar} testID="expense-date" />
       </View>
+      {calendarOpen ? <TxDatePicker value={date} today={today} onPick={pickDate} testID="expense-date-picker" /> : null}
 
       {!editing && !isIncome && srcIsCard ? (
         <View
@@ -274,8 +314,6 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
           Parcela de “{plan.title}” ({plan.installments}x). Alterar o valor muda só esta parcela; trocar o cartão leva o parcelamento inteiro.
         </Text>
       ) : null}
-
-      <Keypad onKey={onKey} />
     </BottomSheet>
   );
 }

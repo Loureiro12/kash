@@ -8,14 +8,10 @@ name: Parcelado antigo — 1ª parcela há 8 meses lança só a parcela do mês
 - assertVisible:
     id: "sheet-expense"
 # R$ 1.200,00 no cartão principal (origem padrão)
+# teclado numérico do sistema: os dígitos entram pelos centavos
 - tapOn:
-    id: "key-1"
-- tapOn:
-    id: "key-2"
-- tapOn:
-    id: "key-00"
-- tapOn:
-    id: "key-00"
+    id: "expense-amount-input"
+- inputText: "120000"
 - assertVisible: "R$ 1.200,00"
 - tapOn:
     id: "expense-note"

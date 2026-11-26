@@ -72,7 +72,12 @@ Navegação: barra de abas flutuante com **Início, Cartões, botão central "+"
 
 ### 3.3 Lançamentos
 
-- **Lançar gasto ou entrada** pelo "+": teclado numérico próprio (o valor entra pelos centavos), categoria, origem (cartão ou conta), descrição e data.
+- **Lançar gasto, entrada ou transferência** pelo "+":
+  - **Valor:** digitado no teclado numérico do celular, que já abre sozinho num lançamento novo. Os números entram pelos centavos (1450 = R$ 14,50).
+  - **Campos:** categoria, origem (cartão ou conta) e descrição.
+  - **Data:** um calendário do mês, com os atalhos Hoje, Ontem e Anteontem (não aceita datas futuras).
+  - **Troca de tipo:** Gasto · Entrada · Transferência, nos dois sentidos, levando o valor, a descrição e a data.
+  - **Sugestão pela descrição:** uma descrição já usada sugere a categoria e a origem daquela vez, sem passar por cima da escolha manual.
 - **Compra parcelada** no cartão, de 1 a 24x, com "Valor digitado: Total ou Parcela".
 - **Compra parcelada antiga**: informe o mês da 1ª parcela (até 23 meses atrás); o app calcula quais já foram pagas e lança só a do mês. Compra já quitada não pode ser salva.
 - **Transferência entre contas** (Contas › Transferir, ou "Transferência" no lançamento): não conta como gasto nem entrada; aparece numa linha só ("Corrente → Poupança") e tem filtro próprio.

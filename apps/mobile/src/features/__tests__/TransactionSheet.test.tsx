@@ -3,6 +3,7 @@ import React from 'react';
 import { TransactionSheet } from '@/features/transactions/TransactionSheet';
 import { setClock } from '@/lib/clock';
 import { useKashStore } from '@/store';
+import { typeAmount } from '@/test/amount';
 import { renderWithTheme } from '@/test/render';
 
 beforeEach(async () => {
@@ -33,7 +34,7 @@ describe('TransactionSheet', () => {
 
   it('compra parcelada antiga: 1ª parcela há 8 meses lança só a 9/12 e mostra o que já foi pago', async () => {
     await renderWithTheme(<TransactionSheet />);
-    for (const k of ['1', '2', '0', '0', '0', '0']) await press(`key-${k}`);
+    await typeAmount('expense-amount', ['1', '2', '0', '0', '0', '0']);
     for (let i = 0; i < 11; i++) await press('expense-inst-inc');
     expect(screen.getByTestId('expense-installments-label')).toHaveTextContent('12x de R$ 100,00');
     expect(screen.queryByTestId('expense-plan-summary')).toBeNull();
@@ -54,7 +55,7 @@ describe('TransactionSheet', () => {
 
   it('modo "Parcela": o valor digitado é o de cada parcela', async () => {
     await renderWithTheme(<TransactionSheet />);
-    for (const k of ['1', '5', '0', '0', '0']) await press(`key-${k}`);
+    await typeAmount('expense-amount', ['1', '5', '0', '0', '0']);
     for (let i = 0; i < 5; i++) await press('expense-inst-inc');
     await press('expense-value-mode-parcela');
     expect(screen.getByTestId('expense-installments-label')).toHaveTextContent('6x de R$ 150,00');
@@ -64,7 +65,7 @@ describe('TransactionSheet', () => {
 
   it('compra já quitada não pode ser salva', async () => {
     await renderWithTheme(<TransactionSheet />);
-    for (const k of ['3', '0', '0', '0', '0']) await press(`key-${k}`);
+    await typeAmount('expense-amount', ['3', '0', '0', '0', '0']);
     await press('expense-inst-inc');
     await press('expense-inst-inc');
     for (let i = 0; i < 3; i++) await press('expense-first-month-prev');
@@ -77,7 +78,7 @@ describe('TransactionSheet', () => {
     expect(screen.getByTestId('expense-amount')).toHaveTextContent('R$ 0,00');
     expect(screen.getByTestId('expense-save')).toBeDisabled();
 
-    for (const k of ['1', '2', '0', '0', '0', '0']) await press(`key-${k}`);
+    await typeAmount('expense-amount', ['1', '2', '0', '0', '0', '0']);
     expect(screen.getByTestId('expense-amount')).toHaveTextContent('R$ 1.200,00');
 
     // origem padrão é o primeiro cartão → linha de parcelamento visível
@@ -100,8 +101,7 @@ describe('TransactionSheet', () => {
     await renderWithTheme(<TransactionSheet />);
     await press('chip-src-acc1');
     expect(screen.queryByTestId('expense-installments')).toBeNull();
-    await press('key-5');
-    await press('key-00');
+    await typeAmount('expense-amount', ['5', '00']);
     await press('expense-save');
     expect(useKashStore.getState().accounts[0]?.balance).toBe(2335.5);
     expect(useKashStore.getState().ui.toast).toBe('R$ 5,00 lançado em Comida');
@@ -112,9 +112,7 @@ describe('TransactionSheet', () => {
     await press('tx-kind-income');
     expect(screen.queryByTestId('chip-cat-Comida')).toBeNull();
     expect(screen.queryByTestId('chip-src-card1')).toBeNull();
-    await press('key-1');
-    await press('key-00');
-    await press('key-00');
+    await typeAmount('expense-amount', ['1', '00', '00']);
     await fireEvent.changeText(screen.getByTestId('expense-note'), 'Mesada');
     await press('expense-save');
     const s = useKashStore.getState();
@@ -122,13 +120,60 @@ describe('TransactionSheet', () => {
     expect(s.accounts[0]?.balance).toBe(2440.5);
   });
 
-  it('data: volta um dia e o atalho Hoje retorna', async () => {
+  it('data: abre o calendário, atalho Ontem, dia do mês e nada de futuro', async () => {
     await renderWithTheme(<TransactionSheet />);
     expect(screen.getByTestId('expense-date-label')).toHaveTextContent('Hoje');
-    await press('expense-date-prev');
+    expect(screen.queryByTestId('expense-date-picker')).toBeNull();
+    await press('expense-date');
+    await press('expense-date-picker-ontem');
     expect(screen.getByTestId('expense-date-label')).toHaveTextContent('Ontem');
-    await press('expense-date-next');
-    expect(screen.getByTestId('expense-date-label')).toHaveTextContent('Hoje');
+    expect(screen.queryByTestId('expense-date-picker')).toBeNull();
+
+    await press('expense-date');
+    expect(screen.getByTestId('expense-date-picker-calendar-month')).toHaveTextContent('outubro 2026');
+    expect(screen.getByTestId('expense-date-picker-calendar-day-2026-10-20')).toBeDisabled();
+    expect(screen.getByTestId('expense-date-picker-calendar-next')).toBeDisabled();
+    await press('expense-date-picker-calendar-prev');
+    expect(screen.getByTestId('expense-date-picker-calendar-month')).toHaveTextContent('setembro 2026');
+    await press('expense-date-picker-calendar-day-2026-09-28');
+    expect(screen.getByTestId('expense-date-label')).toHaveTextContent('28 set');
+
+    await press('chip-src-acc1');
+    await typeAmount('expense-amount', ['9', '90']);
+    await press('expense-save');
+    expect(useKashStore.getState().txs[0]).toMatchObject({ amount: -9.9, date: '2026-09-28' });
+  });
+
+  it('sem teclado próprio: o valor é digitado no teclado do sistema e apagar tira o último dígito', async () => {
+    await renderWithTheme(<TransactionSheet />);
+    expect(screen.queryByTestId('keypad')).toBeNull();
+    const input = screen.getByTestId('expense-amount-input');
+    expect(input.props.keyboardType).toBe('number-pad');
+    await typeAmount('expense-amount', ['1', '4', '5', '0']);
+    expect(screen.getByTestId('expense-amount')).toHaveTextContent('R$ 14,50');
+    await typeAmount('expense-amount', ['del']);
+    expect(screen.getByTestId('expense-amount')).toHaveTextContent('R$ 1,45');
+  });
+
+  it('descrição já usada traz a categoria e a origem daquela vez, sem passar por cima da escolha manual', async () => {
+    await renderWithTheme(<TransactionSheet />);
+    await fireEvent.changeText(screen.getByTestId('expense-note'), 'recarga do bilhete');
+    expect(screen.getByTestId('chip-cat-Transporte')).toBeSelected();
+    expect(screen.getByTestId('chip-src-acc1')).toBeSelected();
+    // escolheu à mão: a próxima sugestão não troca
+    await press('chip-cat-Lazer');
+    await fireEvent.changeText(screen.getByTestId('expense-note'), 'Mercado da esquina');
+    expect(screen.getByTestId('chip-cat-Lazer')).toBeSelected();
+  });
+
+  it('Transferência leva valor, descrição e data; e dá para voltar', async () => {
+    await renderWithTheme(<TransactionSheet />);
+    await typeAmount('expense-amount', ['50', '00']);
+    await fireEvent.changeText(screen.getByTestId('expense-note'), 'Reserva');
+    await press('tx-kind-transfer');
+    const ui = useKashStore.getState().ui;
+    expect(ui.sheet).toBe('transfer');
+    expect(ui.transferDraft).toEqual({ amountCents: 5000, note: 'Reserva', date: '2026-10-15' });
   });
 
   it('edição: pré-preenche, salva alterações e exclui com desfazer', async () => {
@@ -137,7 +182,7 @@ describe('TransactionSheet', () => {
     expect(screen.getByTestId('expense-amount')).toHaveTextContent('R$ 14,50');
     expect(screen.getByTestId('expense-note').props.value).toBe('Almoço no RU');
     expect(screen.queryByTestId('tx-kind-income')).toBeNull();
-    await press('key-0');
+    await typeAmount('expense-amount', ['0']);
     await press('expense-save');
     expect(useKashStore.getState().txs.find((t) => t.id === 'tx1')?.amount).toBe(-145);
     expect(useKashStore.getState().ui.toast).toBe('Lançamento atualizado');
