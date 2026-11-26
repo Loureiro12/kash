@@ -152,3 +152,17 @@ jest.mock('react-native/Libraries/Settings/NativeSettingsManager', () => ({
   __esModule: true,
   default: { getConstants: () => ({ settings: {} }), setValues: jest.fn(), deleteValues: jest.fn() },
 }));
+
+// fotos de comprovante: câmera/galeria e redução no aparelho (nativos)
+jest.mock('expo-image-picker', () => ({
+  requestCameraPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  launchCameraAsync: jest.fn(async () => ({ canceled: false, assets: [{ uri: 'file:///camera.jpg', width: 3024, height: 4032 }] })),
+  launchImageLibraryAsync: jest.fn(async () => ({ canceled: false, assets: [{ uri: 'file:///galeria.jpg', width: 1200, height: 900 }] })),
+}));
+jest.mock('expo-image-manipulator', () => {
+  const ctx: { resize: jest.Mock; renderAsync: jest.Mock } = {
+    resize: jest.fn((): unknown => ctx),
+    renderAsync: jest.fn(async () => ({ saveAsync: jest.fn(async () => ({ uri: 'file:///reduzida.jpg', width: 1176, height: 1568, base64: 'QUJD'.repeat(50) })) })),
+  };
+  return { ImageManipulator: { manipulate: jest.fn(() => ctx), __ctx: ctx }, SaveFormat: { JPEG: 'jpeg', PNG: 'png' } };
+});

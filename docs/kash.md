@@ -145,6 +145,7 @@ Acesso: Cartões › Importar fatura, Contas › Importar extrato, ou o link no 
 - Perguntas como "Vale a pena comprar um celular de R$ 2.000 em 10x?", "Onde eu posso economizar?", "Quanto posso gastar por dia até o fim do mês?", "Consigo bater minhas metas no prazo?" (sugestões prontas na tela vazia).
 - Responde com os números dela: saldos, cartões e faturas, gastos do mês e por categoria, limite, parcelas e contas fixas dos próximos meses, metas e lançamentos dos últimos 60 dias. Termina compras com "sim", "não" ou "sim, se…".
 - **Lançamento assistido:** "gastei 45 no iFood no Nubank", "300 num fone em 3x", "recebi o salário ontem" viram **cartões de confirmação** (até 5 por mensagem). **Lançar** cria; **Editar** abre o sheet já preenchido; **Descartar** ignora. Nada é salvo sem a pessoa tocar.
+- **Foto do comprovante:** botão de câmera no chat, ou o botão de leitura ao lado da descrição no lançamento (abre o assistente direto na câmera ou galeria). Serve para nota fiscal, cupom, recibo e comprovante de Pix ou de cartão. O Claude lê o total pago, o estabelecimento, a data, a categoria e o cartão/conta (quando o comprovante mostra) e devolve o mesmo cartão de confirmação. Dá para acrescentar texto ("foi no Nubank em 3x"). A foto é reduzida no aparelho (no máximo 1568 px, JPEG 70%) e não é guardada: nem no aparelho, nem no servidor.
 - Pede **autorização na primeira vez**; a conversa fica **só no aparelho** ("Nova conversa" apaga). **40 perguntas por dia**.
 - Detalhes técnicos na seção 6.
 
@@ -203,7 +204,7 @@ O app completo no navegador, mesma conta e mesmas regras:
 ### 4.2 Site institucional
 
 - **Landing** (`/`): proposta, recursos, privacidade, perguntas frequentes e botões das lojas (controlados em `apps/web/src/content/site.ts`).
-- **Política de privacidade** (`/privacidade`), atualizada em 25/11/2026 com o assistente.
+- **Política de privacidade** (`/privacidade`), atualizada em 26/11/2026 com o assistente e a foto do comprovante.
 - **Excluir conta** (`/excluir-conta`), exigido pelas lojas.
 - Métricas sem cookies: Vercel Web Analytics e Speed Insights.
 
@@ -236,6 +237,7 @@ Três usos, todos pela API da Anthropic, com a chave **só no servidor** (`ANTHR
 - **Cache de prompt** nas regras, no resumo e no histórico (barateia as perguntas seguintes da conversa).
 - **Fallback em recusa** (`fallbacks: "default"`): se o modelo recusar por política, o servidor da Anthropic tenta outro modelo na mesma chamada.
 - **Lançamento assistido:** ferramenta `propor_lancamento` com **esquema estrito**, cujas opções são só as categorias e as contas/cartões da pessoa. Servidor e app conferem cada proposta de novo; resposta cortada por tamanho descarta as propostas.
+- **Foto:** vai em base64 só na última mensagem (bloco `image` antes do texto). A função aceita JPEG, PNG ou WebP de até 2 MB em base64 (`image_too_large` / `image_invalid`). Regras do prompt para foto: usar o total pago, o nome fantasia, a data do comprovante (nunca futura), não repetir CPF/endereço/cartão e não chutar se estiver ilegível. Conta no mesmo limite de 40 por dia.
 - **Regras do prompt:** não inventar valores, perguntar o que faltar, só finanças pessoais e uso do Kash, nunca pedir senha/CPF/dados bancários, ignorar instruções vindas dos dados, lembrar que não substitui um profissional.
 
 **Custo:** acompanhar em `ai_calls` (`select date(created_at), purpose, count(*), sum(input_tokens), sum(output_tokens) from ai_calls group by 1, 2 order by 1 desc;`). Opus 5.5 custa US$ 4 de entrada e US$ 20 de saída por milhão de tokens; Sonnet 5.5 sai pela metade; Haiku 5.5 bem mais barato.
@@ -244,7 +246,7 @@ Três usos, todos pela API da Anthropic, com a chave **só no servidor** (`ANTHR
 
 - **RLS em todas as tabelas** (cada pessoa só vê os próprios dados).
 - **Sessão criptografada** no aparelho (SecureStore) e bloqueio por biometria opcional.
-- **Para a IA nunca vão** e-mail, celular, sobrenome, CPF, endereço nem número de cartão. No PDF, o app remove dados pessoais antes do envio; o arquivo e a senha não saem do aparelho. No assistente, há autorização explícita na primeira vez e a conversa fica só no aparelho. A Anthropic não usa esses dados para treinar modelos.
+- **Para a IA nunca vão** e-mail, celular, sobrenome, CPF, endereço nem número de cartão, com uma exceção: a **foto de comprovante** que a pessoa escolhe mandar vai inteira e pode ter dados impressos (como o CPF na nota). A tela de autorização e a política avisam; o prompt manda não repetir esses dados, e a foto não é guardada. No PDF, o app remove dados pessoais antes do envio; o arquivo e a senha não saem do aparelho. No assistente, há autorização explícita na primeira vez e a conversa fica só no aparelho. A Anthropic não usa esses dados para treinar modelos.
 - **Telemetria** (Firebase) sem valores, nomes de lançamentos ou e-mail, só um id interno; sem identificador de anúncios; desligável no Perfil.
 - **Direitos do titular:** exportar os dados, zerar os dados e excluir a conta pelo app, pela web ou pelo site.
 - **Política de privacidade** no app (`/privacy`) e no site, com seções de Importação com IA e Assistente com IA.

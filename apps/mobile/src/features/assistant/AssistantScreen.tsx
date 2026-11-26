@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ASSISTANT_LIMITS, ASSISTANT_SUGGESTIONS, formatBRL, relativeDayLabel, round2, type TxProposal } from '@kash/domain';
 import { Button, Chip, Icon, IconButton, Pressable, Text, fontFamily, layout, radii, staticColors, useTheme } from '@/design-system';
@@ -8,6 +8,7 @@ import { DATA_SOURCE } from '@/data/source';
 import { now } from '@/lib/clock';
 import { useCategories, useKashStore } from '@/store';
 import { assistantConsent, type ProposalStatus } from './chatStorage';
+import { choosePhotoSource, pickReceiptPhoto, type PhotoSource, type ReceiptPhoto } from './receiptPhoto';
 import { RichText } from './RichText';
 import { useAssistantChat } from './useAssistantChat';
 
@@ -20,6 +21,9 @@ export function AssistantScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [consent, setConsent] = useState<boolean | null>(null);
+  // aberto pelo "Ler comprovante" do lançamento: já vai para a câmera/galeria
+  const { foto } = useLocalSearchParams<{ foto?: string }>();
+  const initialPhoto: PhotoSource | undefined = foto === 'camera' || foto === 'galeria' ? foto : undefined;
 
   useEffect(() => {
     void assistantConsent.get().then(setConsent);
@@ -46,7 +50,7 @@ export function AssistantScreen() {
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="assistant-screen">
       {header}
       {consent === null ? null : consent ? (
-        <Chat />
+        <Chat initialPhoto={initialPhoto} />
       ) : (
         <Consent
           onAccept={() => {
@@ -80,6 +84,9 @@ function Consent({ onAccept, onDecline }: { onAccept: () => void; onDecline: () 
           • Não enviamos seu e-mail, celular, sobrenome nem números de cartão. A conversa fica só neste aparelho.
         </Text>
         <Text variant="body" color="muted">
+          • Quando você manda a foto de um comprovante ou nota, a imagem vai para o Claude ler e não é guardada (nem no aparelho, nem no servidor). Ela pode ter dados impressos, como CPF na nota.
+        </Text>
+        <Text variant="body" color="muted">
           • São respostas geradas por IA: confira antes de decidir. Não substitui um profissional.
         </Text>
       </View>
@@ -89,27 +96,59 @@ function Consent({ onAccept, onDecline }: { onAccept: () => void; onDecline: () 
   );
 }
 
-function Chat() {
+function Chat({ initialPhoto }: { initialPhoto?: PhotoSource }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { messages, loaded, sending, error, remaining, send, retry, reset, confirmProposal, editProposal, dismissProposal } = useAssistantChat();
   const [draft, setDraft] = useState('');
+  const [photo, setPhoto] = useState<ReceiptPhoto | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const autoPhoto = useRef(false);
   const scroll = useRef<ScrollView>(null);
   const remote = DATA_SOURCE === 'remote';
   // aberto pelo widget/atalho com o app frio: espera os dados do servidor (o resumo não pode ir com os de exemplo)
   const ready = useKashStore((s) => s.ui.dataStatus === 'ready');
-  const canSend = remote && ready && !sending;
+  const canSend = remote && ready && !sending && !preparing;
+  const hasInput = !!draft.trim() || !!photo;
 
   useEffect(() => {
     const t = setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
     return () => clearTimeout(t);
   }, [messages.length, sending, error]);
 
-  const submit = (text = draft, suggested = false) => {
-    if (!text.trim() || !canSend) return;
+  const submit = (text = draft, suggested = false, image = photo) => {
+    if ((!text.trim() && !image) || !canSend) return;
     setDraft('');
-    void send(text, suggested);
+    setPhoto(null);
+    void send(text, suggested, image?.image);
   };
+
+  /** tira/escolhe a foto e reduz no aparelho; `autoSend` envia direto (vindo do "Ler comprovante") */
+  const attach = async (source?: PhotoSource, autoSend = false) => {
+    setPhotoError(null);
+    const from = source ?? (await choosePhotoSource());
+    if (!from) return;
+    setPreparing(true);
+    try {
+      const picked = await pickReceiptPhoto(from);
+      if (!picked) return;
+      if (autoSend) submit('', false, picked);
+      else setPhoto(picked);
+    } catch {
+      setPhotoError('Não deu pra abrir essa foto. Tente outra.');
+    } finally {
+      setPreparing(false);
+    }
+  };
+
+  // vindo do lançamento: abre a câmera/galeria uma vez, quando os dados já carregaram
+  useEffect(() => {
+    if (!initialPhoto || autoPhoto.current || !remote || !ready || !loaded) return;
+    autoPhoto.current = true;
+    void attach(initialPhoto, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPhoto, remote, ready, loaded]);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -121,6 +160,7 @@ function Chat() {
               Toque numa sugestão, escreva a sua pergunta ou peça pra lançar um gasto: “gastei 45 no iFood no Nubank”.
             </Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <Chip label="📷 Lançar pela foto de um comprovante" onPress={canSend ? () => void attach() : undefined} testID="assistant-suggestion-photo" />
               {ASSISTANT_SUGGESTIONS.map((s, i) => (
                 <Chip key={s} label={s} onPress={canSend ? () => submit(s, true) : undefined} testID={`assistant-suggestion-${i}`} />
               ))}
@@ -130,7 +170,7 @@ function Chat() {
 
         {messages.map((m, i) => (
           <React.Fragment key={m.id}>
-            <Bubble role={m.role} content={m.content} testID={`assistant-msg-${i}`} />
+            <Bubble role={m.role} content={m.content} photo={m.photo} testID={`assistant-msg-${i}`} />
             {m.proposals?.map((p, j) => (
               <ProposalCard
                 key={j}
@@ -149,9 +189,15 @@ function Chat() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 10, paddingHorizontal: 14, borderRadius: radii.card, backgroundColor: colors.surface }} testID="assistant-typing" accessibilityLabel="O assistente está pensando" accessibilityLiveRegion="polite">
             <ActivityIndicator size="small" color={colors.muted} />
             <Text variant="meta" color="muted">
-              Analisando seus números…
+              {messages[messages.length - 1]?.photo ? 'Lendo a foto…' : 'Analisando seus números…'}
             </Text>
           </View>
+        ) : null}
+
+        {photoError ? (
+          <Text variant="body" color="neg" testID="assistant-photo-error" accessibilityLiveRegion="assertive">
+            {photoError}
+          </Text>
         ) : null}
 
         {error ? (
@@ -186,11 +232,42 @@ function Chat() {
             {remaining === 0 ? 'Acabaram as perguntas de hoje. Volte amanhã!' : `${remaining} ${remaining === 1 ? 'pergunta restante' : 'perguntas restantes'} hoje`}
           </Text>
         ) : null}
+        {photo || preparing ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: radii.input, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }} testID="assistant-photo-preview">
+            {photo ? (
+              <Image source={{ uri: photo.uri }} style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: colors.surface2 }} accessibilityIgnoresInvertColors accessible={false} />
+            ) : (
+              <View style={{ width: 44, height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface2 }}>
+                <ActivityIndicator size="small" color={colors.muted} />
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text variant="bodySemibold">{photo ? 'Foto do comprovante' : 'Preparando a foto…'}</Text>
+              <Text variant="micro" color="muted">
+                {photo ? 'Diga algo a mais se quiser (ex.: “foi no Nubank em 3x”)' : 'Reduzindo no aparelho antes de enviar'}
+              </Text>
+            </View>
+            {photo ? <IconButton icon="close" size={32} subtle onPress={() => setPhoto(null)} accessibilityLabel="Remover a foto" testID="assistant-photo-remove" /> : null}
+          </View>
+        ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
+          <Pressable
+            onPress={() => void attach()}
+            disabled={!canSend}
+            haptic="light"
+            accessibilityRole="button"
+            accessibilityLabel="Anexar foto de comprovante"
+            accessibilityHint="Tire ou escolha a foto de uma nota, cupom ou comprovante para lançar"
+            accessibilityState={{ disabled: !canSend }}
+            testID="assistant-photo"
+            style={{ width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, opacity: canSend ? 1 : 0.4 }}
+          >
+            <Icon name="camera" size={20} color={colors.text} />
+          </Pressable>
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder="Pergunte ou lance: “gastei 30 no Uber”"
+            placeholder={photo ? 'Algo a acrescentar? (opcional)' : 'Pergunte ou lance: “gastei 30 no Uber”'}
             placeholderTextColor={colors.muted}
             multiline
             maxLength={ASSISTANT_LIMITS.messageChars}
@@ -201,13 +278,13 @@ function Chat() {
           />
           <Pressable
             onPress={() => submit()}
-            disabled={!draft.trim() || !canSend}
+            disabled={!hasInput || !canSend}
             haptic="light"
             accessibilityRole="button"
-            accessibilityLabel="Enviar pergunta"
-            accessibilityState={{ disabled: !draft.trim() || !canSend }}
+            accessibilityLabel={photo ? 'Enviar foto' : 'Enviar pergunta'}
+            accessibilityState={{ disabled: !hasInput || !canSend }}
             testID="assistant-send"
-            style={{ width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent, opacity: !draft.trim() || !canSend ? 0.4 : 1 }}
+            style={{ width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent, opacity: !hasInput || !canSend ? 0.4 : 1 }}
           >
             <Icon name="send" size={20} color={staticColors.ink} />
           </Pressable>
@@ -220,14 +297,14 @@ function Chat() {
   );
 }
 
-function Bubble({ role, content, testID }: { role: 'user' | 'assistant'; content: string; testID: string }) {
+function Bubble({ role, content, photo, testID }: { role: 'user' | 'assistant'; content: string; photo?: boolean; testID: string }) {
   const { colors } = useTheme();
   const mine = role === 'user';
   return (
     <View
       testID={testID}
       accessible
-      accessibilityLabel={`${mine ? 'Você' : 'Assistente'}: ${content.replace(/\*\*/g, '')}`}
+      accessibilityLabel={`${mine ? 'Você' : 'Assistente'}${photo ? ', com foto' : ''}: ${content.replace(/\*\*/g, '')}`}
       style={{
         alignSelf: mine ? 'flex-end' : 'flex-start',
         maxWidth: '88%',
@@ -241,6 +318,14 @@ function Bubble({ role, content, testID }: { role: 'user' | 'assistant'; content
         borderColor: colors.line,
       }}
     >
+      {photo ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }} testID={`${testID}-photo`}>
+          <Icon name="camera" size={14} color={staticColors.ink} />
+          <Text variant="microSemibold" color={staticColors.ink}>
+            Foto do comprovante
+          </Text>
+        </View>
+      ) : null}
       {mine ? (
         <Text variant="subtitle" color={staticColors.ink}>
           {content}

@@ -21,7 +21,7 @@ export interface TelemetryEvents {
   import_statement: { target: 'card' | 'account'; format: 'pdf' | 'ofx' | 'csv'; plans: number; txs: number; transfers: number; matched: number };
   import_undo: Record<string, never>;
   /** assistente (Claude): pergunta enviada; `suggested` = tocou numa sugestão pronta */
-  assistant_message: { suggested: boolean };
+  assistant_message: { suggested: boolean; photo?: boolean };
   /** lançamento proposto pelo assistente: mostrado, lançado direto, aberto para editar ou descartado */
   assistant_proposal: { action: 'shown' | 'saved' | 'edited' | 'dismissed' };
   /** "Zerar meus dados" concluído */

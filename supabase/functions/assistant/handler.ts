@@ -14,6 +14,15 @@ export const MAX_HISTORY = 20;
 export const MAX_USER_CHARS = 1500;
 export const MAX_ASSISTANT_CHARS = 6000;
 export const MAX_CONTEXT_CHARS = 24000;
+/** foto do comprovante em base64 (o app reduz para ~1568 px de lado; ~1,5 MB de folga) */
+export const MAX_IMAGE_CHARS = 2_000_000;
+export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+
+/** foto anexada à última mensagem da pessoa (só nela: as anteriores não voltam) */
+export interface ChatImage {
+  mediaType: (typeof IMAGE_TYPES)[number];
+  data: string;
+}
 
 export interface ChatTurn {
   role: 'user' | 'assistant';
@@ -33,6 +42,8 @@ export interface AssistantPrompt {
   messages: ChatTurn[];
   /** sem contas/cartões, o assistente não propõe lançamentos */
   ledger: Ledger | null;
+  /** foto anexada à última mensagem (comprovante, nota fiscal, etiqueta de preço…) */
+  image?: ChatImage | null;
 }
 
 /** lançamento proposto (a pessoa confirma no app; nada é salvo aqui) */
@@ -91,6 +102,15 @@ export const SYSTEM_PROMPT = [
   '- Categoria: a que melhor descreve o gasto entre as categorias dela. Parcelas: só em compra no cartão quando a pessoa disser (ex.: "em 3x"); senão, 1.',
   '- Descrição: o nome curto do lugar ou do que foi comprado, como ela reconheceria ("iFood", "Mercado Extra", "Salário").',
   '- Pagamento de fatura, transferência entre contas e contas fixas não são lançados por aqui: explique que dá pra fazer isso nas telas de Cartões e Contas.',
+  '',
+  'Fotos:',
+  '- A pessoa pode mandar a foto de um comprovante, nota fiscal, cupom, recibo, comprovante de Pix ou de cartão. Leia a imagem e proponha o lançamento com propor_lancamento.',
+  '- Valor: o TOTAL efetivamente pago (depois de descontos e com taxa de serviço/gorjeta, se cobrada), não o subtotal nem o troco. Se houver várias compras diferentes na mesma foto, proponha uma por compra.',
+  '- Descrição: o nome do estabelecimento como a pessoa reconheceria (nome fantasia, não a razão social: "Padaria Pão Quente", não "PAO QUENTE COMERCIO DE ALIMENTOS LTDA"). Categoria: pelo tipo de lugar e pelos itens.',
+  '- Data: a da compra na imagem; se não aparecer, hoje. Se a data lida estiver no futuro, use hoje. Parcelas: só se a imagem mostrar (ex.: "3x de R$ 50,00"); o valor é o total.',
+  '- Origem: se o comprovante mostrar o cartão (bandeira ou final) ou "Pix"/"débito", use a conta ou o cartão da pessoa que combine; se não der pra saber, o mais usado em gastos parecidos. Pix ou transferência RECEBIDOS são entrada.',
+  '- Na resposta, diga em uma frase o que você leu (lugar, valor, data). Não repita CPF, endereço, número de cartão, nomes de pessoas nem outros dados pessoais da imagem.',
+  '- Se a foto estiver ilegível ou cortada no total, não chute: diga o que faltou e peça outra foto ou o valor. Se a imagem não for um comprovante (por exemplo, a foto de um produto com o preço), responda à pergunta da pessoa usando o que dá pra ver, sem propor lançamento a menos que ela peça.',
 ].join('\n');
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -106,6 +126,18 @@ export function sanitizeMessages(raw: unknown): ChatTurn[] | null {
   while (recent.length && recent[0]!.role !== 'user') recent = recent.slice(1);
   if (recent.length === 0 || recent[recent.length - 1]!.role !== 'user') return null;
   return recent;
+}
+
+/** confere a foto: tipo aceito, base64 de verdade e tamanho */
+export function sanitizeImage(raw: unknown): ChatImage | null | 'invalid' | 'too_large' {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== 'object') return 'invalid';
+  const r = raw as { mediaType?: unknown; data?: unknown };
+  if (typeof r.mediaType !== 'string' || !(IMAGE_TYPES as readonly string[]).includes(r.mediaType)) return 'invalid';
+  if (typeof r.data !== 'string' || r.data.length < 100) return 'invalid';
+  if (r.data.length > MAX_IMAGE_CHARS) return 'too_large';
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(r.data)) return 'invalid';
+  return { mediaType: r.mediaType as ChatImage['mediaType'], data: r.data };
 }
 
 function cleanText(v: unknown, max: number): string {
@@ -183,7 +215,7 @@ export async function handleAssistant(req: Request, deps: AssistantDeps): Promis
   if (!userId) return json(401, { error: 'unauthorized' });
   if (!deps.callModel) return json(503, { error: 'ai_not_configured' });
 
-  let body: { messages?: unknown; context?: unknown; ledger?: unknown };
+  let body: { messages?: unknown; context?: unknown; ledger?: unknown; image?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -194,13 +226,16 @@ export async function handleAssistant(req: Request, deps: AssistantDeps): Promis
   const context = typeof body.context === 'string' ? body.context.trim() : '';
   const ledger = sanitizeLedger(body.ledger);
   if (context.length > MAX_CONTEXT_CHARS) return json(413, { error: 'context_too_long' });
+  const image = sanitizeImage(body.image);
+  if (image === 'too_large') return json(413, { error: 'image_too_large' });
+  if (image === 'invalid') return json(400, { error: 'image_invalid' });
 
   const used = await deps.countRecentCalls(userId);
   if (used >= ASSISTANT_DAILY_LIMIT) return json(429, { error: 'daily_limit', limit: ASSISTANT_DAILY_LIMIT });
 
   let result: AssistantResult;
   try {
-    result = await deps.callModel({ system: SYSTEM_PROMPT, context: context || 'Sem dados financeiros disponíveis.', messages, ledger });
+    result = await deps.callModel({ system: SYSTEM_PROMPT, context: context || 'Sem dados financeiros disponíveis.', messages, ledger, image });
   } catch (err) {
     const reason = failureReason(err);
     console.error('assistant: falha na IA', reason, err instanceof Error ? err.message : String(err));

@@ -33,7 +33,12 @@ async function callModel(prompt: AssistantPrompt) {
     ...(prompt.ledger ? { tools: [proposalTool(prompt.ledger)] } : {}),
     // a conversa cresce a cada pergunta: o cache automático cobre o histórico
     cache_control: { type: 'ephemeral' },
-    messages: prompt.messages.map((m) => ({ role: m.role, content: m.content })),
+    // a foto (se houver) vai só na última mensagem da pessoa, antes do texto
+    messages: prompt.messages.map((m, i) =>
+      prompt.image && i === prompt.messages.length - 1
+        ? { role: m.role, content: [{ type: 'image' as const, source: { type: 'base64' as const, media_type: prompt.image.mediaType, data: prompt.image.data } }, { type: 'text' as const, text: m.content }] }
+        : { role: m.role, content: m.content },
+    ),
   });
   const message = await stream.finalMessage();
   const text = message.content

@@ -1,5 +1,5 @@
 import { assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { ASSISTANT_DAILY_LIMIT, failureReason, handleAssistant, MAX_HISTORY, MAX_USER_CHARS, proposalTool, sanitizeLedger, sanitizeMessages, type AssistantDeps, type AssistantPrompt } from './handler.ts';
+import { ASSISTANT_DAILY_LIMIT, failureReason, handleAssistant, MAX_HISTORY, MAX_IMAGE_CHARS, MAX_USER_CHARS, proposalTool, sanitizeLedger, sanitizeMessages, type AssistantDeps, type AssistantPrompt } from './handler.ts';
 
 function deps(over: Partial<AssistantDeps> = {}) {
   const prompts: AssistantPrompt[] = [];
@@ -131,4 +131,22 @@ Deno.test('sem as opções do app, ou resposta cortada, nada é proposto', async
     deps({ callModel: async () => ({ text: 'Ok', stopReason, usage: { input_tokens: 1, output_tokens: 1 }, toolInputs: [{ tipo: 'gasto', valor: 10, descricao: 'x', categoria: 'Comida', origem_id: 'card1', data: '2026-11-25', parcelas: 1 }] }) }).d;
   assertEquals((await (await handleAssistant(post(valid), withTool('tool_use'))).json()).proposals, []);
   assertEquals((await (await handleAssistant(post({ ...valid, ledger }), withTool('max_tokens'))).json()).proposals, []);
+});
+
+const IMG = 'A'.repeat(400);
+
+Deno.test('foto: vai junto ao prompt; tipo errado, base64 inválido e foto grande demais são recusados', async () => {
+  const { d, prompts } = deps();
+  const ok = await handleAssistant(post({ ...valid, image: { mediaType: 'image/jpeg', data: IMG } }), d);
+  assertEquals(ok.status, 200);
+  assertEquals(prompts[0]!.image, { mediaType: 'image/jpeg', data: IMG });
+  assertStringIncludes(prompts[0]!.system, 'TOTAL efetivamente pago');
+  assertEquals((await handleAssistant(post({ ...valid, image: { mediaType: 'image/gif', data: IMG } }), d)).status, 400);
+  assertEquals((await handleAssistant(post({ ...valid, image: { mediaType: 'image/png', data: `${IMG}<script>` } }), d)).status, 400);
+  const big = await handleAssistant(post({ ...valid, image: { mediaType: 'image/png', data: 'A'.repeat(MAX_IMAGE_CHARS + 4) } }), d);
+  assertEquals(big.status, 413);
+  assertEquals((await big.json()).error, 'image_too_large');
+  // sem foto: nada no prompt
+  await handleAssistant(post(valid), d);
+  assertEquals(prompts[1]!.image, null);
 });

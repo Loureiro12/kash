@@ -134,6 +134,14 @@
       "expo-web-browser",
       "expo-apple-authentication",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Kash usa suas fotos só quando você escolhe um comprovante ou nota fiscal para lançar.",
+          "cameraPermission": "O Kash usa a câmera para fotografar um comprovante ou nota fiscal e lançar o gasto.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {

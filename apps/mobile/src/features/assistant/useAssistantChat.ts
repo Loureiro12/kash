@@ -1,4 +1,4 @@
-import { askAssistant, toKashError } from '@kash/supabase-client';
+import { askAssistant, toKashError, type AssistantImage } from '@kash/supabase-client';
 import { ASSISTANT_LIMITS, assistantLedger, buildAssistantContext, checkProposal, describeProposal, toISODate, type AssistantLedger, type TxProposal } from '@kash/domain';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createId } from '@/lib/ids';
@@ -30,8 +30,11 @@ const STATUS_NOTE: Record<ProposalStatus, string> = {
 /** o que vai no histórico: o texto e, para o assistente saber, o que foi proposto e o que a pessoa fez */
 function toTurn(m: ChatMessage, ledger: AssistantLedger) {
   const notes = (m.proposals ?? []).map((p) => `[Proposta: ${describeProposal(p.proposal, ledger)} — ${STATUS_NOTE[p.status]}]`);
-  return { role: m.role, content: [m.content, ...notes].join('\n') };
+  return { role: m.role, content: [m.photo ? '[A pessoa anexou uma foto]' : '', m.content, ...notes].filter(Boolean).join('\n') };
 }
+
+/** texto que acompanha uma foto enviada sem mensagem */
+export const PHOTO_DEFAULT_TEXT = 'Lança esse comprovante pra mim.';
 
 /**
  * Conversa com o assistente (Claude, pela Edge Function `assistant`): envia as mensagens mais
@@ -46,6 +49,8 @@ export function useAssistantChat() {
   const [error, setError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
   const latest = useRef<ChatMessage[]>([]);
+  /** foto da última pergunta, guardada só na memória para o "Tentar de novo" */
+  const pendingImage = useRef<AssistantImage | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -70,13 +75,14 @@ export function useAssistantChat() {
   );
 
   const request = useCallback(
-    async (history: ChatMessage[]) => {
+    async (history: ChatMessage[], image?: AssistantImage | null) => {
       setSending(true);
       setError(null);
       try {
         const ledger = currentLedger();
         const turns = history.slice(-ASSISTANT_LIMITS.history).map((m) => toTurn(m, ledger));
-        const res = await askAssistant(supabase, { messages: turns, context: currentContext(), ledger });
+        const res = await askAssistant(supabase, { messages: turns, context: currentContext(), ledger, ...(image ? { image } : {}) });
+        pendingImage.current = null;
         setRemaining(res.remaining);
         // confere cada proposta contra os dados de agora (conta excluída, categoria renomeada…)
         const today = toISODate(now());
@@ -93,13 +99,14 @@ export function useAssistantChat() {
   );
 
   const send = useCallback(
-    async (text: string, suggested = false) => {
-      const content = text.trim().slice(0, ASSISTANT_LIMITS.messageChars);
+    async (text: string, suggested = false, image?: AssistantImage | null) => {
+      const content = (text.trim() || (image ? PHOTO_DEFAULT_TEXT : '')).slice(0, ASSISTANT_LIMITS.messageChars);
       if (!content || sending) return;
-      const next = [...latest.current, { id: createId('msg'), role: 'user' as const, content }];
+      const next = [...latest.current, { id: createId('msg'), role: 'user' as const, content, ...(image ? { photo: true } : {}) }];
       update(next);
-      track('assistant_message', { suggested });
-      await request(next);
+      track('assistant_message', image ? { suggested, photo: true } : { suggested });
+      pendingImage.current = image ?? null;
+      await request(next, image);
     },
     [request, sending, update],
   );
@@ -107,12 +114,15 @@ export function useAssistantChat() {
   /** reenvia a última pergunta que ficou sem resposta */
   const retry = useCallback(async () => {
     const history = latest.current;
-    if (sending || history[history.length - 1]?.role !== 'user') return;
-    await request(history);
+    const last = history[history.length - 1];
+    if (sending || last?.role !== 'user') return;
+    // a foto só existe na memória: depois de fechar o app, reenvia só o texto
+    await request(history, last.photo ? pendingImage.current : null);
   }, [request, sending]);
 
   const reset = useCallback(() => {
     setError(null);
+    pendingImage.current = null;
     update([]);
   }, [update]);
 

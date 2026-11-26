@@ -25,6 +25,8 @@ import {
   MessageCircle,
   SendHorizontal,
   Sparkles,
+  Camera,
+  ScanText,
 } from 'lucide-react-native';
 import React from 'react';
 
@@ -49,7 +51,9 @@ export type IconName =
   | 'backspace'
   | 'chat'
   | 'send'
-  | 'sparkles';
+  | 'sparkles'
+  | 'camera'
+  | 'scan';
 
 const map = {
   home: Home,
@@ -73,6 +77,8 @@ const map = {
   chat: MessageCircle,
   send: SendHorizontal,
   sparkles: Sparkles,
+  camera: Camera,
+  scan: ScanText,
 } as const;
 
 export interface IconProps {

@@ -11,6 +11,8 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  /** a pessoa anexou uma foto (a imagem em si não é guardada) */
+  photo?: boolean;
   /** lançamentos propostos pelo assistente nesta resposta */
   proposals?: { proposal: TxProposal; status: ProposalStatus }[];
 }

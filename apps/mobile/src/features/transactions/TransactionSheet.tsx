@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Keyboard, ScrollView, View, type TextInput } from 'react-native';
-import { AmountField, BottomSheet, Button, Chip, DateButton, DateStepper, Input, Pressable, SegmentedControl, Text, useTheme } from '@/design-system';
+import { useRouter } from 'expo-router';
+import { AmountField, BottomSheet, Button, Chip, DateButton, DateStepper, Icon, Input, Pressable, SegmentedControl, Text, radii, useTheme } from '@/design-system';
 import { formatBRL, installmentSchedule, monthKey, monthKeyToDate, relativeDayLabel, round2, suggestFromHistory, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
+import { DATA_SOURCE } from '@/data/source';
+import { choosePhotoSource } from '@/features/assistant/receiptPhoto';
 import { now } from '@/lib/clock';
 import { useCategories, useKashStore, useSourceOptions } from '@/store';
 import { TxDatePicker, TxKindSwitch } from './TxSheetParts';
@@ -22,6 +25,7 @@ export function TransactionSheet() {
 
 function TransactionForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
   const { colors } = useTheme();
+  const router = useRouter();
   const editing: Tx | null = useKashStore((s) => (editingId ? (s.txs.find((t) => t.id === editingId) ?? null) : null));
   const plan = useKashStore((s) => (editing?.planId ? (s.plans.find((p) => p.id === editing.planId) ?? null) : null));
   const addTransaction = useKashStore((s) => s.addTransaction);
@@ -108,6 +112,14 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
       if (x !== undefined) catScroll.current?.scrollTo({ x: Math.max(0, x - 20), animated: true });
     }
     if (!touched.current.source && sources.some((x) => x.id === hint.sourceId)) setSourceId(hint.sourceId);
+  };
+  /** foto da nota/comprovante: o assistente lê e propõe o lançamento (com Lançar/Editar) */
+  const readReceipt = async () => {
+    Keyboard.dismiss();
+    const source = await choosePhotoSource();
+    if (!source) return;
+    onClose();
+    router.push(`/assistant?foto=${source}`);
   };
   const toggleCalendar = () => {
     Keyboard.dismiss();
@@ -238,6 +250,19 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
           returnKeyType="done"
           autoCapitalize="sentences"
         />
+        {!editing && DATA_SOURCE === 'remote' ? (
+          <Pressable
+            onPress={() => void readReceipt()}
+            haptic="selection"
+            accessibilityRole="button"
+            accessibilityLabel="Ler comprovante"
+            accessibilityHint="Tire ou escolha a foto da nota ou do comprovante; o assistente preenche o lançamento"
+            testID="expense-receipt"
+            style={{ width: 46, height: 46, borderRadius: radii.input, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}
+          >
+            <Icon name="scan" size={19} color={colors.text} />
+          </Pressable>
+        ) : null}
         <DateButton label={relativeDayLabel(date, today)} open={calendarOpen} onPress={toggleCalendar} testID="expense-date" />
       </View>
       {calendarOpen ? <TxDatePicker value={date} today={today} onPick={pickDate} testID="expense-date-picker" /> : null}

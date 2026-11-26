@@ -24,7 +24,15 @@ export interface AssistantReply {
   truncated?: boolean;
 }
 
+/** foto anexada à pergunta (base64 sem o prefixo data:) */
+export interface AssistantImage {
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
+  data: string;
+}
+
 const ERRORS: Record<string, string> = {
+  image_too_large: 'Essa foto ficou grande demais. Tente tirar de novo, mais de perto.',
+  image_invalid: 'Não deu pra enviar essa foto. Tente outra.',
   daily_limit: 'Você já fez as perguntas de hoje ao assistente. Volte amanhã!',
   ai_not_configured: 'O assistente ainda não está disponível.',
   ai_failed: 'O assistente não respondeu agora. Tente de novo em instantes.',
@@ -36,8 +44,9 @@ const ERRORS: Record<string, string> = {
 /**
  * Pergunta ao assistente financeiro (Edge Function `assistant`, Claude). `context` é o resumo dos
  * dados da pessoa (`buildAssistantContext` de @kash/domain); a conversa não é guardada no servidor.
+ * `image` (opcional) é a foto de um comprovante/nota anexada à última mensagem: vai para o Claude e não é guardada.
  */
-export async function askAssistant(db: KashClient, input: { messages: AssistantTurn[]; context: string; ledger?: AssistantLedgerInput }): Promise<AssistantReply> {
+export async function askAssistant(db: KashClient, input: { messages: AssistantTurn[]; context: string; ledger?: AssistantLedgerInput; image?: AssistantImage }): Promise<AssistantReply> {
   try {
     const { data, error } = await db.functions.invoke('assistant', { body: input });
     if (error) {
