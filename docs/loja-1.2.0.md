@@ -14,10 +14,6 @@ Novidades desta versão:
 
 • Assistente Kash: pergunte se vale a pena fazer uma compra, onde dá pra economizar ou quanto ainda pode gastar no mês. Ele responde com os seus números de verdade.
 • Lance gastos escrevendo: "gastei 45 no iFood no Nubank" vira um lançamento pronto. É só conferir e tocar em Lançar.
-• Ou pela foto: fotografe a nota fiscal, o cupom ou o comprovante do Pix e o Kash preenche valor, lugar, data e categoria.
-• Alertas de gastos: aviso ao chegar a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal. E todo domingo, o resumo da semana.
-• Assinaturas encontradas: o Kash acha as cobranças que se repetem todo mês, mostra quanto custam no ano e avisa quando ficam mais caras.
-• Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição.
 • Relatórios do dia, da semana e do mês: quanto saiu, com o quê, comparado com o período anterior e com o ritmo do seu limite.
 • Atalhos "Hoje" e "Esta semana" no Início.
 • Widget na tela inicial e na tela bloqueada: abra o assistente ou lance um gasto com um toque.
@@ -101,13 +97,10 @@ Password: <PREENCHER>
 What's new in 1.2.0:
 1. AI assistant (Home > chat bubble at the bottom right). It answers questions about the user's own finances using the Claude model by Anthropic. Before the first use, a consent screen explains what is sent (a summary of balances, cards, expenses, installments, bills and goals; no e-mail, phone, last name or card numbers) and the user must tap "Começar". The conversation is stored only on the device. Responses are labeled as AI-generated.
 2. Assisted entry: typing "gastei 45 no iFood" in the assistant shows a confirmation card. Nothing is saved until the user taps "Lançar".
-   Receipt photo: the camera button in the assistant (or the scan button next to the description in the "+" entry sheet) lets the user take or pick a photo of a receipt. The photo is resized on the device, sent to Claude only to read the entry, and is not stored. Camera and photo library access are requested only at that moment.
 3. Daily, weekly and monthly reports (Home > "Hoje" / "Esta semana").
 4. Home Screen and Lock Screen widget (opens the assistant or the expense entry; shows no financial data).
-5. Spending alerts (local notifications computed on the device; Profile > "Alertas de gastos" and "Resumo da semana"): 80%/100% of the monthly budget, spending pace and unusual category spending, plus a weekly summary on Sundays at 7 pm. No data leaves the device for this.
-6. Detected subscriptions (Accounts > "Fixas" tab): recurring charges found in the user's own entries, with "Virar conta fixa" (turn into a fixed bill) and "Ignorar".
-7. App Intents: "Perguntar ao Kash", "Lançar gasto", "Lançar entrada" (Shortcuts, Siri, Action button).
-8. Reset my data: Profile > "Zerar meus dados" (asks the user to type ZERAR).
+5. App Intents: "Perguntar ao Kash", "Lançar gasto", "Lançar entrada" (Shortcuts, Siri, Action button).
+6. Reset my data: Profile > "Zerar meus dados" (asks the user to type ZERAR).
 
 Account deletion: Profile > "Excluir conta". The app does not connect to bank accounts; all data is entered or imported by the user.
 ```
@@ -116,7 +109,6 @@ Account deletion: Profile > "Excluir conta". The app does not connect to bank ac
 
 Revise antes de enviar, porque o assistente envia dados financeiros a um fornecedor (Anthropic):
 - **Informações financeiras** e **Conteúdo do usuário** (as perguntas ao assistente): coletados, vinculados à pessoa, finalidade **Funcionalidade do app**, sem rastreamento.
-- **Conteúdo do usuário › Fotos ou vídeos** (foto do comprovante enviada ao assistente): coletado, vinculado à pessoa, finalidade **Funcionalidade do app**, sem rastreamento. O app não guarda a foto, mas ela passa pela Anthropic, que pode retê-la por um tempo para segurança: por isso declarar é o caminho seguro.
 - Para a Apple, dados que um parceiro processa por você contam como coletados pelo app.
 
 ---
@@ -128,12 +120,12 @@ No Android não há widget nem Siri, e o "Zerar meus dados" já saiu na 1.1.0: a
 ### Novidades da versão (até 500)
 
 ```
-• Assistente Kash: pergunte se vale a pena comprar, onde economizar ou quanto ainda pode gastar.
-• Lance escrevendo ("gastei 45 no iFood") ou pela foto da nota.
-• Lançar mais rápido: teclado do celular, calendário e categoria sugerida.
-• Relatórios do dia, da semana e do mês.
-• Alertas de limite e de gastos fora do normal, e resumo no domingo.
-• Assinaturas encontradas, com aviso quando ficam mais caras.
+• Assistente Kash: pergunte se vale a pena comprar, onde economizar ou quanto ainda pode gastar. Ele responde com os seus números.
+• Lance gastos escrevendo: "gastei 45 no iFood" vira um lançamento pronto para conferir.
+• Relatórios do dia, da semana e do mês, com comparação e ritmo do limite.
+• Atalhos "Hoje" e "Esta semana" no Início.
+• Abertura mais limpa enquanto seus dados carregam.
+• Correções e melhorias.
 ```
 
 ### Descrição curta (até 80)
@@ -204,7 +196,6 @@ A versão 7 foi recusada porque o **telefone** (Perfil › Dados pessoais › Ce
 | Informações financeiras › **Histórico de compras** | Obrigatório | Funcionalidade do app |
 | Informações financeiras › **Outras informações financeiras** (saldos, cartões, faturas, metas) | Obrigatório | Funcionalidade do app |
 | Mensagens › **Outras mensagens no app** (perguntas ao assistente) | Opcional | Funcionalidade do app |
-| Fotos e vídeos › **Fotos** (foto do comprovante enviada ao assistente) — *Processado de forma temporária* = **sim** | Opcional | Funcionalidade do app |
 | Atividade no app › **Interações com o app** | Opcional | Análise |
 | Informações e desempenho do app › **Registros de falhas** | Opcional | Análise |
 | Informações e desempenho do app › **Diagnóstico** | Opcional | Análise |
@@ -216,8 +207,7 @@ Por que cada um:
 - **Informações financeiras:** os lançamentos, saldos, cartões e metas, guardados no Supabase; um resumo vai para o assistente.
 - **Mensagens:** as perguntas ao assistente vão para a Anthropic, que processa por nós. Fornecedor que processa em nome do app **não** conta como compartilhamento para o Google.
 - **Atividade, falhas, diagnóstico e IDs de dispositivo:** Firebase Analytics, Crashlytics e Performance (o id de instância do app). São opcionais porque a pessoa desliga em Perfil › Compartilhar dados de uso.
-- **Fotos:** só a foto de comprovante que a pessoa escolhe mandar ao assistente; é reduzida no aparelho, vai para a Anthropic ler o lançamento e não é guardada (nem no aparelho, nem no Supabase). Por isso "processado de forma temporária".
-- **Não coletados:** localização, contatos, arquivos (OFX, CSV e PDF são lidos no aparelho; do PDF só vai o texto dos lançamentos, já coberto em Informações financeiras) e ID de publicidade (desligado no `firebase.json`).
+- **Não coletados:** localização, contatos, fotos, arquivos (OFX, CSV e PDF são lidos no aparelho; do PDF só vai o texto dos lançamentos, já coberto em Informações financeiras) e ID de publicidade (desligado no `firebase.json`).
 
 Em **Conteúdo do app › ID de publicidade**, responda **Não**.
 

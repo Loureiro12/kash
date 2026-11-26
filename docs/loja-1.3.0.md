@@ -1,0 +1,239 @@
+# Kash 1.3.0 — textos e checklist das lojas
+
+Textos prontos para colar na App Store Connect e na Google Play Console. Os limites de cada campo estão entre parênteses e já foram conferidos.
+A 1.2.0 (aprovada na App Store, build 14) está em [`loja-1.2.0.md`](loja-1.2.0.md); o que mudar aqui vale a partir da 1.3.0. O que mudou nesta versão está em [`apps/mobile/CHANGELOG.md`](../apps/mobile/CHANGELOG.md); o passo a passo técnico em [`docs/release.md`](release.md) › 5.2.
+
+---
+
+## App Store (iOS)
+
+### Novidades desta versão (até 4.000)
+
+```
+Novidades desta versão:
+
+• Lance pela foto: fotografe a nota fiscal, o cupom ou o comprovante do Pix e o Kash preenche valor, lugar, data e categoria. É só conferir e tocar em Lançar.
+• Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição. E dá pra trocar entre gasto, entrada e transferência a qualquer momento.
+• Alertas de gastos: o Kash avisa quando você chega a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal.
+• Resumo da semana: todo domingo, quanto saiu, onde você mais gastou e o que sobra no mês.
+• Assinaturas encontradas: o Kash acha as cobranças que se repetem todo mês, mostra quanto custam no ano e avisa quando ficam mais caras. Um toque e elas viram conta fixa.
+• O app agora aparece todo em português, inclusive câmera e fotos.
+• Correções e melhorias.
+```
+
+### Texto promocional (até 170)
+
+Pode ser trocado a qualquer momento, sem nova revisão.
+
+```
+Novo: o Assistente Kash responde se vale a pena comprar, onde economizar e lança gastos que você escreve. Tudo com os seus números.
+```
+
+### Subtítulo (até 30)
+
+```
+Gastos, cartões e metas
+```
+
+### Palavras-chave (até 100, separadas por vírgula, sem espaço)
+
+```
+finanças,gastos,orçamento,controle financeiro,cartão,fatura,parcelas,metas,economizar,dinheiro
+```
+
+### Descrição (até 4.000)
+
+```
+Sua grana, sem mistério.
+
+O Kash junta cartões, contas, parcelas, contas fixas e metas num app só. Lance um gasto em 3 toques e saiba sempre quanto sobra até o fim do mês.
+
+ASSISTENTE KASH
+Tire dúvidas sobre o seu dinheiro numa conversa: "vale a pena comprar um celular de R$ 2.000 em 10x?", "onde dá pra economizar?", "quanto posso gastar por dia até o fim do mês?". O assistente olha seus saldos, faturas, parcelas, contas fixas e metas antes de responder. Também dá pra lançar escrevendo, como "gastei 30 no Uber": você confere e toca em Lançar.
+
+CARTÕES E PARCELAS
+• Fatura atual, limite usado e disponível de cada cartão
+• Compras parceladas em até 24x, inclusive as que você fez antes de usar o Kash
+• Fatura fechada todo mês, com aviso e pagamento pela conta
+
+RELATÓRIOS
+• Gastos do dia, da semana e do mês, comparados com o período anterior
+• "No ritmo atual, você fecha o mês em…": saiba antes de passar do limite
+• Gastos por categoria mês a mês e onde você mais gastou
+
+PREVISÃO
+Veja o que já está comprometido nos próximos 6 meses com contas fixas e parcelas, antes de assumir uma nova compra.
+
+METAS
+Viagem, celular novo, reserva de emergência. Guarde um pouco por vez, receba lembrete no dia do depósito e veja quando você chega lá.
+
+E MAIS
+• Contas correntes, poupança, carteira e investimentos
+• Transferência entre contas sem bagunçar os gastos
+• Contas fixas com lembrete antes do vencimento
+• Limite mensal, inteiro ou separado entre cartão e o resto
+• Importe a fatura do cartão (PDF, mesmo com senha) ou o extrato da conta (OFX, CSV)
+• Widget na tela inicial e na tela bloqueada, Siri e Atalhos
+• Categorias com nome e cor do seu jeito
+• Entre com Apple, Google ou e-mail
+• Face ID, tema claro e escuro, ocultar valores
+• Use também no computador: kash.app.br, com a mesma conta e os mesmos dados
+
+SEUS DADOS SÃO SEUS
+O Kash não pede senha de banco e nunca mexe no seu dinheiro: você lança o que quiser ou importa um arquivo. Exporte seus dados, zere tudo ou exclua a conta quando quiser, direto no app.
+```
+
+### Notas para a revisão da Apple (App Review Information › Notes)
+
+Preencha a senha da conta de demonstração antes de enviar.
+
+```
+Demo account (already filled with sample data):
+E-mail: dedeloureiro003@gmail.com
+Password: <PREENCHER>
+
+What's new in 1.3.0:
+1. Receipt photo: the camera button in the AI assistant (Home > chat bubble), or the scan button next to the description in the "+" entry sheet, lets the user take or pick a photo of a receipt. The photo is resized on the device and sent to Claude (Anthropic) only to read the entry; it is not stored on the device or on our servers. A confirmation card appears and nothing is saved until the user taps "Lançar". Camera and photo library access are requested only at that moment.
+2. Faster entry sheet: the amount uses the system number pad, the date button opens a calendar, and the category is suggested from previous entries with the same description.
+3. Spending alerts (local notifications computed on the device; Profile > "Alertas de gastos" and "Resumo da semana"): 80% and 100% of the monthly budget, spending pace, unusual category spending, price increases of subscriptions, and a weekly summary on Sundays at 7 pm. No data leaves the device for this.
+4. Detected subscriptions (Accounts > "Fixas" tab): recurring charges found in the user's own entries, with "Virar conta fixa" (turn into a fixed bill) and "Ignorar".
+5. The app is now localized in Brazilian Portuguese (system screens such as the camera and photo picker follow it).
+
+Account deletion: Profile > "Excluir conta". The app does not connect to bank accounts; all data is entered or imported by the user.
+```
+
+### Privacidade do app (App Store Connect › App Privacy)
+
+Revise antes de enviar, porque o assistente envia dados financeiros a um fornecedor (Anthropic):
+- **Informações financeiras** e **Conteúdo do usuário** (as perguntas ao assistente): coletados, vinculados à pessoa, finalidade **Funcionalidade do app**, sem rastreamento.
+- **Conteúdo do usuário › Fotos ou vídeos** (foto do comprovante enviada ao assistente): coletado, vinculado à pessoa, finalidade **Funcionalidade do app**, sem rastreamento. O app não guarda a foto, mas ela passa pela Anthropic, que pode retê-la por um tempo para segurança: por isso declarar é o caminho seguro.
+- Para a Apple, dados que um parceiro processa por você contam como coletados pelo app.
+
+---
+
+## Google Play (Android)
+
+No Android não há widget nem Siri, e o "Zerar meus dados" já saiu na 1.1.0: as notas abaixo não mencionam esses itens.
+
+### Novidades da versão (até 500)
+
+```
+• Lance pela foto da nota ou do comprovante: o Kash preenche para você conferir.
+• Lançar mais rápido: teclado do celular, calendário e categoria sugerida.
+• Alertas de limite e de gastos fora do normal, e resumo da semana no domingo.
+• Assinaturas encontradas, com aviso quando ficam mais caras.
+• Correções e melhorias.
+```
+
+### Descrição curta (até 80)
+
+```
+Cartões, parcelas e metas num app só, com um assistente que entende sua grana.
+```
+
+### Descrição completa (até 4.000)
+
+```
+Sua grana, sem mistério.
+
+O Kash junta cartões, contas, parcelas, contas fixas e metas num app só. Lance um gasto em 3 toques e saiba sempre quanto sobra até o fim do mês.
+
+ASSISTENTE KASH
+Tire dúvidas sobre o seu dinheiro numa conversa: "vale a pena comprar um celular de R$ 2.000 em 10x?", "onde dá pra economizar?", "quanto posso gastar por dia até o fim do mês?". O assistente olha seus saldos, faturas, parcelas, contas fixas e metas antes de responder. Também dá pra lançar escrevendo, como "gastei 30 no Uber": você confere e toca em Lançar.
+
+CARTÕES E PARCELAS
+• Fatura atual, limite usado e disponível de cada cartão
+• Compras parceladas em até 24x, inclusive as que você fez antes de usar o Kash
+• Fatura fechada todo mês, com aviso e pagamento pela conta
+
+RELATÓRIOS
+• Gastos do dia, da semana e do mês, comparados com o período anterior
+• "No ritmo atual, você fecha o mês em…": saiba antes de passar do limite
+• Gastos por categoria mês a mês e onde você mais gastou
+
+PREVISÃO
+Veja o que já está comprometido nos próximos 6 meses com contas fixas e parcelas, antes de assumir uma nova compra.
+
+METAS
+Viagem, celular novo, reserva de emergência. Guarde um pouco por vez, receba lembrete no dia do depósito e veja quando você chega lá.
+
+E MAIS
+• Contas correntes, poupança, carteira e investimentos
+• Transferência entre contas sem bagunçar os gastos
+• Contas fixas com lembrete antes do vencimento
+• Limite mensal, inteiro ou separado entre cartão e o resto
+• Importe a fatura do cartão (PDF, mesmo com senha) ou o extrato da conta (OFX, CSV)
+• Abra a fatura ou o extrato direto do app do banco ou do e-mail
+• Categorias com nome e cor do seu jeito
+• Entre com Google, Apple ou e-mail
+• Desbloqueio por digital, tema claro e escuro, ocultar valores
+• Use também no computador: kash.app.br, com a mesma conta e os mesmos dados
+
+SEUS DADOS SÃO SEUS
+O Kash não pede senha de banco e nunca mexe no seu dinheiro: você lança o que quiser ou importa um arquivo. Exporte seus dados, zere tudo ou exclua a conta quando quiser, direto no app.
+```
+
+### Segurança dos dados (Play Console › Conteúdo do app › Segurança dos dados)
+
+A versão 7 foi recusada porque o **telefone** (Perfil › Dados pessoais › Celular) não estava declarado. Preenchimento completo, conferido com o código:
+
+**Coleta e segurança**
+- O app coleta ou compartilha algum dos tipos de dados exigidos? **Sim**
+- Os dados são criptografados em trânsito? **Sim**
+- Os usuários podem pedir a exclusão dos dados? **Sim** (no app, em Perfil › Excluir conta, e em https://www.kash.app.br/excluir-conta)
+
+**Tipos de dados** (em todos: *Coletado* = sim, *Compartilhado* = **não**, *Processado de forma temporária* = não)
+
+| Categoria › tipo | Obrigatório ou opcional | Finalidades |
+|---|---|---|
+| Informações pessoais › **Nome** | Opcional | Funcionalidade do app, Gerenciamento da conta |
+| Informações pessoais › **Endereço de e-mail** | Obrigatório | Funcionalidade do app, Gerenciamento da conta, Comunicações do desenvolvedor (lembretes por e-mail, se ligados) |
+| Informações pessoais › **Número de telefone** | Opcional | Gerenciamento da conta |
+| Informações pessoais › **IDs de usuário** | Obrigatório | Funcionalidade do app, Gerenciamento da conta, Análise |
+| Informações financeiras › **Histórico de compras** | Obrigatório | Funcionalidade do app |
+| Informações financeiras › **Outras informações financeiras** (saldos, cartões, faturas, metas) | Obrigatório | Funcionalidade do app |
+| Mensagens › **Outras mensagens no app** (perguntas ao assistente) | Opcional | Funcionalidade do app |
+| Fotos e vídeos › **Fotos** (foto do comprovante enviada ao assistente) — *Processado de forma temporária* = **sim** | Opcional | Funcionalidade do app |
+| Atividade no app › **Interações com o app** | Opcional | Análise |
+| Informações e desempenho do app › **Registros de falhas** | Opcional | Análise |
+| Informações e desempenho do app › **Diagnóstico** | Opcional | Análise |
+| IDs de dispositivo ou outros › **IDs de dispositivo ou outros** | Opcional | Análise |
+
+Por que cada um:
+- **Telefone, nome e e-mail:** Perfil › Dados pessoais e o login.
+- **IDs de usuário:** id da conta, também enviado ao Firebase.
+- **Informações financeiras:** os lançamentos, saldos, cartões e metas, guardados no Supabase; um resumo vai para o assistente.
+- **Mensagens:** as perguntas ao assistente vão para a Anthropic, que processa por nós. Fornecedor que processa em nome do app **não** conta como compartilhamento para o Google.
+- **Atividade, falhas, diagnóstico e IDs de dispositivo:** Firebase Analytics, Crashlytics e Performance (o id de instância do app). São opcionais porque a pessoa desliga em Perfil › Compartilhar dados de uso.
+- **Fotos:** só a foto de comprovante que a pessoa escolhe mandar ao assistente; é reduzida no aparelho, vai para a Anthropic ler o lançamento e não é guardada (nem no aparelho, nem no Supabase). Por isso "processado de forma temporária".
+- **Não coletados:** localização, contatos, arquivos (OFX, CSV e PDF são lidos no aparelho; do PDF só vai o texto dos lançamentos, já coberto em Informações financeiras) e ID de publicidade (desligado no `firebase.json`).
+
+Em **Conteúdo do app › ID de publicidade**, responda **Não**.
+
+### Acesso ao app (Play Console › Conteúdo do app › Acesso ao app)
+
+Use a mesma conta de demonstração das notas da Apple (e-mail e senha).
+
+---
+
+## Checklist de lançamento
+
+**Antes dos builds**
+- [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` e `pnpm test:backend` passando.
+- [x] Backend em produção: migração `20261022000000_bill_from_recurring` e função `assistant` com foto (publicados em 26/11).
+- [x] `app.json` em **1.3.0** (a Apple fecha a versão depois de aprovada: builds 15 e 16 da 1.2.0 foram recusados no envio).
+
+**Builds e envio**
+- [ ] iOS: `cd apps/mobile && eas build -p ios --profile production --auto-submit`.
+- [ ] Android: `eas build -p android --profile production --auto-submit` (faixa interna).
+- [ ] Testar no TestFlight e na faixa interna: foto do comprovante com notas reais, alertas (permissão de notificações), assinaturas, novo modal de lançamento, telas do sistema em português.
+
+**Nas lojas**
+- [ ] App Store Connect › Informações do app › **Idioma principal: Português (Brasil)**.
+- [ ] Colar as Novidades e as notas da revisão acima; descrição e palavras-chave podem continuar as da 1.2.0.
+- [ ] Privacidade do app (Apple): acrescentar **Fotos**. Segurança dos dados (Google): acrescentar **Fotos** (processado de forma temporária).
+- [ ] Preencher a senha da conta de demonstração nas notas da revisão e no Acesso ao app.
+
+**Depois de publicado**
+- [ ] Renomear a seção "Próxima versão" do CHANGELOG para "1.3.0" e abrir uma nova.
+- [ ] `pnpm demo:reset dedeloureiro003@gmail.com` de tempos em tempos para a demo não envelhecer.

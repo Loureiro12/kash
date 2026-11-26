@@ -2,19 +2,13 @@
 
 As melhorias do app ficam acumuladas em **Próxima versão** e vão juntas para as lojas num build novo.
 Com `runtimeVersion = appVersion`, um `eas update` só alcança binários da mesma versão do `app.json`:
-com o `app.json` em 1.2.0, nenhum update chega a quem está na 1.1.0 por engano.
+com o `app.json` em 1.3.0, nenhum update chega a quem está na 1.2.0 por engano.
 Checklist de lançamento em `docs/release.md` › 5.2.
 
-## Próxima versão — 1.2.0 (em preparação, vai junto para as duas lojas)
+## Próxima versão — 1.3.0 (em preparação, vai junto para as duas lojas)
 
-Base: iOS 1.1.0 build 12 (commit `cb22f16`) e Android 1.1.0 versionCode 5 (commit `10a19eb`).
+Base: iOS 1.2.0 build 14 (commit `3662e6e`, aprovado na App Store). A 1.2.0 fechou para novos builds na Apple, então o que entrou depois dela vai na 1.3.0. Os builds 15 e 16 (1.2.0) foram recusados no envio por isso.
 
-- **Relatório por dia, semana e mês** (Início › "Hoje" e "Esta semana", ou o card Gastos do mês): quanto saiu e entrou no período, comparação com o anterior (no período atual, até o mesmo ponto: "a semana passada até quarta"), ritmo contra o limite (o mensal proporcional: dia = mês ÷ dias, semana = 7 dias; no mês atual, "no ritmo atual você fecha o mês em…"), média dos períodos anteriores, dia de maior gasto, por categoria e maiores gastos. Gráfico com os dias (toque numa barra abre o dia) e navegação para períodos anteriores. A semana começa na segunda.
-- **Carregamento sem dados de exemplo**: ao abrir o app (e logo depois do login), o Início mostra um esqueleto no formato da tela até seus dados chegarem, em vez de valores de exemplo por um instante. Lançamentos, Relatório, Previsão e Categoria também esperam os dados, e o lançamento pelo Toque Atrás só abre depois deles.
-- **Zerar meus dados** chega ao iPhone (no Android já foi na 1.1.0).
-- **Assistente Kash (IA)**: balão no canto do Início abre um chat com o Claude (Anthropic) para perguntar sobre as próprias finanças ("vale a pena comprar um celular em 10x?", "onde economizo?", "quanto posso gastar por dia?"). Responde com os números da pessoa: saldos, cartões e faturas, gastos do mês e por categoria, limite, parcelas e contas fixas dos próximos meses, metas e os lançamentos dos últimos 60 dias. Pede autorização na primeira vez; não envia e-mail, celular, sobrenome nem número de cartão; a conversa fica só no aparelho ("Nova conversa" apaga). **Lançamento assistido**: "gastei 45 no iFood no Nubank", "300 num fone em 3x", "recebi o salário ontem" viram cartões de confirmação (até 5 por mensagem) com valor, descrição, categoria, conta/cartão, data e parcelas; nada é salvo sem tocar em **Lançar** (Editar abre o sheet de lançamento já preenchido; Descartar ignora). O assistente só pode escolher entre as categorias e as contas/cartões da pessoa (ferramenta com esquema estrito), e o app confere de novo antes de lançar. 40 perguntas por dia. Backend: Edge Function `assistant` (mesma `ANTHROPIC_API_KEY` da importação; `docs/release.md` › 9.1). Política de privacidade atualizada (app e site).
-
-- **Widget do Kash no iPhone** (iOS 17+): tela inicial pequeno (abre o assistente) e médio (Perguntar e Lançar gasto), e na tela bloqueada (redondo e retangular). Não mostra valores, só abre o app. Nova ação **Perguntar ao Kash** no app Atalhos, Siri, Spotlight, botão de Ação e Toque Atrás. O chat espera os dados carregarem antes de enviar (aberto pelo widget com o app fechado). Novo target nativo (`targets/widget`, via `@bacons/apple-targets`) e extensão `com.andreloureiro.kash.widget`: exige build novo, e o primeiro `eas build` cria a assinatura da extensão (interativo, com o Apple ID).
 - **Assinaturas detectadas** (Contas › Fixas): o Kash encontra as cobranças que se repetem todo mês nos seus lançamentos (streaming, academia, apps), mostra quanto custam no ano e se o preço subiu.
   - **Virar conta fixa** cria a conta com lembrete e previsão. Se a cobrança do mês já foi lançada, a conta já entra como paga, ligada a ela, sem lançar de novo; desmarcar depois não apaga o gasto.
   - **Ignorar** tira a sugestão.
@@ -27,14 +21,35 @@ Base: iOS 1.1.0 build 12 (commit `cb22f16`) e Android 1.1.0 versionCode 5 (commi
   - **Categoria:** quando uma categoria fica bem acima do normal na semana.
   - **Resumo:** no domingo às 19h, quanto saiu na semana, onde mais gastou e o que sobra no mês.
   - **Como funciona:** cada aviso vem uma vez só (no máximo um por vez) e toca para abrir o relatório ou a categoria. Tudo é calculado no aparelho, sem servidor novo.
-- **Lançar pela foto do comprovante** (Assistente › botão de câmera, ou o botão de leitura ao lado da descrição em Lançar gasto): tire ou escolha a foto da nota fiscal, do cupom, do recibo ou do comprovante de Pix/cartão. O Claude lê o valor total, o lugar, a data e a categoria e devolve o cartão de confirmação (Lançar / Editar / Descartar). A foto é reduzida no aparelho e não fica guardada em lugar nenhum. Novos módulos nativos `expo-image-picker` e `expo-image-manipulator`, com permissões de câmera e fotos pedidas só na hora. A política de privacidade cita a foto; declarar Fotos nas lojas (`docs/loja-1.2.0.md`).
+- **Lançar pela foto do comprovante** (Assistente › botão de câmera, ou o botão de leitura ao lado da descrição em Lançar gasto): tire ou escolha a foto da nota fiscal, do cupom, do recibo ou do comprovante de Pix/cartão. O Claude lê o valor total, o lugar, a data e a categoria e devolve o cartão de confirmação (Lançar / Editar / Descartar). A foto é reduzida no aparelho e não fica guardada em lugar nenhum. Novos módulos nativos `expo-image-picker` e `expo-image-manipulator`, com permissões de câmera e fotos pedidas só na hora. A política de privacidade cita a foto; declarar Fotos nas lojas (`docs/loja-1.3.0.md`).
 - **Lançar gasto, entrada e transferência mais rápido**:
   - **Valor:** o teclado numérico próprio, que ocupava metade do sheet, saiu. Agora o valor é digitado no teclado numérico do celular, que já abre sozinho num lançamento novo. Os números continuam entrando pelos centavos (1450 = R$ 14,50), e o botão Salvar fica sempre visível acima do teclado.
   - **Data:** o botão de data abre um calendário do mês, com atalhos Hoje, Ontem e Anteontem, e não deixa escolher o futuro. Antes era preciso voltar dia a dia.
   - **Troca de tipo:** a Transferência ganhou o mesmo seletor Gasto · Entrada · Transferência, então dá para voltar. O valor, a descrição e a data vão junto na troca.
   - **Sugestão pela descrição:** ao digitar uma descrição já usada ("iFood", "Uber"), o app sugere a categoria e a conta/cartão daquela vez, sem trocar o que você escolheu à mão.
 - **Idioma do app no iPhone: português do Brasil.** Antes o app era marcado como inglês, e as telas do sistema (câmera, galeria de fotos, botões dos pedidos de permissão) apareciam em inglês. Agora são `CFBundleDevelopmentRegion`/`CFBundleLocalizations` = pt-BR no app.json, mais o plugin `plugins/withPortugueseRegion.js` (região do projeto Xcode). Exige build novo.
+
+### Texto de "Novidades" para as lojas
+
+> Novidades desta versão:
+> • Assinaturas: o Kash encontra as cobranças que se repetem todo mês, mostra quanto custam no ano e avisa quando ficam mais caras. Um toque e elas viram conta fixa.
+> • Alertas de gastos: o Kash avisa quando você chega a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal. E todo domingo chega o resumo da semana.
+> • Lance pela foto: fotografe a nota ou o comprovante e o Kash preenche o lançamento para você conferir.
+> • Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição.
+> • O app agora aparece todo em português no iPhone, inclusive câmera e fotos.
+> • Pequenas correções.
+
+## 1.2.0 — iOS build 14 (aprovado na App Store, commit `3662e6e`)
+
+Base: iOS 1.1.0 build 12 (commit `cb22f16`) e Android 1.1.0 versionCode 5 (commit `10a19eb`).
+
+- **Relatório por dia, semana e mês** (Início › "Hoje" e "Esta semana", ou o card Gastos do mês): quanto saiu e entrou no período, comparação com o anterior (no período atual, até o mesmo ponto: "a semana passada até quarta"), ritmo contra o limite (o mensal proporcional: dia = mês ÷ dias, semana = 7 dias; no mês atual, "no ritmo atual você fecha o mês em…"), média dos períodos anteriores, dia de maior gasto, por categoria e maiores gastos. Gráfico com os dias (toque numa barra abre o dia) e navegação para períodos anteriores. A semana começa na segunda.
+- **Carregamento sem dados de exemplo**: ao abrir o app (e logo depois do login), o Início mostra um esqueleto no formato da tela até seus dados chegarem, em vez de valores de exemplo por um instante. Lançamentos, Relatório, Previsão e Categoria também esperam os dados, e o lançamento pelo Toque Atrás só abre depois deles.
+- **Zerar meus dados** chega ao iPhone (no Android já foi na 1.1.0).
+- **Assistente Kash (IA)**: balão no canto do Início abre um chat com o Claude (Anthropic) para perguntar sobre as próprias finanças ("vale a pena comprar um celular em 10x?", "onde economizo?", "quanto posso gastar por dia?"). Responde com os números da pessoa: saldos, cartões e faturas, gastos do mês e por categoria, limite, parcelas e contas fixas dos próximos meses, metas e os lançamentos dos últimos 60 dias. Pede autorização na primeira vez; não envia e-mail, celular, sobrenome nem número de cartão; a conversa fica só no aparelho ("Nova conversa" apaga). **Lançamento assistido**: "gastei 45 no iFood no Nubank", "300 num fone em 3x", "recebi o salário ontem" viram cartões de confirmação (até 5 por mensagem) com valor, descrição, categoria, conta/cartão, data e parcelas; nada é salvo sem tocar em **Lançar** (Editar abre o sheet de lançamento já preenchido; Descartar ignora). O assistente só pode escolher entre as categorias e as contas/cartões da pessoa (ferramenta com esquema estrito), e o app confere de novo antes de lançar. 40 perguntas por dia. Backend: Edge Function `assistant` (mesma `ANTHROPIC_API_KEY` da importação; `docs/release.md` › 9.1). Política de privacidade atualizada (app e site).
+- **Widget do Kash no iPhone** (iOS 17+): tela inicial pequeno (abre o assistente) e médio (Perguntar e Lançar gasto), e na tela bloqueada (redondo e retangular). Não mostra valores, só abre o app. Nova ação **Perguntar ao Kash** no app Atalhos, Siri, Spotlight, botão de Ação e Toque Atrás. O chat espera os dados carregarem antes de enviar (aberto pelo widget com o app fechado). Novo target nativo (`targets/widget`, via `@bacons/apple-targets`) e extensão `com.andreloureiro.kash.widget`: exige build novo, e o primeiro `eas build` cria a assinatura da extensão (interativo, com o Apple ID).
 - **Correção (servidor, vale também para a 1.1.0):** faturas em PDF grandes (≈ 100 lançamentos, vários cartões) não eram lidas: a resposta da IA era cortada em 8 mil tokens e voltava pela metade. A função `import-assist` agora pede pouco raciocínio (`effort: low`), aceita até 32 mil tokens em streaming e, se ainda assim a resposta vier cortada, devolve um erro claro em vez de uma fatura incompleta.
+
 ### Texto de "Novidades" para as lojas
 
 > Novidades desta versão:
@@ -42,10 +57,6 @@ Base: iOS 1.1.0 build 12 (commit `cb22f16`) e Android 1.1.0 versionCode 5 (commi
 > • Atalhos "Hoje" e "Esta semana" no Início.
 > • Widget do Kash na tela inicial e na tela bloqueada: abra o assistente ou lance um gasto com um toque.
 > • Assistente Kash: pergunte se vale a pena fazer uma compra, onde dá pra economizar ou como estão seus gastos, e receba uma resposta com os seus números. Também dá pra lançar escrevendo: “gastei 45 no iFood” — é só conferir e tocar em Lançar.
-> • Assinaturas: o Kash encontra as cobranças que se repetem todo mês, mostra quanto custam no ano e avisa quando ficam mais caras. Um toque e elas viram conta fixa.
-> • Alertas de gastos: o Kash avisa quando você chega a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal. E todo domingo chega o resumo da semana.
-> • Lance pela foto: fotografe a nota ou o comprovante e o Kash preenche o lançamento para você conferir.
-> • Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição.
 > • Abertura mais limpa: enquanto seus dados carregam, você vê um esqueleto da tela em vez de números provisórios.
 > • Zerar meus dados: recomece do zero sem criar outra conta (Perfil).
 > • Pequenas correções.

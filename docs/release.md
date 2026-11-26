@@ -64,7 +64,7 @@ Checklist de uma vez só, na ordem. Só produção (sem staging). Tudo que preci
    - Lançamento assistido: a função manda ao modelo a ferramenta `propor_lancamento` (esquema estrito com as categorias e as contas/cartões da pessoa); as propostas voltam ao app, que só lança quando a pessoa confirma.
    - Limite próprio: 40 perguntas por pessoa a cada 24 h (`ai_calls` com `purpose` = `assistant`; não gasta o limite da importação). Custo: a consulta do item 9 mostra os tokens por `purpose`.
    - Recusas por política são refeitas pelo servidor da Anthropic em outro modelo na mesma chamada (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`).
-   - Foto do comprovante: a mesma função recebe `image` (base64, até 2 MB) junto com a última mensagem. Nada novo para configurar no servidor; no app, as permissões de câmera e fotos vêm do plugin `expo-image-picker` (build novo). Declarar **Fotos** na Privacidade do app (Apple) e na Segurança dos dados (Google): textos em `docs/loja-1.2.0.md`.
+   - Foto do comprovante: a mesma função recebe `image` (base64, até 2 MB) junto com a última mensagem. Nada novo para configurar no servidor; no app, as permissões de câmera e fotos vêm do plugin `expo-image-picker` (build novo). Declarar **Fotos** na Privacidade do app (Apple) e na Segurança dos dados (Google): textos em `docs/loja-1.3.0.md`.
    - Privacidade: o app pede autorização na primeira vez; o resumo enviado não leva e-mail, celular, sobrenome nem número de cartão, e a conversa fica só no aparelho. A política (app e site) já cita o assistente.
 
 9.2 **Widget do iPhone** (`apps/mobile/targets/widget`, gerado no prebuild pelo `@bacons/apple-targets`): extensão `com.andreloureiro.kash.widget`. No **primeiro** build depois dele, rode `eas build -p ios --profile production` no terminal (interativo) e aceite criar o App ID e o perfil da extensão com o seu Apple ID; depois os builds seguem normais. O widget só abre links do app (`com.andreloureiro.kash://assistant` e `…://lancar?tipo=gasto`), sem dados.
@@ -153,7 +153,7 @@ Compilado e validado localmente no emulador Pixel 7 (debug, dev client): ícone 
 
 O Face ID adicionou um módulo nativo (`expo-local-authentication`). A versão subiu para **1.0.1**, o que muda a `runtimeVersion`: updates OTA publicados a partir daqui só chegam a binários 1.0.1. Para entregar, gere e envie um build novo (`eas build -p ios --profile production` e `eas submit -p ios --latest`); quem está no 1.0.0 continua recebendo só updates do 1.0.0.
 
-## 5.2 Próxima versão (hoje 1.2.0; a 1.1.0 já saiu: iOS build 12, Android versionCode 5)
+## 5.2 Próxima versão (hoje 1.3.0; a 1.2.0 foi aprovada na App Store, iOS build 14)
 
 As mudanças do app vão se acumulando em `apps/mobile/CHANGELOG.md` › "Próxima versão". A versão em `app.json` já está em **1.1.0**, então nenhum `eas update` alcança quem está no 1.0.1 por engano. **Não publique updates até o build 1.1.0 estar nas lojas.**
 
@@ -163,7 +163,7 @@ Quando decidir lançar:
    - 1.2.0: a migração `20261022000000_bill_from_recurring` (função `link_bill_payment` e coluna `bills.paid_tx_linked`) precisa estar em produção **antes** do app, senão "Virar conta fixa" de uma assinatura já cobrada no mês falha ao sincronizar. Também publique a Edge Function `assistant` (foto do comprovante).
 2. Builds: `cd apps/mobile && eas build -p all --profile production` (build number / version code sobem sozinhos).
 3. Envio: `eas submit -p ios --latest` e `eas submit -p android --latest` (Android na faixa de teste interno primeiro).
-4. Nas lojas, cole os textos de `docs/loja-1.2.0.md` (novidades, descrição, palavras-chave, notas da revisão e privacidade).
+4. Nas lojas, cole os textos de `docs/loja-1.3.0.md` (novidades, descrição, palavras-chave, notas da revisão e privacidade).
 5. Depois de publicado: renomeie a seção do CHANGELOG para "1.1.0" e abra uma nova "Próxima versão". Correções só de JS para o 1.1.0 voltam a poder ir por `eas update --branch production --environment production`.
 
 ## 6. Fluxo do dia a dia
