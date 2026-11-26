@@ -28,12 +28,33 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return next.granted;
 }
 
+export const ALERTS_CHANNEL = 'alerts';
+
 async function ensureChannel() {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL, {
     name: 'Lembretes',
-    description: 'Contas fixas, faturas e depósitos das metas',
+    description: 'Contas fixas, faturas, depósitos das metas e o resumo da semana',
     importance: Notifications.AndroidImportance.DEFAULT,
+  });
+}
+
+/**
+ * Mostra um alerta de gastos agora (limite, ritmo, categoria). O id é o do alerta: repetir o
+ * mesmo id substitui em vez de duplicar.
+ */
+export async function presentAlertNow(alert: { id: string; title: string; body: string; route: string; kind: string }): Promise<void> {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(ALERTS_CHANNEL, {
+      name: 'Alertas de gastos',
+      description: 'Limite do mês, ritmo de gastos e categorias acima do normal',
+      importance: Notifications.AndroidImportance.DEFAULT,
+    });
+  }
+  await Notifications.scheduleNotificationAsync({
+    identifier: alert.id,
+    content: { title: alert.title, body: alert.body, data: { route: alert.route, kind: alert.kind } },
+    trigger: Platform.OS === 'android' ? { channelId: ALERTS_CHANNEL } : null,
   });
 }
 

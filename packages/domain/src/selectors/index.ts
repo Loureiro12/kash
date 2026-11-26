@@ -12,3 +12,4 @@ export * from './rollover';
 export * from './transactions';
 export * from './transfers';
 export * from './onboarding';
+export * from './spendingAlerts';

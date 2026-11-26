@@ -21,6 +21,10 @@ const FAQ = [
     a: 'Toque e segure num espaço vazio da tela inicial, toque em Editar › Adicionar widget e procure Kash. O widget pequeno abre o assistente; o médio tem Perguntar e Lançar gasto. Na tela bloqueada: toque e segure nela, Personalizar › Tela Bloqueada › Adicionar widgets › Kash. O widget não mostra valores.',
     ios: true,
   },
+  {
+    q: 'Que alertas de gastos o Kash manda?',
+    a: 'Com as notificações permitidas, o Kash avisa quando você chega a 80% do limite do mês e quando passa dele (e do limite do cartão, se ele for dividido), quando o ritmo do mês indica que você vai passar do limite e quando uma categoria fica bem acima do normal na semana. No domingo às 19h chega o resumo da semana. Cada aviso vem uma vez só. Tudo é calculado no seu celular; ligue ou desligue em Perfil › Preferências.',
+  },
   { q: 'Meus dados ficam salvos onde?', a: 'Em servidores criptografados no Brasil, conforme a LGPD. Você pode apagar tudo em Perfil → Excluir conta.' },
 ] as const;
 

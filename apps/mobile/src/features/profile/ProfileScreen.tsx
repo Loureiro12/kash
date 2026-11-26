@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Avatar, Button, Card, ListRow, PageHeader, Screen, Switch, Text } from '@/design-system';
 import { formatBRL } from '@kash/domain';
-import { useToggleBillReminder } from '@/features/notifications';
+import { useAlertPrefs, useToggleAlertPref, useToggleBillReminder } from '@/features/notifications';
 import { APP_VERSION } from '@/lib/appVersion';
 import { setTelemetryEnabled, telemetryPreference } from '@/services/telemetry';
 import { useKashStore } from '@/store';
@@ -17,6 +17,11 @@ export function ProfileScreen() {
   const categoryCount = useKashStore((s) => s.categories.length);
   const toggleTheme = useKashStore((s) => s.toggleTheme);
   const toggleBillReminder = useToggleBillReminder();
+  const toggleAlert = useToggleAlertPref();
+  const alertPrefs = useAlertPrefs();
+  useEffect(() => {
+    void useAlertPrefs.getState().load();
+  }, []);
   const toggleEmail = useKashStore((s) => s.toggleEmailReminder);
   const setChecklistHidden = useKashStore((s) => s.setChecklistHidden);
   const showToast = useKashStore((s) => s.showToast);
@@ -69,6 +74,20 @@ export function ProfileScreen() {
           trailing={<Switch value={settings.billReminder} onValueChange={(v) => void toggleBillReminder(v)} testID="profile-reminder-switch" accessibilityLabel="Lembrete de contas" />}
           onPress={() => void toggleBillReminder()}
           testID="profile-reminder"
+        />
+        <ListRow
+          title="Alertas de gastos"
+          subtitle="Ao chegar a 80% e passar do limite, ritmo do mês e categoria acima do normal"
+          trailing={<Switch value={alertPrefs.spending} onValueChange={(v) => void toggleAlert('spending', v)} testID="profile-alerts-switch" accessibilityLabel="Alertas de gastos" />}
+          onPress={() => void toggleAlert('spending', !alertPrefs.spending)}
+          testID="profile-alerts"
+        />
+        <ListRow
+          title="Resumo da semana"
+          subtitle="Domingo às 19h: quanto saiu, onde mais gastou e o que sobra no mês"
+          trailing={<Switch value={alertPrefs.weekly} onValueChange={(v) => void toggleAlert('weekly', v)} testID="profile-weekly-switch" accessibilityLabel="Resumo da semana" />}
+          onPress={() => void toggleAlert('weekly', !alertPrefs.weekly)}
+          testID="profile-weekly"
         />
         <ListRow
           title="Lembrete por e-mail"

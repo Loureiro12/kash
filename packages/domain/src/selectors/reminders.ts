@@ -4,7 +4,7 @@ import type { Bill, Card, Goal, Invoice, Settings } from '../types';
 import { depositStatus } from './goals';
 import { invoiceView } from './rollover';
 
-export type ReminderKind = 'bill' | 'invoice' | 'goal-deposit' | 'invoices-closed';
+export type ReminderKind = 'bill' | 'invoice' | 'goal-deposit' | 'invoices-closed' | 'weekly-summary';
 
 export interface Reminder {
   /** estável por entidade+data, para reagendar sem duplicar */

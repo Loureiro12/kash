@@ -6,7 +6,7 @@ import { FloatingTabBar } from '@/features/navigation/FloatingTabBar';
 import { SheetsHost } from '@/features/navigation/SheetsHost';
 import { useQuickAdd } from '@/features/quickAdd';
 import { useServerSync } from '@/data/useServerSync';
-import { useNotificationRouting, useReminderSync } from '@/features/notifications';
+import { useNotificationRouting, useReminderSync, useSpendingAlerts } from '@/features/notifications';
 import { DATA_SOURCE } from '@/data/source';
 import { useKashStore, useOnboardingStatus } from '@/store';
 
@@ -19,6 +19,7 @@ export default function AppLayout() {
   const userId = useKashStore((s) => s.userId);
   useServerSync(userId);
   useReminderSync();
+  useSpendingAlerts();
   useNotificationRouting();
   useWelcomeRedirect();
   useQuickAdd();

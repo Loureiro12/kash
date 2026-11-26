@@ -1,1 +1,2 @@
-export { useNotificationRouting, useReminderSync, useToggleBillReminder } from './useReminders';
+export { useNotificationRouting, useReminderSync, useSpendingAlerts, useToggleAlertPref, useToggleBillReminder } from './useReminders';
+export { useAlertPrefs } from './alertPrefs';

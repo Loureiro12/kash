@@ -38,7 +38,8 @@ describe('useReminderSync', () => {
     jest.clearAllMocks();
     await act(() => useKashStore.getState().toggleBillReminder());
     await waitFor(() => expect(mocked.cancelAllScheduledNotificationsAsync).toHaveBeenCalled());
-    expect(mocked.scheduleNotificationAsync).not.toHaveBeenCalled();
+    // sem lembretes de contas/faturas/metas; o resumo da semana tem preferência própria
+    expect(scheduled().filter((r) => !r.identifier?.startsWith('weekly:'))).toEqual([]);
   });
 
   it('sem permissão do sistema não agenda nada', async () => {

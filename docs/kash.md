@@ -166,6 +166,12 @@ Acesso: Cartões › Importar fatura, Contas › Importar extrato, ou o link no 
 - **Lembretes:**
   - **notificação** no celular 2 dias antes do vencimento de contas e faturas, às 9h, mais depósito das metas e "faturas fecharam" no dia 1º;
   - **e-mail** opcional às 9h com o que vence em 2 dias e os depósitos do dia.
+- **Alertas de gastos** *(1.2.0)*, notificação na hora, cada aviso uma vez só, no máximo um por vez:
+  - **80%** e **100%** do limite do mês, e do cartão/restante quando o limite é dividido; mostra o quanto sobra por dia;
+  - **ritmo**: entre o dia 8 e 3 dias antes do fim do mês, se a projeção passar 5% do limite (antes dos 80%), uma vez por semana;
+  - **categoria acima do normal**: últimos 7 dias ≥ 50% e ≥ R$ 50 acima da média semanal das 4 semanas anteriores, com gasto em pelo menos 2 delas.
+- **Resumo da semana** *(1.2.0)*: domingo às 19h, com o total da semana, a maior categoria e o que sobra no limite do mês. Reagendado sempre que os lançamentos mudam no app.
+- Alertas e resumo são calculados **no aparelho** (`spendingAlerts`, `weeklySummaryReminder` em `@kash/domain`), sem servidor, e ligados por padrão (Perfil › Preferências, preferência do aparelho). Limite conhecido: o resumo usa os números da última vez que o app foi aberto na semana; o que for lançado só pela web depois disso não entra.
 - **Compartilhar dados de uso** (liga/desliga Firebase Analytics, Crashlytics e Performance).
 - **Moeda** (só Real por enquanto; outras aparecem como "em breve").
 - **Ajuda** (perguntas frequentes, inclusive como configurar o Toque Atrás e o widget), **Termos** e **Privacidade**.
