@@ -104,3 +104,32 @@ export function monthKeysBetween(from: string, to: string): string[] {
 export function monthKeyName(key: string): string {
   return MONTH_NAMES[monthKeyToDate(key).getMonth()] as string;
 }
+
+/**
+ * Grade de um mês para calendário: semanas de domingo a sábado, com `null` nos dias de fora.
+ * `key` = 'yyyy-mm'. Ex.: nov/2026 começa num domingo → 1ª semana ['2026-11-01', …].
+ */
+export function calendarMonthGrid(key: string): (string | null)[][] {
+  const first = monthKeyToDate(key);
+  const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+  const cells: (string | null)[] = Array.from({ length: first.getDay() }, () => null);
+  for (let d = 1; d <= days; d++) cells.push(toISODate(new Date(first.getFullYear(), first.getMonth(), d)));
+  while (cells.length % 7) cells.push(null);
+  const weeks: (string | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
+
+/** 'yyyy-mm' deslocado em meses. */
+export function shiftMonthKey(key: string, delta: number): string {
+  const d = monthKeyToDate(key);
+  return monthKey(new Date(d.getFullYear(), d.getMonth() + delta, 1));
+}
+
+export const WEEKDAY_NAMES = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'] as const;
+
+/** "segunda, 23 de novembro" (rótulo de acessibilidade de um dia) */
+export function spokenDate(iso: string): string {
+  const d = parseISODate(iso);
+  return `${WEEKDAY_NAMES[d.getDay()]}, ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]}`;
+}
