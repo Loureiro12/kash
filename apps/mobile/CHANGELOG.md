@@ -33,6 +33,7 @@ Base: iOS 1.1.0 build 12 (commit `cb22f16`) e Android 1.1.0 versionCode 5 (commi
   - **Data:** o botão de data abre um calendário do mês, com atalhos Hoje, Ontem e Anteontem, e não deixa escolher o futuro. Antes era preciso voltar dia a dia.
   - **Troca de tipo:** a Transferência ganhou o mesmo seletor Gasto · Entrada · Transferência, então dá para voltar. O valor, a descrição e a data vão junto na troca.
   - **Sugestão pela descrição:** ao digitar uma descrição já usada ("iFood", "Uber"), o app sugere a categoria e a conta/cartão daquela vez, sem trocar o que você escolheu à mão.
+- **Idioma do app no iPhone: português do Brasil.** Antes o app era marcado como inglês, e as telas do sistema (câmera, galeria de fotos, botões dos pedidos de permissão) apareciam em inglês. Agora são `CFBundleDevelopmentRegion`/`CFBundleLocalizations` = pt-BR no app.json, mais o plugin `plugins/withPortugueseRegion.js` (região do projeto Xcode). Exige build novo.
 - **Correção (servidor, vale também para a 1.1.0):** faturas em PDF grandes (≈ 100 lançamentos, vários cartões) não eram lidas: a resposta da IA era cortada em 8 mil tokens e voltava pela metade. A função `import-assist` agora pede pouco raciocínio (`effort: low`), aceita até 32 mil tokens em streaming e, se ainda assim a resposta vier cortada, devolve um erro claro em vez de uma fatura incompleta.
 ### Texto de "Novidades" para as lojas
 

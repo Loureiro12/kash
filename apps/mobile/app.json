@@ -15,6 +15,9 @@
       "appleTeamId": "G58V8BP6VH",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDevelopmentRegion": "pt-BR",
+        "CFBundleLocalizations": ["pt-BR"],
+        "CFBundleAllowMixedLocalizations": true,
         "CFBundleDocumentTypes": [
           {
             "CFBundleTypeName": "Fatura ou extrato",
@@ -124,6 +127,7 @@
       ],
       "expo-sharing",
       "./plugins/withQuickAddIntents",
+      "./plugins/withPortugueseRegion",
       "@bacons/apple-targets",
       [
         "expo-local-authentication",
