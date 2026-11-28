@@ -4,7 +4,7 @@
  * que envia a mudança ao servidor via @kash/supabase-client e refaz o snapshot (ver `persist`).
  * Manter o mapeamento fora do store deixa a lógica local testável sem rede e a remota testável com mocks.
  */
-import { ACCOUNT_KINDS, type AccountKind, type Category, type SourceType } from '@kash/domain';
+import { canEditItem, ACCOUNT_KINDS, type AccountKind, type Category, type SourceType } from '@kash/domain';
 import * as api from '@kash/supabase-client';
 import { supabase } from '@/services/supabase';
 import { useKashStore, type KashState } from '@/store';
@@ -55,6 +55,10 @@ function wrap<K extends ActionName>(
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** espaço do casal para gravar: `shared` ausente = não muda; true = do casal; false = pessoal */
+const householdOf = (state: State, shared: boolean | undefined): string | null | undefined =>
+  shared === undefined ? undefined : shared && state.household ? state.household.id : null;
 
 /** Liga as ações do store ao servidor. Idempotente; no modo `seed` não faz nada. */
 export function installRemoteActions() {
@@ -109,38 +113,39 @@ export function installRemoteActions() {
   });
 
   // cartões
-  wrap('addCard', ([input]) => api.createCard(db, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId, color: input.color ?? null }), {
+  wrap('addCard', ([input], before) => api.createCard(db, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId, color: input.color ?? null, householdId: householdOf(before, input.shared) }), {
     onSuccess: (card) => {
       const id = (card as { id?: string } | undefined)?.id;
       if (id) useKashStore.setState((s) => ({ ui: { ...s.ui, selectedCardId: id } }));
     },
   });
-  wrap('updateCard', ([id, input]) => api.updateCard(db, id, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId, color: input.color ?? null }));
+  wrap('updateCard', ([id, input], before) => api.updateCard(db, id, { name: input.name, last4: input.last4, limit: input.limit, closingDay: input.closingDay ?? 1, dueDay: input.dueDay ?? 10, gradientId: input.gradientId, color: input.color ?? null, householdId: householdOf(before, input.shared) }));
   wrap('removeCard', ([id]) => api.deleteCard(db, id));
 
   // contas
-  wrap('addAccount', ([input]) => api.createAccount(db, { name: input.name, kind: input.kind as AccountKind, institution: input.bank, balance: input.balance, color: input.color }));
-  wrap('updateAccount', ([id, input]) => api.updateAccount(db, id, { name: input.name, kind: input.kind as AccountKind, institution: input.bank, balance: input.balance, color: input.color }));
+  wrap('addAccount', ([input], before) => api.createAccount(db, { name: input.name, kind: input.kind as AccountKind, institution: input.bank, balance: input.balance, color: input.color, householdId: householdOf(before, input.shared) }));
+  wrap('updateAccount', ([id, input], before) => api.updateAccount(db, id, { name: input.name, kind: input.kind as AccountKind, institution: input.bank, balance: input.balance, color: input.color, householdId: householdOf(before, input.shared) }));
   wrap('removeAccount', ([id]) => api.deleteAccount(db, id));
 
   // contas fixas
   wrap('toggleBillPaid', ([id], before) => {
     const bill = before.bills.find((b) => b.id === id);
-    if (!bill) return undefined;
+    // pessoal da outra pessoa (só leitura): o store já avisou, nada vai ao servidor
+    if (!bill || !canEditItem(bill, before.userId)) return undefined;
     return bill.paid ? api.unpayBill(db, id) : api.payBill(db, id);
   });
   wrap('addBill', ([input], before, after) => {
-    const created = api.createBill(db, { name: input.name, amount: input.amount, dueDay: input.dueDay, category: input.category, source: input.sourceId ? { type: sourceTypeOf(before, input.sourceId), id: input.sourceId } : null });
+    const created = api.createBill(db, { name: input.name, amount: input.amount, dueDay: input.dueDay, category: input.category, source: input.sourceId ? { type: sourceTypeOf(before, input.sourceId), id: input.sourceId } : null, householdId: householdOf(before, input.shared) });
     // assinatura detectada com a cobrança deste mês já lançada: liga como pagamento (sem criar outro lançamento)
     const linked = input.linkTxId && after.bills.some((b) => b.paidTxId === input.linkTxId);
     return linked ? created.then((bill) => api.linkBillPayment(db, bill.id, input.linkTxId!)) : created;
   });
-  wrap('updateBill', ([id, input], before) => api.updateBill(db, id, { name: input.name, amount: input.amount, dueDay: input.dueDay, category: input.category, source: input.sourceId ? { type: sourceTypeOf(before, input.sourceId), id: input.sourceId } : null }));
+  wrap('updateBill', ([id, input], before) => api.updateBill(db, id, { name: input.name, amount: input.amount, dueDay: input.dueDay, category: input.category, source: input.sourceId ? { type: sourceTypeOf(before, input.sourceId), id: input.sourceId } : null, householdId: householdOf(before, input.shared) }));
   wrap('removeBill', ([id]) => api.deleteBill(db, id));
 
   // metas
-  wrap('addGoal', ([input]) => api.createGoal(db, { name: input.name, target: input.target, saved: input.saved, monthly: input.monthly, color: input.color, accountId: input.accountId, depositDay: input.depositDay ?? null }));
-  wrap('updateGoal', ([id, input]) => api.updateGoal(db, id, { name: input.name, target: input.target, saved: input.saved, monthly: input.monthly, color: input.color, accountId: input.accountId, depositDay: input.depositDay ?? null }));
+  wrap('addGoal', ([input], before) => api.createGoal(db, { name: input.name, target: input.target, saved: input.saved, monthly: input.monthly, color: input.color, accountId: input.accountId, depositDay: input.depositDay ?? null, householdId: householdOf(before, input.shared) }));
+  wrap('updateGoal', ([id, input], before) => api.updateGoal(db, id, { name: input.name, target: input.target, saved: input.saved, monthly: input.monthly, color: input.color, accountId: input.accountId, depositDay: input.depositDay ?? null, householdId: householdOf(before, input.shared) }));
   wrap('removeGoal', ([id]) => api.deleteGoal(db, id));
 
   // categorias (renomear/excluir em cascata acontece na RPC; o snapshot traz o resultado)
@@ -181,6 +186,8 @@ export function installRemoteActions() {
   wrap('removeDebt', ([id]) => api.deleteDebt(db, id));
   wrap('settleDebt', ([id, accountId]) => api.settleDebt(db, id, accountId));
   wrap('unsettleDebt', ([id]) => api.unsettleDebt(db, id));
+  // conta compartilhada: a visão escolhida fica salva (vale no próximo login e na web)
+  wrap('setViewScope', ([scope], before) => (before.household ? api.updateHouseholdSettings(db, { viewScope: scope }) : undefined));
   wrap('setTravelMode', (_args, _before, after) => api.updateSettings(db, { travelTag: after.settings.travelTag ?? null, travelUntil: after.settings.travelUntil ?? null }));
   wrap('toggleEmailReminder', (_args, _before, after) => api.updateSettings(db, { emailReminder: after.settings.emailReminder }));
   // biometria é preferência do aparelho (não sincroniza)

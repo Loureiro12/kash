@@ -4,7 +4,7 @@ import { useLastNotificationResponse } from 'expo-notifications';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Linking } from 'react-native';
 import { now } from '@/lib/clock';
-import { cancelAllReminders, hasNotificationPermission, presentAlertNow, requestNotificationPermission, routeFromResponse, syncScheduledReminders } from '@/services/notifications';
+import { cancelAllReminders, hasNotificationPermission, presentAlertNow, registerPushToken, requestNotificationPermission, routeFromResponse, syncScheduledReminders } from '@/services/notifications';
 import { useKashStore } from '@/store';
 import { sentAlerts, useAlertPrefs, type AlertPrefs } from './alertPrefs';
 
@@ -132,6 +132,21 @@ export function useToggleAlertPref() {
     },
     [showToast],
   );
+}
+
+/**
+ * Conta compartilhada: registra este aparelho para os avisos do casal (push do servidor) quando os
+ * dados chegam e há permissão. Uma vez por sessão; ao entrar num espaço, a tela registra de novo.
+ */
+export function usePushRegistration() {
+  const userId = useKashStore((s) => s.userId);
+  const inHousehold = useKashStore((s) => !!s.household);
+  const done = useRef<string | null>(null);
+  useEffect(() => {
+    if (!userId || !inHousehold || done.current === userId) return;
+    done.current = userId;
+    void registerPushToken();
+  }, [userId, inHousehold]);
 }
 
 /** Abre a tela certa quando o usuário toca numa notificação (app aberto, em segundo plano ou fechado). */

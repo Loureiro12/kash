@@ -6,7 +6,7 @@ import { FloatingTabBar } from '@/features/navigation/FloatingTabBar';
 import { SheetsHost } from '@/features/navigation/SheetsHost';
 import { useQuickAdd } from '@/features/quickAdd';
 import { useServerSync } from '@/data/useServerSync';
-import { useNotificationRouting, useReminderSync, useSpendingAlerts } from '@/features/notifications';
+import { useNotificationRouting, usePushRegistration, useReminderSync, useSpendingAlerts } from '@/features/notifications';
 import { useWidgetSync } from '@/features/widgets/useWidgetSync';
 import { DATA_SOURCE } from '@/data/source';
 import { useKashStore, useOnboardingStatus } from '@/store';
@@ -22,6 +22,7 @@ export default function AppLayout() {
   useReminderSync();
   useSpendingAlerts();
   useWidgetSync();
+  usePushRegistration();
   useNotificationRouting();
   useWelcomeRedirect();
   useQuickAdd();

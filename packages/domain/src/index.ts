@@ -7,3 +7,4 @@ export * from './types';
 export * from './telemetry';
 export * from './assistant';
 export * from './suggest';
+export * from './household';

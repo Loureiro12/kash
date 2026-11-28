@@ -185,6 +185,17 @@ Acesso: Cartões › Importar fatura, Contas › Importar extrato, ou o link no 
 - Tela **Tags** (Relatório › "Tags e modo viagem"): modo viagem e as tags com o total. Detalhe da tag: total, dias, por dia, entradas, por categoria e lançamentos (`tagSummary`).
 - **Modo viagem**: `profiles.travel_tag` e `travel_until` (último dia, inclusive; vale em todos os aparelhos). Lançamento novo já vem com a tag; faixa no Início com o gasto até agora. Migração `20261023000000_tags_travel`.
 
+### 3.12.3 Conta compartilhada do casal *(1.3.0)*
+
+- **Espaço** (`households`) de até 2 pessoas, por convite: código de 8 letras, válido por 7 dias (`create_household_invite` / `accept_household_invite`), ou o link `com.andreloureiro.kash://convite?codigo=…`. Tela em Perfil › Conta compartilhada.
+- **O que é do casal:** cada conta, cartão, conta fixa ou meta tem `household_id`; lançamentos, parcelados e faturas herdam da conta/cartão (triggers `tx_inherit_household` e outras), e conta fixa cobrada em conta/cartão do casal já é do casal. Compartilhar algo existente leva os lançamentos junto (`cascade_source_household`).
+- **Acesso (RLS):** `kash_can_read` (meu, do casal, ou pessoal da outra pessoa que compartilha o pessoal) e `kash_can_write` (meu ou do casal). Lançar exige poder escrever na conta/cartão (ver o pessoal do outro não dá direito de lançar).
+- **Preferências por pessoa** (`household_members`): `share_personal` (mostro o pessoal, só leitura), `view_scope` (tudo / meu + casal / só casal, aplicado no app sobre os dados do servidor, sem rede ao trocar), `notify_scope` e `notify_values`.
+- **Avisos:** trigger `notify_household_tx` manda push (Expo) para a outra pessoa a cada gasto/entrada no compartilhado (ou no pessoal visível, se ela quiser), no máximo um a cada 20 s (importação = um aviso). Token do aparelho em `push_tokens` (registrado ao abrir, apagado no logout). Tempo real: o aviso de mudança vai também para o canal da outra pessoa.
+- **No app:** chip de visão no Início, "casal"/nome na linha do lançamento, "Compartilhar com…" ao criar e editar, e o pessoal da outra pessoa abre só como aviso de só leitura.
+- **Sair** (`leave_household`): o que a pessoa criou no compartilhado passa para quem fica; excluir a conta faz o mesmo (trigger em `auth.users`). "Zerar dados" apaga só o pessoal; exportação traz o seu e o do casal.
+- **Ainda não:** a web mostra o que a pessoa pode ler, mas não tem as telas de convite nem o filtro de visão; categorias continuam de cada um (lançamento do par com categoria que você não tem aparece com cor neutra); limite mensal é de cada um.
+
 ### 3.13 Perfil
 
 - **Dados pessoais** (nome, celular) e **Segurança** (alterar senha, Face ID).

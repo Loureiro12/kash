@@ -22,6 +22,10 @@ const FAQ = [
     ios: true,
   },
   {
+    q: 'Como divido as finanças com meu parceiro ou parceira?',
+    a: 'Em Perfil › Conta compartilhada, toque em “Convidar alguém” e mande o convite. A outra pessoa abre o link (ou digita o código) no Kash dela. Depois, ao criar uma conta, cartão, conta fixa ou meta, ligue “Compartilhar com…”: os dois veem e lançam nela, e cada lançamento avisa a outra pessoa. Cada um escolhe o que vê (tudo, o seu e o do casal, ou só o do casal) e se mostra também o pessoal, só para leitura.',
+  },
+  {
     q: 'Dá pra lançar falando com a Siri?',
     a: 'Dá. Diga “E aí Siri, lançar no Kash”; ela pergunta o que lançar e você responde, por exemplo, “gastei 30 no Uber no Nubank”. O Kash abre direto na confirmação, com valor, categoria, cartão e data: é só tocar em Lançar. Também funciona digitando para a Siri e no app Atalhos. Usa o assistente (precisa autorizar a IA na primeira vez).',
     ios: true,

@@ -11,6 +11,8 @@ export interface GoalInput {
   color: string;
   accountId?: string;
   depositDay?: number | null;
+  /** meta do casal; ausente = não muda */
+  householdId?: string | null;
 }
 
 const toRow = (input: GoalInput) => ({
@@ -21,6 +23,7 @@ const toRow = (input: GoalInput) => ({
   color: input.color,
   account_id: input.accountId ?? null,
   deposit_day: input.depositDay ?? null,
+  ...(input.householdId !== undefined ? { household_id: input.householdId } : {}),
 });
 
 export async function listGoals(db: KashClient): Promise<Goal[]> {

@@ -12,6 +12,7 @@ export * from './repositories/cards';
 export * from './repositories/categories';
 export * from './repositories/debts';
 export * from './repositories/goals';
+export * from './repositories/household';
 export * from './repositories/imports';
 export * from './repositories/invoices';
 export * from './repositories/plans';

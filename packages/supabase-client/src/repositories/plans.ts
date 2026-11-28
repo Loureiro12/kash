@@ -7,7 +7,7 @@ import type { Database } from '../database.types';
 export type PlanRow = Database['public']['Tables']['plans']['Row'];
 
 export function toPlan(row: PlanRow): Plan {
-  return { id: row.id, title: row.title, category: row.category as Plan['category'], cardId: row.card_id, installments: row.installments, current: row.current, perInstallment: num(row.per_installment) };
+  return { id: row.id, title: row.title, category: row.category as Plan['category'], cardId: row.card_id, installments: row.installments, current: row.current, perInstallment: num(row.per_installment), ...(row.user_id ? { ownerId: row.user_id } : {}), householdId: row.household_id ?? null };
 }
 
 /** Parcelamentos (todos; a UI filtra os em aberto por cartão). */

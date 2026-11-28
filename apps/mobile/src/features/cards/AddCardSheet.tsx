@@ -2,8 +2,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useRef, useState } from 'react';
 import { Alert, View, type TextInput } from 'react-native';
 import { BottomSheet, Button, cardAppearance, cardGradients, ColorPickerModal, CreditCardFace, CustomColorSwatch, Input, MoneyInput, Pressable, useTheme } from '@/design-system';
-import { formatBRL } from '@kash/domain';
+import { formatBRL , householdPeople } from '@kash/domain';
 import { useKashStore } from '@/store';
+import { ShareToggle, useDefaultShared } from '../household/ShareToggle';
 
 const onlyDigits = (v: string, max: number) => v.replace(/\D/g, '').slice(0, max);
 const dayOrNull = (v: string) => {
@@ -23,6 +24,10 @@ export function AddCardSheet() {
 function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
   const { colors } = useTheme();
   const editing = useKashStore((s) => (editingId ? (s.cards.find((c) => c.id === editingId) ?? null) : null));
+  // conta compartilhada: compartilhar com o casal (novo: segue a visão "só do casal")
+  const defaultShared = useDefaultShared();
+  const shareActive = useKashStore((s) => householdPeople(s.household, s.userId).active);
+  const [shared, setShared] = useState(editing ? !!editing.householdId : defaultShared);
   // seletores primitivos: um objeto novo por render faria o zustand re-renderizar em loop
   const txCount = useKashStore((s) => (editingId ? s.txs.filter((t) => t.sourceId === editingId).length : 0));
   const planCount = useKashStore((s) => (editingId ? s.plans.filter((p) => p.cardId === editingId && p.current < p.installments).length : 0));
@@ -50,7 +55,7 @@ function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editin
 
   const onSave = () => {
     if (!canSave) return;
-    const input = { name, last4, limit: limitN, closingDay: dayOrNull(closing), dueDay: dayOrNull(due), gradientId: preset.id, color: useCustom ? customColor : null };
+    const input = { name, last4, limit: limitN, closingDay: dayOrNull(closing), dueDay: dayOrNull(due), gradientId: preset.id, color: useCustom ? customColor : null , shared: shareActive ? shared : undefined };
     if (editing) {
       updateCard(editing.id, input);
       showToast('Cartão atualizado');
@@ -134,6 +139,7 @@ function AddCardForm({ visible, editingId, onClose }: { visible: boolean; editin
         <Input containerStyle={{ flex: 1 }} label="Dia do fechamento" labelSize="sm" placeholder="ex.: 28" value={closing} onChangeText={(v) => setClosing(onlyDigits(v, 2))} keyboardType="number-pad" testID="add-card-closing" />
         <Input containerStyle={{ flex: 1 }} label="Dia do vencimento" labelSize="sm" placeholder="ex.: 5" value={due} onChangeText={(v) => setDue(onlyDigits(v, 2))} keyboardType="number-pad" testID="add-card-due" />
       </View>
+      <ShareToggle value={shared} onChange={setShared} what="a fatura e as compras deste cartão" testID="share-card" />
     </BottomSheet>
   );
 }

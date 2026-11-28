@@ -19,6 +19,6 @@ describe('exportar dados', () => {
     expect(data.accounts).toHaveLength(1);
     expect(data.transactions).toHaveLength(1);
     expect(data.transactions[0]!.deleted_at).toBeTruthy();
-    expect(Object.keys(data).sort()).toEqual(['accounts', 'bills', 'cards', 'categories', 'debts', 'exported_at', 'format', 'goals', 'invoices', 'plans', 'reminder_emails', 'settings', 'transactions', 'user']);
+    expect(Object.keys(data).sort()).toEqual(['accounts', 'bills', 'cards', 'categories', 'debts', 'exported_at', 'format', 'goals', 'household', 'invoices', 'plans', 'reminder_emails', 'settings', 'transactions', 'user']);
   });
 });

@@ -2,8 +2,9 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Alert, View, type TextInput } from 'react-native';
 import { ScrollView } from 'react-native';
 import { accountColors, BottomSheet, Button, Chip, Input, MoneyInput, Pressable, Text, useTheme } from '@/design-system';
-import { goalProgress } from '@kash/domain';
+import { goalProgress , householdPeople } from '@kash/domain';
 import { useKashStore } from '@/store';
+import { ShareToggle, useDefaultShared } from '../household/ShareToggle';
 
 /** Sheet — Nova meta: nome, valor, já guardado, aporte mensal (prévia do prazo) e cor. */
 export function AddGoalSheet() {
@@ -18,6 +19,10 @@ export function AddGoalSheet() {
 function AddGoalForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
   const { colors } = useTheme();
   const editing = useKashStore((s) => (editingId ? (s.goals.find((g) => g.id === editingId) ?? null) : null));
+  // conta compartilhada: compartilhar com o casal (novo: segue a visão "só do casal")
+  const defaultShared = useDefaultShared();
+  const shareActive = useKashStore((s) => householdPeople(s.household, s.userId).active);
+  const [shared, setShared] = useState(editing ? !!editing.householdId : defaultShared);
   const addGoal = useKashStore((s) => s.addGoal);
   const updateGoal = useKashStore((s) => s.updateGoal);
   const removeGoal = useKashStore((s) => s.removeGoal);
@@ -49,7 +54,7 @@ function AddGoalForm({ visible, editingId, onClose }: { visible: boolean; editin
 
   const onSave = () => {
     if (!canSave) return;
-    const input = { name, target: targetN, saved: savedN, monthly: monthlyN, color, accountId: accountId || undefined, depositDay: depositDayN };
+    const input = { name, target: targetN, saved: savedN, monthly: monthlyN, color, accountId: accountId || undefined, depositDay: depositDayN , shared: shareActive ? shared : undefined };
     if (editing) {
       updateGoal(editing.id, input);
       showToast('Meta atualizada');
@@ -135,6 +140,7 @@ function AddGoalForm({ visible, editingId, onClose }: { visible: boolean; editin
           </Pressable>
         ))}
       </View>
+      <ShareToggle value={shared} onChange={setShared} what="esta meta e os depósitos" testID="share-goal" />
     </BottomSheet>
   );
 }

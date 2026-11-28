@@ -9,6 +9,8 @@ export interface BillInput {
   dueDay: number;
   category: Category;
   source: { type: SourceType; id: string } | null;
+  /** compartilhada com o casal; ausente = não muda (cobrada em conta/cartão do casal já é) */
+  householdId?: string | null;
 }
 
 const toRow = (input: BillInput) => ({
@@ -18,6 +20,7 @@ const toRow = (input: BillInput) => ({
   category: input.category,
   source_type: input.source?.type ?? null,
   source_id: input.source?.id ?? null,
+  ...(input.householdId !== undefined ? { household_id: input.householdId } : {}),
 });
 
 export async function listBills(db: KashClient): Promise<Bill[]> {

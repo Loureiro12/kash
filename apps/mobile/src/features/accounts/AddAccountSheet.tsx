@@ -3,6 +3,8 @@ import { Alert, View, type TextInput } from 'react-native';
 import { accountColors, BottomSheet, Button, Chip, ColorPickerModal, CustomColorSwatch, Input, MoneyInput, Pressable, Text, useTheme } from '@/design-system';
 import { ACCOUNT_KINDS, type AccountKind } from '@kash/domain';
 import { useKashStore } from '@/store';
+import { ShareToggle, useDefaultShared } from '../household/ShareToggle';
+import { householdPeople } from '@kash/domain';
 
 /** Sheet — Nova conta bancária. */
 export function AddAccountSheet() {
@@ -22,6 +24,10 @@ const splitKind = (kind: string): { kind: AccountKind; bank: string } => {
 function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
   const { colors } = useTheme();
   const editing = useKashStore((s) => (editingId ? (s.accounts.find((a) => a.id === editingId) ?? null) : null));
+  // conta compartilhada: compartilhar com o casal (novo: segue a visão "só do casal")
+  const defaultShared = useDefaultShared();
+  const shareActive = useKashStore((s) => householdPeople(s.household, s.userId).active);
+  const [shared, setShared] = useState(editing ? !!editing.householdId : defaultShared);
   const txCount = useKashStore((s) => (editingId ? s.txs.filter((t) => t.sourceId === editingId).length : 0));
   const addAccount = useKashStore((s) => s.addAccount);
   const updateAccount = useKashStore((s) => s.updateAccount);
@@ -45,7 +51,7 @@ function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; edi
   const canSave = name.trim().length > 0;
   const onSave = () => {
     if (!canSave) return;
-    const input = { name, kind, bank, balance, color: useCustom && customColor ? customColor : (accountColors[colorIdx] ?? accountColors[0]) };
+    const input = { name, kind, bank, balance, color: useCustom && customColor ? customColor : (accountColors[colorIdx] ?? accountColors[0]) , shared: shareActive ? shared : undefined };
     if (editing) {
       updateAccount(editing.id, input);
       showToast('Conta atualizada');
@@ -122,6 +128,7 @@ function AddAccountForm({ visible, editingId, onClose }: { visible: boolean; edi
           testID="account-color-picker"
         />
       </View>
+      <ShareToggle value={shared} onChange={setShared} what="o saldo e os lançamentos desta conta" testID="share-account" />
     </BottomSheet>
   );
 }

@@ -18,6 +18,10 @@ export interface CategoryDef {
 }
 
 export interface Account {
+  /** quem criou (dono); vazio nos dados de exemplo */
+  ownerId?: ID;
+  /** espaço compartilhado do casal (null/ausente = pessoal) */
+  householdId?: ID | null;
   id: ID;
   name: string;
   /** descrição exibida (ex.: "Banco digital", "Poupança · Nubank") */
@@ -27,6 +31,10 @@ export interface Account {
 }
 
 export interface Card {
+  /** quem criou (dono); vazio nos dados de exemplo */
+  ownerId?: ID;
+  /** espaço compartilhado do casal (null/ausente = pessoal) */
+  householdId?: ID | null;
   id: ID;
   name: string;
   last4: string;
@@ -45,6 +53,10 @@ export type TxKind = 'expense' | 'income';
 export type SourceType = 'account' | 'card';
 
 export interface Tx {
+  /** quem criou (dono); vazio nos dados de exemplo */
+  ownerId?: ID;
+  /** espaço compartilhado do casal (null/ausente = pessoal) */
+  householdId?: ID | null;
   id: ID;
   title: string;
   category: TxCategory;
@@ -75,6 +87,10 @@ export const isTransfer = (tx: Pick<Tx, 'category' | 'transferId'>): boolean => 
 
 /** Conta fixa mensal (recorrente). */
 export interface Bill {
+  /** quem criou (dono); vazio nos dados de exemplo */
+  ownerId?: ID;
+  /** espaço compartilhado do casal (null/ausente = pessoal) */
+  householdId?: ID | null;
   id: ID;
   name: string;
   amount: number;
@@ -109,6 +125,10 @@ export interface Debt {
 }
 
 export interface Goal {
+  /** quem criou (dono); vazio nos dados de exemplo */
+  ownerId?: ID;
+  /** espaço compartilhado do casal (null/ausente = pessoal) */
+  householdId?: ID | null;
   id: ID;
   name: string;
   target: number;
@@ -126,6 +146,10 @@ export interface Goal {
 
 /** Plano de parcelamento no cartão. */
 export interface Plan {
+  /** quem criou (dono); vazio nos dados de exemplo */
+  ownerId?: ID;
+  /** espaço compartilhado do casal (null/ausente = pessoal) */
+  householdId?: ID | null;
   id: ID;
   title: string;
   category: Category;
@@ -140,6 +164,10 @@ export interface Plan {
 
 /** Fatura fechada de um cartão num mês ("yyyy-mm"). */
 export interface Invoice {
+  /** quem criou (dono); vazio nos dados de exemplo */
+  ownerId?: ID;
+  /** espaço compartilhado do casal (null/ausente = pessoal) */
+  householdId?: ID | null;
   id: ID;
   cardId: ID;
   /** mês de competência "yyyy-mm" */

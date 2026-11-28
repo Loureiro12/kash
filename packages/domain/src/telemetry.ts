@@ -26,6 +26,10 @@ export interface TelemetryEvents {
   recap_shared: { hidden: boolean };
   /** comprovante anexado a um lançamento */
   attachment_added: Record<string, never>;
+  /** conta compartilhada: convite criado, entrou com convite, trocou a visão */
+  household_invite: Record<string, never>;
+  household_join: Record<string, never>;
+  household_view: { scope: 'all' | 'mine_shared' | 'shared' };
   /** lançamento proposto pelo assistente: mostrado, lançado direto, aberto para editar ou descartado */
   assistant_proposal: { action: 'shown' | 'saved' | 'edited' | 'dismissed' };
   /** "Zerar meus dados" concluído */

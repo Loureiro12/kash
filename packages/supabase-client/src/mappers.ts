@@ -53,13 +53,14 @@ export function toAccount(row: AccountRow): Account {
     kind: row.institution ? `${kindLabel} · ${row.institution}` : kindLabel,
     balance: num(row.balance),
     color: row.color ?? '#C6F432',
+    ...(row.user_id ? { ownerId: row.user_id } : {}), householdId: row.household_id ?? null,
   };
 }
 
 export const accountKindToEnum = (kind: AccountKind): Enums['account_kind'] => ACCOUNT_KIND_ENUM[kind];
 
 export function toCard(row: CardRow): Card {
-  return { id: row.id, name: row.name, last4: row.last4, limit: num(row.credit_limit), closingDay: row.closing_day, dueDay: row.due_day, gradientId: row.gradient, ...(row.color ? { color: row.color } : {}) };
+  return { id: row.id, name: row.name, last4: row.last4, limit: num(row.credit_limit), closingDay: row.closing_day, dueDay: row.due_day, gradientId: row.gradient, ...(row.color ? { color: row.color } : {}), ...(row.user_id ? { ownerId: row.user_id } : {}), householdId: row.household_id ?? null };
 }
 
 export function toTx(row: TxRow): Tx {
@@ -76,6 +77,7 @@ export function toTx(row: TxRow): Tx {
     externalId: row.external_id ?? undefined,
     ...(row.tag ? { tag: row.tag } : {}),
     ...(row.attachment_path ? { attachmentPath: row.attachment_path } : {}),
+    ...(row.user_id ? { ownerId: row.user_id } : {}), householdId: row.household_id ?? null,
   };
 }
 
@@ -91,6 +93,7 @@ export function toBill(row: BillRow): Bill {
     sourceType: row.source_type ?? undefined,
     paidTxId: row.paid_tx_id ?? undefined,
     ...(row.paid_tx_linked ? { paidTxLinked: true } : {}),
+    ...(row.user_id ? { ownerId: row.user_id } : {}), householdId: row.household_id ?? null,
   };
 }
 
@@ -105,11 +108,12 @@ export function toGoal(row: GoalRow): Goal {
     accountId: row.account_id ?? undefined,
     depositDay: row.deposit_day ?? undefined,
     lastDepositDate: row.last_deposit_date ?? undefined,
+    ...(row.user_id ? { ownerId: row.user_id } : {}), householdId: row.household_id ?? null,
   };
 }
 
 export function toInvoice(row: InvoiceRow): Invoice {
-  return { id: row.id, cardId: row.card_id, month: row.month, total: num(row.total), paid: row.paid_tx_id != null, paidTxId: row.paid_tx_id ?? undefined, paidAt: row.paid_at ?? undefined };
+  return { id: row.id, cardId: row.card_id, month: row.month, total: num(row.total), paid: row.paid_tx_id != null, paidTxId: row.paid_tx_id ?? undefined, paidAt: row.paid_at ?? undefined, ...(row.user_id ? { ownerId: row.user_id } : {}), householdId: row.household_id ?? null };
 }
 
 export function toUser(row: ProfileRow, email: string): User {

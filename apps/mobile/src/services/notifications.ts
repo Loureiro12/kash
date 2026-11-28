@@ -1,5 +1,8 @@
 import type { Reminder } from '@kash/domain';
+import { removePushToken, savePushToken } from '@kash/supabase-client';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
+import { supabase } from '@/services/supabase';
 import { Platform } from 'react-native';
 
 /**
@@ -94,4 +97,47 @@ export const cancelAllReminders = () => syncScheduledReminders([]);
 export function routeFromResponse(response: Notifications.NotificationResponse | null | undefined): string | null {
   const route = response?.notification.request.content.data?.route;
   return typeof route === 'string' && route.startsWith('/') ? route : null;
+}
+
+/** canal dos avisos do casal (Android): importância alta, aparece como banner */
+export const HOUSEHOLD_CHANNEL = 'household';
+let registeredToken: string | null = null;
+
+/**
+ * Registra este aparelho para os avisos da conta compartilhada (push pelo servidor, Expo Push).
+ * Só com a permissão de notificações já concedida; sem projeto EAS ou em simulador, não faz nada.
+ */
+export async function registerPushToken(): Promise<string | null> {
+  try {
+    if (!(await hasNotificationPermission())) return null;
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync(HOUSEHOLD_CHANNEL, {
+        name: 'Conta compartilhada',
+        description: 'Gastos e entradas lançados pela outra pessoa',
+        importance: Notifications.AndroidImportance.HIGH,
+      });
+    }
+    const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+    if (!projectId) return null;
+    const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
+    if (!token) return null;
+    await savePushToken(supabase, token, Platform.OS === 'ios' ? 'ios' : 'android');
+    registeredToken = token;
+    return token;
+  } catch {
+    // simulador sem push, sem rede: tenta de novo na próxima abertura
+    return null;
+  }
+}
+
+/** Sair da conta: este aparelho para de receber os avisos. */
+export async function unregisterPushToken(): Promise<void> {
+  const token = registeredToken;
+  registeredToken = null;
+  if (!token) return;
+  try {
+    await removePushToken(supabase, token);
+  } catch {
+    // sem rede: o token expira sozinho quando o Expo deixar de aceitá-lo
+  }
 }

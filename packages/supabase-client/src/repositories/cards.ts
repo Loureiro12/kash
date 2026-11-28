@@ -13,9 +13,11 @@ export interface CardInput {
   gradientId: CardGradientId;
   /** cor personalizada; null/undefined volta para o gradiente pronto */
   color?: string | null;
+  /** compartilhado com o casal (id do espaço) ou pessoal (null); ausente = não muda */
+  householdId?: string | null;
 }
 
-const toRow = (input: CardInput) => ({ name: input.name.trim(), last4: input.last4, credit_limit: input.limit, closing_day: input.closingDay, due_day: input.dueDay, gradient: input.gradientId, color: input.color ? normalizeHexColor(input.color) : null });
+const toRow = (input: CardInput) => ({ name: input.name.trim(), last4: input.last4, credit_limit: input.limit, closing_day: input.closingDay, due_day: input.dueDay, gradient: input.gradientId, color: input.color ? normalizeHexColor(input.color) : null, ...(input.householdId !== undefined ? { household_id: input.householdId } : {}) });
 
 export async function listCards(db: KashClient): Promise<Card[]> {
   return unwrap(await db.from('cards').select('*').order('position').order('created_at')).map(toCard);

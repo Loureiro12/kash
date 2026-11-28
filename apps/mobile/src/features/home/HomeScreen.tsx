@@ -22,6 +22,7 @@ import { DATA_SOURCE } from '@/data/source';
 import { useForecast, useHomeSummary, useKashStore, useMoney, useMonthRecap, useOpenInvoices, usePeriodReport, useRecentTxs, useUpcomingBills } from '@/store';
 import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
 import { AssistantFab } from '../assistant/AssistantFab';
+import { ViewScopeChip } from '../household/ViewScopeChip';
 import { DataGate } from '../navigation/DataGate';
 import { TxRow } from '../transactions/TxRow';
 import { HomeHeaderSkeleton, HomeSkeleton } from './HomeSkeleton';
@@ -87,6 +88,7 @@ export function HomeScreen() {
     <Screen testID="home-screen" header={loading ? <HomeHeaderSkeleton /> : header} contentStyle={showFab ? { paddingBottom: layout.screenPaddingBottom + 72 } : undefined}>
       <DataGate skeleton={<HomeSkeleton />}>
       <ChecklistCard />
+      <ViewScopeChip />
 
       {/* Saldo total */}
       <Card radius="cardXl" padding={[22, 20]} style={{ marginTop: 10, gap: 6 }} testID="home-balance-card">

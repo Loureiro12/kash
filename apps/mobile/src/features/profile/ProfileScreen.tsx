@@ -15,6 +15,10 @@ export function ProfileScreen() {
   const user = useKashStore((s) => s.user);
   const settings = useKashStore((s) => s.settings);
   const categoryCount = useKashStore((s) => s.categories.length);
+  const sharedLabel = useKashStore((s) => {
+    const partner = s.household?.members.find((m) => m.userId !== s.userId);
+    return partner ? `com ${partner.name.split(/\s+/)[0]}` : s.household?.invite ? 'convite enviado' : 'convidar';
+  });
   const toggleTheme = useKashStore((s) => s.toggleTheme);
   const toggleBillReminder = useToggleBillReminder();
   const toggleAlert = useToggleAlertPref();
@@ -62,7 +66,8 @@ export function ProfileScreen() {
         <ListRow title="Dados pessoais" value="Nome, e-mail, celular" onPress={() => router.push('/profile/personal')} testID="profile-personal" />
         <ListRow title="Segurança" value="Senha, biometria" onPress={() => router.push('/profile/security')} testID="profile-security" />
         <ListRow title="Limite mensal" value={`${formatBRL(settings.monthlyBudget)}${settings.cardBudget > 0 ? ' · dividido' : ''}`} onPress={() => router.push('/profile/budget')} testID="profile-budget" />
-        <ListRow title="Categorias" value={`${categoryCount}`} onPress={() => router.push('/profile/categories')} divider={false} testID="profile-categories" />
+        <ListRow title="Categorias" value={`${categoryCount}`} onPress={() => router.push('/profile/categories')} testID="profile-categories" />
+        <ListRow title="Conta compartilhada" value={sharedLabel} onPress={() => router.push('/profile/shared')} divider={false} testID="profile-shared" />
       </Group>
 
       <Eyebrow>Preferências</Eyebrow>

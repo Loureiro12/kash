@@ -12,6 +12,7 @@ A 1.2.0 (aprovada na App Store, build 14) está em [`loja-1.2.0.md`](loja-1.2.0.
 ```
 Novidades desta versão:
 
+• Conta compartilhada do casal: convide seu par, dividam contas, cartões, contas fixas e metas, e recebam um aviso a cada gasto ou entrada. Cada um escolhe o que vê.
 • Retrospectiva do mês: no começo de cada mês, veja quanto entrou, quanto saiu, onde mais gastou e compare com o mês anterior. Compartilhe como imagem, com ou sem os valores.
 • "E aí Siri, lançar no Kash": diga "gastei 30 no Uber" e confirme num toque.
 • Lance pela foto: fotografe a nota fiscal, o cupom ou o comprovante do Pix e o Kash preenche valor, lugar, data e categoria.
@@ -107,6 +108,7 @@ What's new in 1.3.0:
 7. Siri: "Lançar no Kash" asks what to log ("gastei 30 no Uber") and opens a confirmation sheet in the app; nothing is saved until the user taps "Lançar".
 8. Tags and travel mode (Report > "Tags e modo viagem"); "Quem me deve" (Accounts > "A receber") to track money friends owe, with reminders and a share sheet to send a message.
 9. Widgets: "Gastos do Kash" shows today's spending and what is left of the monthly budget (hidden when "ocultar valores" is on; redacted on the Lock Screen while locked).
+11. Shared couple account (Profile > "Conta compartilhada"): one person invites the other with an 8-letter code. Accounts, cards, bills and goals marked "Compartilhar com…" are visible and editable by both; each new entry in them sends a push notification to the other person. Personal data stays private unless the owner chooses to show it (read-only). To test it, a second account is needed; we can provide one on request.
 10. Receipt attachment: open a saved entry > "Anexar comprovante". The photo is stored privately in the user's account (Supabase Storage) and deleted with the account.
 
 Account deletion: Profile > "Excluir conta". The app does not connect to bank accounts; all data is entered or imported by the user.
@@ -128,6 +130,7 @@ No Android não há widget nem Siri, e o "Zerar meus dados" já saiu na 1.1.0: a
 ### Novidades da versão (até 500)
 
 ```
+• Conta compartilhada do casal, com aviso a cada gasto.
 • Retrospectiva do mês, para ver e compartilhar.
 • Widget do Kash com o gasto de hoje e o que sobra no mês.
 • Lance pela foto da nota e guarde o comprovante.
@@ -218,6 +221,7 @@ Por que cada um:
 - **Mensagens:** as perguntas ao assistente vão para a Anthropic, que processa por nós. Fornecedor que processa em nome do app **não** conta como compartilhamento para o Google.
 - **Atividade, falhas, diagnóstico e IDs de dispositivo:** Firebase Analytics, Crashlytics e Performance (o id de instância do app). São opcionais porque a pessoa desliga em Perfil › Compartilhar dados de uso.
 - **Fotos:** o comprovante que a pessoa anexa a um lançamento fica guardado no Supabase Storage (privado, apagado com a conta), por isso **não** é temporário. A foto enviada ao assistente vai para a Anthropic só para ler o lançamento.
+- **Conta compartilhada:** o token de push do aparelho (Expo) entra em **IDs de dispositivo ou outros**, finalidade **Funcionalidade do app** (além de Análise, do Firebase). O que a pessoa lança no compartilhado é visto pela outra pessoa da conta, por escolha dela (não é "compartilhamento com terceiros" no sentido do Google).
 - **Quem me deve:** nomes e valores de quem deve à pessoa entram em **Outras informações financeiras** (ficam só na conta dela; o Kash não contata ninguém).
 - **Não coletados:** localização, contatos, arquivos (OFX, CSV e PDF são lidos no aparelho; do PDF só vai o texto dos lançamentos, já coberto em Informações financeiras) e ID de publicidade (desligado no `firebase.json`).
 
@@ -235,6 +239,8 @@ Use a mesma conta de demonstração das notas da Apple (e-mail e senha).
 - [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` e `pnpm test:backend` passando.
 - [x] Backend em produção: migração `20261022000000_bill_from_recurring` e função `assistant` com foto (publicados em 26/11).
 - [ ] Backend em produção **antes do app**: migrações `20261023000000_tags_travel`, `20261024000000_debts` e `20261025000000_attachments` (bucket `receipts`), e a função `delete-account` (apaga os comprovantes).
+- [ ] Migração `20261026000000_households` em produção antes do app (RLS nova: rodar `pnpm test:backend` contra o local antes).
+- [ ] **Push pelo servidor (conta compartilhada):** credenciais no EAS. iOS: `eas credentials -p ios` › Push Notifications › criar ou usar uma chave APNs. Android: no Firebase do Kash, Configurações › Contas de serviço › gerar a chave JSON; depois `eas credentials -p android` › Google Service Account Key para FCM V1. Sem isso, o app registra o aparelho, mas os avisos não chegam.
 - [ ] App Group `group.com.andreloureiro.kash` (widget com números): o primeiro `eas build -p ios` depois dele pode precisar ser interativo para o EAS registrar o grupo no app e na extensão do widget.
 - [x] `app.json` em **1.3.0** (a Apple fecha a versão depois de aprovada: builds 15 e 16 da 1.2.0 foram recusados no envio).
 

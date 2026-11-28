@@ -3,6 +3,8 @@ import { Alert, ScrollView, View, type TextInput } from 'react-native';
 import { BottomSheet, Button, Chip, Input, MoneyInput, Text } from '@/design-system';
 import { type Category } from '@kash/domain';
 import { useCategories, useKashStore, useSourceOptions } from '@/store';
+import { ShareToggle, useDefaultShared } from '../household/ShareToggle';
+import { householdPeople } from '@kash/domain';
 
 /** Sheet — Nova conta fixa: nome, valor, dia, categoria e onde é cobrada (cartão ou conta). */
 export function AddBillSheet() {
@@ -15,6 +17,10 @@ export function AddBillSheet() {
 
 function AddBillForm({ visible, editingId, onClose }: { visible: boolean; editingId: string | null; onClose: () => void }) {
   const editing = useKashStore((s) => (editingId ? (s.bills.find((b) => b.id === editingId) ?? null) : null));
+  // conta compartilhada: compartilhar com o casal (novo: segue a visão "só do casal")
+  const defaultShared = useDefaultShared();
+  const shareActive = useKashStore((s) => householdPeople(s.household, s.userId).active);
+  const [shared, setShared] = useState(editing ? !!editing.householdId : defaultShared);
   const addBill = useKashStore((s) => s.addBill);
   const updateBill = useKashStore((s) => s.updateBill);
   const removeBill = useKashStore((s) => s.removeBill);
@@ -36,7 +42,7 @@ function AddBillForm({ visible, editingId, onClose }: { visible: boolean; editin
 
   const onSave = () => {
     if (!canSave) return;
-    const input = { name, amount: amountN, dueDay: dayN, category, sourceId: sourceId || undefined };
+    const input = { name, amount: amountN, dueDay: dayN, category, sourceId: sourceId || undefined , shared: shareActive ? shared : undefined };
     if (editing) {
       updateBill(editing.id, input);
       showToast('Conta fixa atualizada');
@@ -106,6 +112,7 @@ function AddBillForm({ visible, editingId, onClose }: { visible: boolean; editin
           testID="add-bill-day"
         />
       </View>
+      <ShareToggle value={shared} onChange={setShared} what="esta conta fixa e o pagamento" testID="share-bill" />
     </BottomSheet>
   );
 }

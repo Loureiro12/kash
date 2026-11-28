@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { changePassword as apiChangePassword, deleteOwnAccount, getProfile, resetMyData, type KashSnapshot, OAUTH_CALLBACK_PATH, RECOVERY_PATH, recoverSessionFromUrl, sessionFromOAuthRedirect, type SocialProvider, verifyRecoveryCode as apiVerifyRecoveryCode, requestPasswordReset as apiRequestPasswordReset, signIn as apiSignIn, signOut as apiSignOut, signUp as apiSignUp, toKashError, updatePassword } from '@kash/supabase-client';
 import { biometricLockPreference } from '@/services/biometrics';
+import { unregisterPushToken } from '@/services/notifications';
 import { onboardingFlag } from '@/services/onboarding';
 import { signInWithProvider as socialSignIn } from '@/services/socialAuth';
 import { supabase } from '@/services/supabase';
@@ -8,7 +9,7 @@ import { queryClient } from '@/data/queryClient';
 import { queryKeys } from '@/data/keys';
 import { DATA_SOURCE } from '@/data/source';
 import type { CardGradient } from '@/design-system/tokens/colors';
-import { type Debt, cleanTag, addToGoal, DEFAULT_CATEGORIES, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type CategoryDef, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
+import { applyViewScope, canEditItem, householdPeople, type Household, type ScopedData, type ViewScope, type Debt, cleanTag, addToGoal, DEFAULT_CATEGORIES, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type CategoryDef, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 
@@ -108,6 +109,8 @@ export interface NewCard {
   gradientId: CardGradient['id'];
   /** cor personalizada (#RRGGBB); null volta para o gradiente pronto */
   color?: string | null;
+  /** compartilhar com o casal (só com conta compartilhada ativa); ausente = não muda */
+  shared?: boolean;
 }
 
 export interface NewAccount {
@@ -116,6 +119,8 @@ export interface NewAccount {
   bank: string;
   balance: number;
   color: string;
+  /** compartilhar com o casal (só com conta compartilhada ativa); ausente = não muda */
+  shared?: boolean;
 }
 
 export interface NewCategory {
@@ -132,6 +137,8 @@ export interface NewGoal {
   color: string;
   accountId?: string;
   depositDay?: number | null;
+  /** compartilhar com o casal (só com conta compartilhada ativa); ausente = não muda */
+  shared?: boolean;
 }
 
 export interface NewBill {
@@ -142,6 +149,8 @@ export interface NewBill {
   sourceId?: string;
   /** cobrança deste mês já lançada (assinatura detectada): a conta nasce paga, ligada a ela */
   linkTxId?: string;
+  /** compartilhar com o casal (só com conta compartilhada ativa); ausente = não muda */
+  shared?: boolean;
 }
 
 export interface NewDebt {
@@ -187,6 +196,10 @@ export interface KashState {
   goals: Goal[];
   /** quem me deve */
   debts: Debt[];
+  /** conta compartilhada do casal (null = não participa) */
+  household: Household | null;
+  /** tudo o que o servidor devolveu (antes da visão escolhida): trocar a visão não precisa de rede */
+  serverData: ScopedData | null;
   /** categorias do usuário, na ordem de exibição */
   categories: CategoryDef[];
   plans: Plan[];
@@ -332,6 +345,10 @@ export interface KashState {
 
   /** abre "Alguém me deve" já preenchido (ex.: dividir um lançamento) */
   openDebtDraft: (draft: DebtDraft) => void;
+  /** troca a visão (tudo / meu e do casal / só do casal) na hora e salva no servidor */
+  setViewScope: (scope: ViewScope) => void;
+  /** atualiza o espaço depois de convite/entrar/sair (o snapshot traz o resto) */
+  setHousehold: (household: Household | null) => void;
   addDebt: (input: NewDebt) => void;
   updateDebt: (id: string, input: NewDebt) => void;
   removeDebt: (id: string) => void;
@@ -357,6 +374,8 @@ const buildInitial = (dataStatus: DataStatus = DATA_SOURCE === 'remote' ? 'loadi
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
     debts: [] as Debt[],
+    household: null as Household | null,
+    serverData: null as ScopedData | null,
     ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, transferDraft: null as TransferDraft | null, newTxKind: 'expense' as TxKind, newTxDraft: null as NewTxDraft | null, quickAdd: null, quickEntryText: null, debtDraft: null as DebtDraft | null },
   };
 };
@@ -368,6 +387,19 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null;
 export const TOAST_DURATION_MS = 2200;
 /** toasts com ação (Desfazer) ficam mais tempo */
 export const TOAST_ACTION_DURATION_MS = 4500;
+
+/** dono e espaço de um lançamento novo: quem lança, e o espaço da conta/cartão usado */
+function txOwnership(s: Pick<KashState, 'userId' | 'accounts' | 'cards'>, sourceId: string): Pick<Tx, 'ownerId' | 'householdId'> {
+  const householdId = s.accounts.find((a) => a.id === sourceId)?.householdId ?? s.cards.find((c) => c.id === sourceId)?.householdId ?? null;
+  return { ...(s.userId ? { ownerId: s.userId } : {}), householdId };
+}
+
+/** pessoal da outra pessoa: só leitura. Devolve a mensagem para o toast (ou null se pode editar). */
+function readOnlyMessage(s: Pick<KashState, 'userId' | 'household'>, item: { ownerId?: string; householdId?: string | null } | undefined): string | null {
+  if (!item || canEditItem(item, s.userId)) return null;
+  const name = householdPeople(s.household, s.userId).partner?.name.split(/\s+/)[0] ?? 'da outra pessoa';
+  return `É pessoal de ${name}: só ${name} pode alterar.`;
+}
 
 export const useKashStore = create<KashState>((set, get) => ({
   ...buildInitial(),
@@ -514,6 +546,8 @@ export const useKashStore = create<KashState>((set, get) => ({
     }
   },
   logout: async () => {
+    // antes de sair (ainda com a sessão): este aparelho para de receber avisos do casal
+    await unregisterPushToken();
     try {
       await apiSignOut(supabase);
     } catch {
@@ -564,24 +598,34 @@ export const useKashStore = create<KashState>((set, get) => ({
     return true;
   },
   hydrateFromServer: (snap) =>
-    set((s) => ({
+    set((s) => {
+      const myId = snap.userId ?? s.userId;
+      const household = snap.household === undefined ? s.household : snap.household;
+      const scope: ViewScope = household?.members.find((m) => m.userId === myId)?.viewScope ?? 'all';
+      const raw: ScopedData = { accounts: snap.accounts, cards: snap.cards, txs: snap.txs, plans: snap.plans, bills: snap.bills, goals: snap.goals, invoices: snap.invoices };
+      // visão escolhida (casal): o resto fica guardado em serverData para trocar sem rede
+      const v = applyViewScope(raw, scope, myId, householdPeople(household, myId).active);
+      return {
       user: snap.user,
       // biometria é preferência deste aparelho: o servidor não manda nela
       settings: { ...s.settings, ...snap.settings, biometrics: s.settings.biometrics },
       lastRolloverMonth: snap.lastRolloverMonth,
-      accounts: snap.accounts,
-      cards: snap.cards,
-      txs: snap.txs,
-      plans: snap.plans,
-      bills: snap.bills,
-      goals: snap.goals,
+      accounts: v.accounts,
+      cards: v.cards,
+      txs: v.txs,
+      plans: v.plans,
+      bills: v.bills,
+      goals: v.goals,
       // cache persistida por uma versão antiga do app pode não ter categorias: mantém as atuais
       categories: snap.categories?.length ? snap.categories : s.categories,
-      invoices: snap.invoices,
+      invoices: v.invoices,
       // snapshot guardado por uma versão antiga do app pode não ter dívidas
       debts: snap.debts ?? s.debts,
-      ui: { ...s.ui, selectedCardId: s.ui.selectedCardId && snap.cards.some((c) => c.id === s.ui.selectedCardId) ? s.ui.selectedCardId : (snap.cards[0]?.id ?? null) },
-    })),
+      household,
+      serverData: raw,
+      ui: { ...s.ui, selectedCardId: s.ui.selectedCardId && v.cards.some((c) => c.id === s.ui.selectedCardId) ? s.ui.selectedCardId : (v.cards[0]?.id ?? null) },
+    };
+    }),
 
   loadProfile: async () => {
     try {
@@ -628,6 +672,14 @@ export const useKashStore = create<KashState>((set, get) => ({
   openNewTransaction: (kind, draft) => set((s) => ({ ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: null, editing: null, newTxKind: kind, newTxDraft: draft ?? null } })),
   requestQuickAdd: (kind) => set((s) => ({ ui: { ...s.ui, quickAdd: kind } })),
   openDebtDraft: (draft) => set((s) => ({ ui: { ...s.ui, sheet: 'debt', sheetNonce: s.ui.sheetNonce + 1, editing: null, debtDraft: draft } })),
+  setViewScope: (scope) =>
+    set((s) => {
+      if (!s.household) return s;
+      const household = { ...s.household, members: s.household.members.map((m) => (m.userId === s.userId ? { ...m, viewScope: scope } : m)) };
+      const v = s.serverData ? applyViewScope(s.serverData, scope, s.userId, householdPeople(household, s.userId).active) : null;
+      return { household, ...(v ? { accounts: v.accounts, cards: v.cards, txs: v.txs, plans: v.plans, bills: v.bills, goals: v.goals, invoices: v.invoices } : {}) };
+    }),
+  setHousehold: (household) => set({ household }),
   addDebt: ({ person, description, amountCents, kind, date, dueDate }) => {
     if (!person.trim() || amountCents <= 0) return;
     const debt: Debt = { id: createId('debt'), person: person.trim(), description: description.trim(), amount: amountCents / 100, kind, date: date ?? toISODate(now()), dueDate: dueDate ?? null, settledAt: null };
@@ -683,17 +735,30 @@ export const useKashStore = create<KashState>((set, get) => ({
     }),
   openQuickEntry: (text) => set((s) => ({ ui: { ...s.ui, sheet: 'quickEntry', sheetNonce: s.ui.sheetNonce + 1, quickEntryText: text } })),
   openEdit: (ref) => {
+    const s0 = get();
+    const item = ref.kind === 'card' ? s0.cards.find((c) => c.id === ref.id) : ref.kind === 'account' ? s0.accounts.find((a) => a.id === ref.id) : ref.kind === 'bill' ? s0.bills.find((b) => b.id === ref.id) : ref.kind === 'goal' ? s0.goals.find((g) => g.id === ref.id) : undefined;
+    const blocked = readOnlyMessage(s0, item);
+    if (blocked) {
+      s0.showToast(blocked);
+      return;
+    }
     const sheet: SheetName = ref.kind === 'card' ? 'addCard' : ref.kind === 'account' ? 'addAccount' : ref.kind === 'bill' ? 'addBill' : ref.kind === 'category' ? 'category' : ref.kind === 'debt' ? 'debt' : 'addGoal';
     set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editing: ref } }));
   },
   setDataStatus: (status) => set((s) => ({ ui: { ...s.ui, dataStatus: status } })),
-  openTransaction: (txId) =>
+  openTransaction: (txId) => {
+    const blocked = readOnlyMessage(get(), get().txs.find((t) => t.id === txId));
+    if (blocked) {
+      get().showToast(blocked);
+      return;
+    }
     set((s) => {
       // transferência abre o próprio sheet (edita as duas pernas juntas)
       const transferId = s.txs.find((t) => t.id === txId)?.transferId;
       if (transferId) return { ui: { ...s.ui, sheet: 'transfer', sheetNonce: s.ui.sheetNonce + 1, transferId, transferDraft: null } };
       return { ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: txId } };
-    }),
+    });
+  },
   openTransfer: (transferId, draft) => set((s) => ({ ui: { ...s.ui, sheet: 'transfer', sheetNonce: s.ui.sheetNonce + 1, transferId: transferId ?? null, transferDraft: transferId ? null : (draft ?? null) } })),
   openPayInvoice: (invoiceId) => set((s) => ({ ui: { ...s.ui, sheet: 'payInvoice', sheetNonce: s.ui.sheetNonce + 1, payInvoiceId: invoiceId } })),
   openDeposit: (goalId) => set((s) => ({ ui: { ...s.ui, sheet: 'deposit', sheetNonce: s.ui.sheetNonce + 1, depositGoalId: goalId } })),
@@ -722,7 +787,7 @@ export const useKashStore = create<KashState>((set, get) => ({
       if (!isAccount) return;
       const title = note.trim() || 'Entrada';
       set((s) => ({
-        txs: [{ id: createId('tx'), title, category: 'Entrada', amount, date: when, sourceId, ...(tag ? { tag } : {}) }, ...s.txs],
+        txs: [{ id: createId('tx'), title, category: 'Entrada', amount, date: when, sourceId, ...(tag ? { tag } : {}), ...txOwnership(s, sourceId) }, ...s.txs],
         accounts: s.accounts.map((a) => (a.id === sourceId ? { ...a, balance: round2(a.balance + amount) } : a)),
         ui: { ...s.ui, sheet: null },
       }));
@@ -738,7 +803,7 @@ export const useKashStore = create<KashState>((set, get) => ({
     const txDate = current > 1 && !isSameMonth(when, now()) ? toISODate(new Date(now().getFullYear(), now().getMonth(), 1)) : when;
     const planId = n > 1 ? createId('plan') : undefined;
     set((s) => ({
-      txs: [{ id: createId('tx'), title: n > 1 ? `${title} (${current}/${n})` : title, category, amount: -per, date: txDate, sourceId, planId, ...(tag && n === 1 ? { tag } : {}) }, ...s.txs],
+      txs: [{ id: createId('tx'), title: n > 1 ? `${title} (${current}/${n})` : title, category, amount: -per, date: txDate, sourceId, planId, ...(tag && n === 1 ? { tag } : {}), ...txOwnership(s, sourceId) }, ...s.txs],
       plans: planId ? [...s.plans, { id: planId, title, category, cardId: sourceId, installments: n, current, perInstallment: per }] : s.plans,
       accounts: isAccount ? s.accounts.map((a) => (a.id === sourceId ? { ...a, balance: round2(a.balance - amount) } : a)) : s.accounts,
       ui: { ...s.ui, sheet: null },
@@ -861,15 +926,17 @@ export const useKashStore = create<KashState>((set, get) => ({
       return { txs: restored, accounts: last.accounts, bills: last.bills, invoices: last.invoices, plans, ui: { ...s.ui, lastDeleted: null, toast: null, toastAction: null } };
     }),
 
-  addCard: ({ name, last4, limit, closingDay, dueDay, gradientId, color }) => {
+  addCard: ({ name, last4, limit, closingDay, dueDay, gradientId, color, shared }) => {
     const id = createId('card');
-    const card: Card = { id, name: name.trim(), last4, limit, closingDay: closingDay ?? 1, dueDay: dueDay ?? 10, gradientId, ...(color ? { color } : {}) };
-    set((s) => ({ cards: [...s.cards, card], ui: { ...s.ui, sheet: null, selectedCardId: id } }));
+    set((s) => {
+      const card: Card = { id, name: name.trim(), last4, limit, closingDay: closingDay ?? 1, dueDay: dueDay ?? 10, gradientId, ...(color ? { color } : {}), ...(s.userId ? { ownerId: s.userId } : {}), householdId: (shared && s.household ? s.household.id : null) };
+      return { cards: [...s.cards, card], ui: { ...s.ui, sheet: null, selectedCardId: id } };
+    });
   },
 
-  updateCard: (id, { name, last4, limit, closingDay, dueDay, gradientId, color }) =>
+  updateCard: (id, { name, last4, limit, closingDay, dueDay, gradientId, color, shared }) =>
     set((s) => ({
-      cards: s.cards.map((c) => (c.id === id ? { ...c, name: name.trim() || c.name, last4: last4 || c.last4, limit: limit > 0 ? limit : c.limit, closingDay: closingDay ?? c.closingDay, dueDay: dueDay ?? c.dueDay, gradientId, color: color ?? undefined } : c)),
+      cards: s.cards.map((c) => (c.id === id ? { ...c, name: name.trim() || c.name, last4: last4 || c.last4, limit: limit > 0 ? limit : c.limit, closingDay: closingDay ?? c.closingDay, dueDay: dueDay ?? c.dueDay, gradientId, color: color ?? undefined, ...(shared !== undefined ? { householdId: (shared && s.household ? s.household.id : null) } : {}) } : c)),
       ui: { ...s.ui, sheet: null, editing: null },
     })),
 
@@ -887,18 +954,19 @@ export const useKashStore = create<KashState>((set, get) => ({
       };
     }),
 
-  addAccount: ({ name, kind, bank, balance, color }) => {
-    const account: Account = { id: createId('acc'), name: name.trim(), kind: bank.trim() ? `${kind} · ${bank.trim()}` : kind, balance, color };
-    set((s) => ({ accounts: [...s.accounts, account], ui: { ...s.ui, sheet: null } }));
-  },
+  addAccount: ({ name, kind, bank, balance, color, shared }) =>
+    set((s) => {
+      const account: Account = { id: createId('acc'), name: name.trim(), kind: bank.trim() ? `${kind} · ${bank.trim()}` : kind, balance, color, ...(s.userId ? { ownerId: s.userId } : {}), householdId: (shared && s.household ? s.household.id : null) };
+      return { accounts: [...s.accounts, account], ui: { ...s.ui, sheet: null } };
+    }),
 
   /**
    * Marcar como paga gera o lançamento da cobrança (fatura do cartão ou débito na conta);
    * desmarcar remove o lançamento e devolve o saldo.
    */
-  updateAccount: (id, { name, kind, bank, balance, color }) =>
+  updateAccount: (id, { name, kind, bank, balance, color, shared }) =>
     set((s) => ({
-      accounts: s.accounts.map((a) => (a.id === id ? { ...a, name: name.trim() || a.name, kind: bank.trim() ? `${kind} · ${bank.trim()}` : kind, balance: round2(balance), color } : a)),
+      accounts: s.accounts.map((a) => (a.id === id ? { ...a, name: name.trim() || a.name, kind: bank.trim() ? `${kind} · ${bank.trim()}` : kind, balance: round2(balance), color, ...(shared !== undefined ? { householdId: (shared && s.household ? s.household.id : null) } : {}) } : a)),
       ui: { ...s.ui, sheet: null, editing: null },
     })),
 
@@ -912,7 +980,12 @@ export const useKashStore = create<KashState>((set, get) => ({
       ui: { ...s.ui, sheet: null, editing: null },
     })),
 
-  toggleBillPaid: (id) =>
+  toggleBillPaid: (id) => {
+    const blocked = readOnlyMessage(get(), get().bills.find((b) => b.id === id));
+    if (blocked) {
+      get().showToast(blocked);
+      return;
+    }
     set((s) => {
       const bill = s.bills.find((b) => b.id === id);
       if (!bill) return s;
@@ -935,19 +1008,23 @@ export const useKashStore = create<KashState>((set, get) => ({
         txs: paidTx ? s.txs.filter((t) => t.id !== paidTx.id) : s.txs,
         accounts: refund ? s.accounts.map((a) => (a.id === refund ? { ...a, balance: round2(a.balance + bill.amount) } : a)) : s.accounts,
       };
-    }),
+    });
+  },
 
-  addBill: ({ name, amount, dueDay, category, sourceId, linkTxId }) => {
+  addBill: ({ name, amount, dueDay, category, sourceId, linkTxId, shared }) => {
     if (!name.trim() || amount <= 0 || dueDay < 1 || dueDay > 31) return;
     const linked = linkTxId ? get().txs.find((t) => t.id === linkTxId && t.amount < 0 && t.date.slice(0, 7) === toISODate(now()).slice(0, 7)) : undefined;
-    const bill: Bill = { id: createId('bill'), name: name.trim(), amount: round2(amount), dueDay, paid: !!linked, category, sourceId, ...(linked ? { paidTxId: linked.id, paidTxLinked: true } : {}) };
+    const s0 = get();
+    // cobrada numa conta/cartão do casal: já é do casal
+    const sourceHousehold = s0.accounts.find((a) => a.id === sourceId)?.householdId ?? s0.cards.find((c) => c.id === sourceId)?.householdId ?? null;
+    const bill: Bill = { id: createId('bill'), name: name.trim(), amount: round2(amount), dueDay, paid: !!linked, category, sourceId, ...(linked ? { paidTxId: linked.id, paidTxLinked: true } : {}), ...(s0.userId ? { ownerId: s0.userId } : {}), householdId: sourceHousehold ?? (shared && s0.household ? s0.household.id : null) };
     set((s) => ({ bills: [...s.bills, bill].sort((a, b) => a.dueDay - b.dueDay), ui: { ...s.ui, sheet: null } }));
   },
 
-  updateBill: (id, { name, amount, dueDay, category, sourceId }) =>
+  updateBill: (id, { name, amount, dueDay, category, sourceId, shared }) =>
     set((s) => ({
       bills: s.bills
-        .map((b) => (b.id === id ? { ...b, name: name.trim() || b.name, amount: amount > 0 ? round2(amount) : b.amount, dueDay: dueDay >= 1 && dueDay <= 31 ? dueDay : b.dueDay, category, sourceId } : b))
+        .map((b) => (b.id === id ? { ...b, name: name.trim() || b.name, amount: amount > 0 ? round2(amount) : b.amount, dueDay: dueDay >= 1 && dueDay <= 31 ? dueDay : b.dueDay, category, sourceId, ...(shared !== undefined ? { householdId: (shared && s.household ? s.household.id : null) } : {}) } : b))
         .sort((a, b) => a.dueDay - b.dueDay),
       ui: { ...s.ui, sheet: null, editing: null },
     })),
@@ -957,9 +1034,12 @@ export const useKashStore = create<KashState>((set, get) => ({
 
   contributeToGoal: (id, amount) => set((s) => ({ goals: s.goals.map((g) => (g.id === id ? addToGoal(g, amount) : g)) })),
 
-  addGoal: ({ name, target, saved, monthly, color, accountId, depositDay }) => {
+  addGoal: ({ name, target, saved, monthly, color, accountId, depositDay, shared }) => {
     if (!name.trim() || target <= 0) return;
+    const s0 = get();
     const goal: Goal = {
+      ...(s0.userId ? { ownerId: s0.userId } : {}),
+      householdId: shared && s0.household ? s0.household.id : null,
       id: createId('goal'),
       name: name.trim(),
       target: round2(target),
@@ -972,11 +1052,11 @@ export const useKashStore = create<KashState>((set, get) => ({
     set((s) => ({ goals: [...s.goals, goal], ui: { ...s.ui, sheet: null } }));
   },
 
-  updateGoal: (id, { name, target, saved, monthly, color, accountId, depositDay }) =>
+  updateGoal: (id, { name, target, saved, monthly, color, accountId, depositDay, shared }) =>
     set((s) => ({
       goals: s.goals.map((g) =>
         g.id === id
-          ? { ...g, name: name.trim() || g.name, target: target > 0 ? round2(target) : g.target, saved: round2(Math.min(Math.max(0, saved), target > 0 ? target : g.target)), monthly: round2(Math.max(0, monthly)), color, accountId, depositDay: depositDay ?? undefined }
+          ? { ...g, name: name.trim() || g.name, target: target > 0 ? round2(target) : g.target, saved: round2(Math.min(Math.max(0, saved), target > 0 ? target : g.target)), monthly: round2(Math.max(0, monthly)), color, accountId, depositDay: depositDay ?? undefined, ...(shared !== undefined ? { householdId: (shared && s.household ? s.household.id : null) } : {}) }
           : g,
       ),
       ui: { ...s.ui, sheet: null, editing: null },

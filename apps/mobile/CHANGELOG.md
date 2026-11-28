@@ -9,6 +9,15 @@ Checklist de lançamento em `docs/release.md` › 5.2.
 
 Base: iOS 1.2.0 build 14 (commit `3662e6e`, aprovado na App Store). A 1.2.0 fechou para novos builds na Apple, então o que entrou depois dela vai na 1.3.0. Os builds 15 e 16 (1.2.0) foram recusados no envio por isso.
 
+- **Conta compartilhada do casal** (Perfil › Conta compartilhada):
+  - **Convite:** código de 8 letras ou link `com.andreloureiro.kash://convite?codigo=…`, que vale 7 dias; até 2 pessoas.
+  - **O que é compartilhado:** contas, cartões, contas fixas e metas marcadas "Compartilhar com…". Os dois veem e lançam; lançamentos, parcelas e faturas herdam isso da conta ou do cartão. Dá para compartilhar algo que já existe abrindo e ligando.
+  - **Avisos:** cada gasto ou entrada no compartilhado avisa a outra pessoa por push, mesmo com o app fechado. Ela escolhe se recebe do casal, de tudo que vê, ou nada, e se o valor aparece. Uma importação gera um aviso só.
+  - **Visão:** cada um escolhe a sua (Tudo / Meu + casal / Só casal), no Perfil ou no chip do Início. Também escolhe se mostra o pessoal à outra pessoa (só leitura: ela vê, mas não altera nem lança).
+  - **Na lista:** os lançamentos mostram "casal" ou o nome de quem lançou.
+  - **Sair:** o compartilhado fica com quem ficou. Excluir a conta faz o mesmo, inclusive pelo painel.
+  - **Zerar e exportar:** "Zerar meus dados" apaga só o pessoal; a exportação traz o seu e o do casal, nunca o pessoal da outra pessoa.
+  - **Backend:** migração `20261026000000_households` (RLS nova em contas, cartões, parcelados, faturas, lançamentos, contas fixas e metas; push via `pg_net` para o Expo Push). Push no app (`expo-notifications`, token do Expo) exige as credenciais de push no EAS.
 - **Retrospectiva do mês** ("Seu outubro"): quanto entrou e saiu, quanto sobrou, onde mais gastou (3 categorias), maior gasto, dias sem gastar, como ficou o limite e a comparação com o mês anterior. Compartilhável como imagem, com a opção "Esconder valores" (só porcentagens). Aparece no Início nos primeiros 7 dias do mês, chega por notificação no dia 1º às 10h (preferência "Resumos da semana e do mês") e fica no Relatório ao ver um mês fechado. Novo módulo nativo `react-native-view-shot`.
 - **"Lançar no Kash" pela Siri** (voz ou digitando): a Siri pergunta o que lançar ("gastei 30 no Uber no Nubank") e o app abre direto numa confirmação curta, sem o chat, com Lançar / Editar / Descartar. Também pelo link `com.andreloureiro.kash://lancar?texto=…` (automações e Android). Sem autorização da IA ainda, abre o assistente para pedir antes.
 - **Tags e modo viagem**: marque lançamentos com uma tag ("Viagem Floripa") e veja o total, por dia e por categoria (Relatório › Tags e modo viagem). O modo viagem põe a tag sozinha em todo lançamento novo até o dia escolhido; o Início mostra quanto já foi. A tag aparece na linha do lançamento. Não vale para compra parcelada. Migração `20261023000000_tags_travel`.
@@ -44,6 +53,7 @@ Base: iOS 1.2.0 build 14 (commit `3662e6e`, aprovado na App Store). A 1.2.0 fech
 > • Alertas de gastos: o Kash avisa quando você chega a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal. E todo domingo chega o resumo da semana.
 > • Lance pela foto: fotografe a nota ou o comprovante e o Kash preenche o lançamento para você conferir.
 > • Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição.
+> • Conta compartilhada do casal: convide quem você ama, dividam contas, cartões, contas fixas e metas, e recebam um aviso a cada gasto.
 > • Retrospectiva do mês: veja seu mês num card e compartilhe, com ou sem os valores.
 > • "E aí Siri, lançar no Kash": diga o gasto e confirme num toque.
 > • Tags e modo viagem: junte os gastos de uma viagem ou de um evento e veja quanto saiu.

@@ -13,6 +13,8 @@ export interface AccountInput {
   /** saldo que o usuário vê hoje; vira opening_balance ajustado pelos lançamentos existentes */
   balance: number;
   color: string;
+  /** compartilhada com o casal (id do espaço) ou pessoal (null); ausente = não muda */
+  householdId?: string | null;
 }
 
 export async function listAccounts(db: KashClient): Promise<Account[]> {
@@ -24,7 +26,7 @@ export async function createAccount(db: KashClient, input: AccountInput): Promis
   const row = unwrap(
     await db
       .from('accounts')
-      .insert({ name: input.name.trim(), kind: accountKindToEnum(input.kind), institution: input.institution.trim(), opening_balance: input.balance, color: normalizeHexColor(input.color) ?? DEFAULT_ACCOUNT_COLOR })
+      .insert({ name: input.name.trim(), kind: accountKindToEnum(input.kind), institution: input.institution.trim(), opening_balance: input.balance, color: normalizeHexColor(input.color) ?? DEFAULT_ACCOUNT_COLOR, household_id: input.householdId ?? null })
       .select('id')
       .single(),
   );
@@ -42,7 +44,7 @@ export async function updateAccount(db: KashClient, id: string, input: AccountIn
   unwrap(
     await db
       .from('accounts')
-      .update({ name: input.name.trim(), kind: accountKindToEnum(input.kind), institution: input.institution.trim(), opening_balance: input.balance - txSum, color: normalizeHexColor(input.color) ?? DEFAULT_ACCOUNT_COLOR })
+      .update({ name: input.name.trim(), kind: accountKindToEnum(input.kind), institution: input.institution.trim(), opening_balance: input.balance - txSum, color: normalizeHexColor(input.color) ?? DEFAULT_ACCOUNT_COLOR, ...(input.householdId !== undefined ? { household_id: input.householdId } : {}) })
       .eq('id', id)
       .select('id'),
   );

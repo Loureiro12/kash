@@ -27,6 +27,7 @@ export type Database = {
         Row: {
           color: string;
           created_at: string;
+          household_id: string | null;
           id: string;
           institution: string;
           kind: Database['public']['Enums']['account_kind'];
@@ -40,6 +41,7 @@ export type Database = {
         Insert: {
           color?: string;
           created_at?: string;
+          household_id?: string | null;
           id?: string;
           institution?: string;
           kind?: Database['public']['Enums']['account_kind'];
@@ -52,6 +54,7 @@ export type Database = {
         Update: {
           color?: string;
           created_at?: string;
+          household_id?: string | null;
           id?: string;
           institution?: string;
           kind?: Database['public']['Enums']['account_kind'];
@@ -61,7 +64,15 @@ export type Database = {
           updated_at?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'accounts_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       ai_calls: {
         Row: {
@@ -97,6 +108,7 @@ export type Database = {
           category: string;
           created_at: string;
           due_day: number;
+          household_id: string | null;
           id: string;
           name: string;
           paid_tx_id: string | null;
@@ -112,6 +124,7 @@ export type Database = {
           category?: string;
           created_at?: string;
           due_day: number;
+          household_id?: string | null;
           id?: string;
           name: string;
           paid_tx_id?: string | null;
@@ -126,6 +139,7 @@ export type Database = {
           category?: string;
           created_at?: string;
           due_day?: number;
+          household_id?: string | null;
           id?: string;
           name?: string;
           paid_tx_id?: string | null;
@@ -136,6 +150,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'bills_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'bills_paid_tx_id_fkey';
             columns: ['paid_tx_id'];
@@ -153,6 +174,7 @@ export type Database = {
           credit_limit: number;
           due_day: number;
           gradient: Database['public']['Enums']['card_gradient'];
+          household_id: string | null;
           id: string;
           last4: string;
           name: string;
@@ -168,6 +190,7 @@ export type Database = {
           credit_limit: number;
           due_day: number;
           gradient?: Database['public']['Enums']['card_gradient'];
+          household_id?: string | null;
           id?: string;
           last4: string;
           name: string;
@@ -182,6 +205,7 @@ export type Database = {
           credit_limit?: number;
           due_day?: number;
           gradient?: Database['public']['Enums']['card_gradient'];
+          household_id?: string | null;
           id?: string;
           last4?: string;
           name?: string;
@@ -189,7 +213,15 @@ export type Database = {
           updated_at?: string;
           user_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'cards_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       categories: {
         Row: {
@@ -279,6 +311,7 @@ export type Database = {
           color: string;
           created_at: string;
           deposit_day: number | null;
+          household_id: string | null;
           id: string;
           last_deposit_date: string | null;
           monthly: number;
@@ -294,6 +327,7 @@ export type Database = {
           color?: string;
           created_at?: string;
           deposit_day?: number | null;
+          household_id?: string | null;
           id?: string;
           last_deposit_date?: string | null;
           monthly?: number;
@@ -308,6 +342,7 @@ export type Database = {
           color?: string;
           created_at?: string;
           deposit_day?: number | null;
+          household_id?: string | null;
           id?: string;
           last_deposit_date?: string | null;
           monthly?: number;
@@ -339,7 +374,133 @@ export type Database = {
             referencedRelation: 'accounts_with_balance';
             referencedColumns: ['id'];
           },
+          {
+            foreignKeyName: 'goals_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
         ];
+      };
+      household_invites: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by: string;
+          expires_at: string;
+          household_id: string;
+          used_at: string | null;
+          used_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          code: string;
+          created_at?: string;
+          created_by: string;
+          expires_at?: string;
+          household_id: string;
+          used_at?: string | null;
+          used_by?: string | null;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by?: string;
+          expires_at?: string;
+          household_id?: string;
+          used_at?: string | null;
+          used_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'household_invites_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      household_members: {
+        Row: {
+          household_id: string;
+          joined_at: string;
+          notify_scope: string;
+          notify_values: boolean;
+          role: string;
+          share_personal: boolean;
+          user_id: string;
+          view_scope: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          household_id: string;
+          joined_at?: string;
+          notify_scope?: string;
+          notify_values?: boolean;
+          role?: string;
+          share_personal?: boolean;
+          user_id: string;
+          view_scope?: string;
+        };
+        Update: {
+          household_id?: string;
+          joined_at?: string;
+          notify_scope?: string;
+          notify_values?: boolean;
+          role?: string;
+          share_personal?: boolean;
+          user_id?: string;
+          view_scope?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'household_members_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      household_push_log: {
+        Row: {
+          sent_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          sent_at?: string;
+          user_id: string;
+        };
+        Update: {
+          sent_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      households: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          name: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          name?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          name?: string;
+        };
+        Relationships: [];
       };
       imports: {
         Row: {
@@ -403,6 +564,7 @@ export type Database = {
         Row: {
           card_id: string;
           created_at: string;
+          household_id: string | null;
           id: string;
           month: string;
           paid_at: string | null;
@@ -414,6 +576,7 @@ export type Database = {
         Insert: {
           card_id: string;
           created_at?: string;
+          household_id?: string | null;
           id?: string;
           month: string;
           paid_at?: string | null;
@@ -424,6 +587,7 @@ export type Database = {
         Update: {
           card_id?: string;
           created_at?: string;
+          household_id?: string | null;
           id?: string;
           month?: string;
           paid_at?: string | null;
@@ -444,6 +608,13 @@ export type Database = {
             columns: ['card_id'];
             isOneToOne: false;
             referencedRelation: 'cards';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'invoices_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
             referencedColumns: ['id'];
           },
           {
@@ -492,6 +663,7 @@ export type Database = {
           deleted_at: string | null;
           deleted_group: string | null;
           external_id: string | null;
+          household_id: string | null;
           id: string;
           import_id: string | null;
           installments: number;
@@ -509,6 +681,7 @@ export type Database = {
           deleted_at?: string | null;
           deleted_group?: string | null;
           external_id?: string | null;
+          household_id?: string | null;
           id?: string;
           import_id?: string | null;
           installments: number;
@@ -525,6 +698,7 @@ export type Database = {
           deleted_at?: string | null;
           deleted_group?: string | null;
           external_id?: string | null;
+          household_id?: string | null;
           id?: string;
           import_id?: string | null;
           installments?: number;
@@ -546,6 +720,13 @@ export type Database = {
             columns: ['card_id'];
             isOneToOne: false;
             referencedRelation: 'cards';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'plans_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
             referencedColumns: ['id'];
           },
           {
@@ -621,6 +802,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      push_tokens: {
+        Row: {
+          platform: string;
+          token: string;
+          updated_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          platform: string;
+          token: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Update: {
+          platform?: string;
+          token?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       reminder_emails: {
         Row: {
           day: string;
@@ -653,6 +856,7 @@ export type Database = {
           deleted_at: string | null;
           deleted_group: string | null;
           external_id: string | null;
+          household_id: string | null;
           id: string;
           import_id: string | null;
           original_title: string | null;
@@ -675,6 +879,7 @@ export type Database = {
           deleted_at?: string | null;
           deleted_group?: string | null;
           external_id?: string | null;
+          household_id?: string | null;
           id?: string;
           import_id?: string | null;
           original_title?: string | null;
@@ -696,6 +901,7 @@ export type Database = {
           deleted_at?: string | null;
           deleted_group?: string | null;
           external_id?: string | null;
+          household_id?: string | null;
           id?: string;
           import_id?: string | null;
           original_title?: string | null;
@@ -709,6 +915,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'transactions_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'transactions_import_id_fkey';
             columns: ['import_id'];
@@ -741,6 +954,7 @@ export type Database = {
           balance: number | null;
           color: string | null;
           created_at: string | null;
+          household_id: string | null;
           id: string | null;
           institution: string | null;
           kind: Database['public']['Enums']['account_kind'] | null;
@@ -751,7 +965,15 @@ export type Database = {
           user_id: string | null;
         };
         ComputedFields: never;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'accounts_household_id_fkey';
+            columns: ['household_id'];
+            isOneToOne: false;
+            referencedRelation: 'households';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       card_usage: {
         Row: {
@@ -764,6 +986,7 @@ export type Database = {
       };
     };
     Functions: {
+      accept_household_invite: { Args: { p_code: string }; Returns: string };
       add_installment_purchase: {
         Args: {
           p_card_id: string;
@@ -776,6 +999,8 @@ export type Database = {
         };
         Returns: string;
       };
+      cancel_household_invites: { Args: Record<PropertyKey, never>; Returns: undefined };
+      create_household_invite: { Args: Record<PropertyKey, never>; Returns: Json };
       create_transfer: {
         Args: { p_amount: number; p_date?: string; p_from: string; p_title?: string; p_to: string };
         Returns: string;
@@ -786,6 +1011,17 @@ export type Database = {
       dispatch_reminders: { Args: Record<PropertyKey, never>; Returns: number };
       ensure_rollover: { Args: Record<PropertyKey, never>; Returns: number };
       export_my_data: { Args: Record<PropertyKey, never>; Returns: Json };
+      household_overview: { Args: Record<PropertyKey, never>; Returns: Json };
+      household_push_text: {
+        Args: {
+          p_amount: number;
+          p_category: string;
+          p_name: string;
+          p_show_values: boolean;
+          p_title: string;
+        };
+        Returns: string;
+      };
       import_account_statement: {
         Args: {
           p_account_id: string;
@@ -806,7 +1042,11 @@ export type Database = {
         };
         Returns: string;
       };
+      kash_can_read: { Args: { p_household: string; p_owner: string }; Returns: boolean };
+      kash_can_write: { Args: { p_household: string; p_owner: string }; Returns: boolean };
       kash_today: { Args: Record<PropertyKey, never>; Returns: string };
+      leave_household: { Args: Record<PropertyKey, never>; Returns: undefined };
+      leave_household_for: { Args: { p_user: string }; Returns: undefined };
       link_bill_payment: { Args: { p_bill_id: string; p_tx_id: string }; Returns: undefined };
       mark_reminder_sent: {
         Args: { p_day: string; p_items: number; p_user_id: string };
@@ -814,6 +1054,7 @@ export type Database = {
       };
       month_key: { Args: { d: string }; Returns: string };
       move_plan_to_card: { Args: { p_card_id: string; p_plan_id: string }; Returns: undefined };
+      my_household: { Args: Record<PropertyKey, never>; Returns: string };
       pay_bill: { Args: { p_bill_id: string; p_date?: string }; Returns: string };
       pay_invoice: {
         Args: { p_account_id: string; p_date?: string; p_invoice_id: string };
@@ -850,6 +1091,16 @@ export type Database = {
       unsettle_debt: { Args: { p_debt_id: string }; Returns: undefined };
       update_category: {
         Args: { p_color: string; p_id: string; p_name: string };
+        Returns: undefined;
+      };
+      update_household_settings: {
+        Args: {
+          p_name?: string;
+          p_notify_scope?: string;
+          p_notify_values?: boolean;
+          p_share_personal?: boolean;
+          p_view_scope?: string;
+        };
         Returns: undefined;
       };
       update_transfer: {
