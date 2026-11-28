@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, CheckCircle, IconButton, Input, Pressable, Text, useTheme } from '@/design-system';
+import { Button, CheckCircle, IconButton, Input, Pressable, Text, useKeyboardInset, useTheme } from '@/design-system';
 import { useKashStore } from '@/store';
 import { OrDivider, SocialButtons } from './SocialButtons';
 import { passwordStrength, validateSignup } from './validation';
@@ -10,6 +10,7 @@ import { passwordStrength, validateSignup } from './validation';
 /** Cadastro — nome, e-mail, senha com força, aceite dos termos. */
 export function SignupScreen() {
   const { colors } = useTheme();
+  const keyboardInset = useKeyboardInset();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const signUp = useKashStore((s) => s.signUp);
@@ -35,7 +36,7 @@ export function SignupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: keyboardInset }}>
       <ScrollView
         testID="signup-screen"
         keyboardShouldPersistTaps="handled"

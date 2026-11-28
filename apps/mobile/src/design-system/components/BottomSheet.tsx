@@ -3,6 +3,7 @@ import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
+import { useKeyboardInset } from './keyboard';
 import { motion } from '../tokens/motion';
 import { radii } from '../tokens/radii';
 import { IconButton } from './IconButton';
@@ -16,9 +17,52 @@ interface SheetScrollContextValue {
 
 const SheetScrollContext = createContext<SheetScrollContextValue | null>(null);
 
-/** Disponível para componentes dentro de um BottomSheet rolável (null fora dele). */
+/** Disponível para componentes dentro de um BottomSheet ou Screen rolável (null fora deles). */
 export function useSheetScroll(): SheetScrollContextValue | null {
   return useContext(SheetScrollContext);
+}
+
+/** Provider usado pelo Screen para que os Inputs também rolem até ficar visíveis. */
+export const ScrollIntoViewProvider = SheetScrollContext.Provider;
+
+/**
+ * Rolar um ScrollView até um campo ficar visível acima do teclado. Devolve a ref do ScrollView,
+ * o handler de rolagem (para saber o deslocamento atual) e `ensureVisible`, que os Inputs chamam ao focar.
+ */
+export function useScrollIntoView() {
+  const scrollRef = useRef<ScrollView>(null);
+  const offsetRef = useRef(0);
+  const ensureVisible = useCallback((node: TextInput | View | null) => {
+    const run = () => {
+      const sv = scrollRef.current;
+      const host = sv?.getNativeScrollRef?.();
+      if (!sv || !host || !node) return;
+      node.measureInWindow((_x, nodeY, _w, nodeH) => {
+        host.measureInWindow((_sx, svY, _sw, svH) => {
+          const top = nodeY - svY;
+          const bottom = top + nodeH;
+          if (top < 0) sv.scrollTo({ y: Math.max(0, offsetRef.current + top - 12), animated: true });
+          else if (bottom > svH) sv.scrollTo({ y: offsetRef.current + (bottom - svH) + 12, animated: true });
+        });
+      });
+    };
+    // mede depois que o teclado reposicionou a tela (no Android o espaço do teclado entra num render
+    // depois do evento); fallback por tempo caso o teclado já esteja aberto
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(run, Platform.OS === 'android' ? 120 : 0);
+      sub.remove();
+    });
+    const t = setTimeout(() => {
+      run();
+      sub.remove();
+    }, 400);
+    return () => clearTimeout(t);
+  }, []);
+  const onScrollOffset = useCallback((y: number) => {
+    offsetRef.current = y;
+  }, []);
+  const ctx = useMemo(() => ({ ensureVisible }), [ensureVisible]);
+  return { scrollRef, onScrollOffset, ctx };
 }
 
 export interface BottomSheetProps {
@@ -47,36 +91,10 @@ export function BottomSheet({ visible, onClose, title, headerContent, children, 
   const { height: windowHeight } = useWindowDimensions();
   const [mounted, setMounted] = useState(visible);
   const progress = useSharedValue(0);
-  const scrollRef = useRef<ScrollView>(null);
-  const offsetRef = useRef(0);
   const keyboardUp = useKeyboardVisible();
+  const keyboardInset = useKeyboardInset();
+  const { scrollRef, onScrollOffset, ctx: scrollCtx } = useScrollIntoView();
 
-  const ensureVisible = useCallback((node: TextInput | View | null) => {
-    const run = () => {
-      const sv = scrollRef.current;
-      const host = sv?.getNativeScrollRef?.();
-      if (!sv || !host || !node) return;
-      node.measureInWindow((_x, nodeY, _w, nodeH) => {
-        host.measureInWindow((_sx, svY, _sw, svH) => {
-          const top = nodeY - svY;
-          const bottom = top + nodeH;
-          if (top < 0) sv.scrollTo({ y: Math.max(0, offsetRef.current + top - 12), animated: true });
-          else if (bottom > svH) sv.scrollTo({ y: offsetRef.current + (bottom - svH) + 12, animated: true });
-        });
-      });
-    };
-    // mede depois que o teclado reposicionou o sheet; fallback por tempo caso o teclado já esteja aberto
-    const sub = Keyboard.addListener('keyboardDidShow', () => {
-      run();
-      sub.remove();
-    });
-    const t = setTimeout(() => {
-      run();
-      sub.remove();
-    }, 350);
-    return () => clearTimeout(t);
-  }, []);
-  const scrollCtx = useMemo(() => ({ ensureVisible }), [ensureVisible]);
 
   // Monta imediatamente ao abrir (estado derivado da prop, ajustado durante o render).
   if (visible && !mounted) setMounted(true);
@@ -114,7 +132,8 @@ export function BottomSheet({ visible, onClose, title, headerContent, children, 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
       {/* durante o fechamento o sheet não deve capturar toques (a tela de trás já é interativa) */}
-      <View style={[styles.root, { paddingTop: insets.top }]} pointerEvents={visible ? 'auto' : 'none'}>
+      {/* no Android (edge-to-edge) o espaço do teclado entra aqui; no iOS, pelo KeyboardAvoidingView */}
+      <View style={[styles.root, { paddingTop: insets.top, paddingBottom: keyboardInset }]} pointerEvents={visible ? 'auto' : 'none'}>
         <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }, overlayStyle]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Fechar" testID={testID ? `${testID}-overlay` : undefined} pressedOpacity={1} />
         </Animated.View>
@@ -132,7 +151,7 @@ export function BottomSheet({ visible, onClose, title, headerContent, children, 
                 paddingBottom: keyboardUp ? 12 : Math.max(insets.bottom, 20) + 20,
                 // Percentual aqui resolveria contra o container (dimensionado pelo conteúdo),
                 // então o limite vem da janela, sempre abaixo da status bar.
-                maxHeight: Math.round(windowHeight - insets.top - 8),
+                maxHeight: Math.round(windowHeight - insets.top - 8 - keyboardInset),
               },
               sheetStyle,
             ]}
@@ -147,9 +166,7 @@ export function BottomSheet({ visible, onClose, title, headerContent, children, 
                   showsVerticalScrollIndicator={false}
                   bounces={false}
                   style={{ flexGrow: 0 }}
-                  onScroll={(e) => {
-                    offsetRef.current = e.nativeEvent.contentOffset.y;
-                  }}
+                  onScroll={(e) => onScrollOffset(e.nativeEvent.contentOffset.y)}
                   scrollEventThrottle={16}
                 >
                   {body}

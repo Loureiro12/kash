@@ -15,17 +15,21 @@ export interface CalendarProps {
   onChange: (iso: string) => void;
   /** último dia permitido (ex.: hoje); dias depois ficam apagados */
   max?: string;
+  /** primeiro dia permitido (ex.: hoje, para datas futuras); dias antes ficam apagados */
+  min?: string;
   /** destaca com contorno (ex.: hoje) */
   today?: string;
   testID?: string;
 }
 
 /** Calendário mensal (domingo a sábado) com ‹ mês › para navegar. */
-export function Calendar({ value, onChange, max, today, testID = 'calendar' }: CalendarProps) {
+export function Calendar({ value, onChange, max, min, today, testID = 'calendar' }: CalendarProps) {
   const { colors } = useTheme();
   const [month, setMonth] = useState(value.slice(0, 7));
   const maxMonth = max?.slice(0, 7);
   const nextDisabled = !!maxMonth && month >= maxMonth;
+  const minMonth = min?.slice(0, 7);
+  const prevDisabled = !!minMonth && month <= minMonth;
   const d = parseISODate(`${month}-01`);
   const title = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
   const weeks = calendarMonthGrid(month);
@@ -33,7 +37,7 @@ export function Calendar({ value, onChange, max, today, testID = 'calendar' }: C
   return (
     <View testID={testID} style={{ gap: 6, padding: 10, borderRadius: radii.input, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line }}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <NavButton icon="arrow-left" label="Mês anterior" onPress={() => setMonth((m) => shiftMonthKey(m, -1))} testID={`${testID}-prev`} />
+        <NavButton icon="arrow-left" label="Mês anterior" disabled={prevDisabled} onPress={() => setMonth((m) => shiftMonthKey(m, -1))} testID={`${testID}-prev`} />
         <Text variant="bodySemibold" align="center" style={{ flex: 1, textTransform: 'capitalize' }} testID={`${testID}-month`} accessibilityRole="header">
           {title}
         </Text>
@@ -51,7 +55,7 @@ export function Calendar({ value, onChange, max, today, testID = 'calendar' }: C
           {week.map((iso, di) => {
             if (!iso) return <View key={di} style={{ flex: 1, height: 38 }} />;
             const selected = iso === value;
-            const disabled = !!max && iso > max;
+            const disabled = (!!max && iso > max) || (!!min && iso < min);
             const isToday = iso === today;
             return (
               <View key={iso} style={{ flex: 1, alignItems: 'center' }}>

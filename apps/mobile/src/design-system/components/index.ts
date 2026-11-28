@@ -33,3 +33,4 @@ export * from './Switch';
 export * from './Text';
 export * from './TileIcon';
 export * from './Toast';
+export * from './keyboard';

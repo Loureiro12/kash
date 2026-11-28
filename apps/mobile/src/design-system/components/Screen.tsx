@@ -3,6 +3,8 @@ import { ScrollView, View, type ScrollViewProps, type StyleProp, type ViewStyle 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { layout } from '../tokens/spacing';
+import { ScrollIntoViewProvider, useScrollIntoView } from './BottomSheet';
+import { useKeyboardInset } from './keyboard';
 
 export interface ScreenProps extends ScrollViewProps {
   children: React.ReactNode;
@@ -30,6 +32,9 @@ export function Screen({ children, header, withTabBar = true, fixed, contentStyl
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [scrolled, setScrolled] = useState(false);
+  // Android edge-to-edge: o teclado não encolhe a tela; o conteúdo ganha esse espaço para rolar até o campo
+  const keyboardInset = useKeyboardInset();
+  const { scrollRef, onScrollOffset, ctx } = useScrollIntoView();
   const top = insets.top + layout.screenPaddingTopExtra;
   const bottom = withTabBar ? layout.screenPaddingBottom : insets.bottom + 24;
 
@@ -42,7 +47,9 @@ export function Screen({ children, header, withTabBar = true, fixed, contentStyl
   }
 
   const scroll = (
+    <ScrollIntoViewProvider value={ctx}>
     <ScrollView
+      ref={scrollRef}
       testID={header ? undefined : testID}
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={[{ paddingTop: header ? 0 : top, paddingHorizontal: layout.screenPaddingX, paddingBottom: bottom }, contentStyle]}
@@ -51,6 +58,7 @@ export function Screen({ children, header, withTabBar = true, fixed, contentStyl
       contentInsetAdjustmentBehavior="never"
       scrollEventThrottle={32}
       onScroll={(e) => {
+        onScrollOffset(e.nativeEvent.contentOffset.y);
         const next = e.nativeEvent.contentOffset.y > 6;
         if (next !== scrolled) setScrolled(next);
         onScroll?.(e);
@@ -58,7 +66,9 @@ export function Screen({ children, header, withTabBar = true, fixed, contentStyl
       {...rest}
     >
       {children}
+      {keyboardInset ? <View style={{ height: keyboardInset }} /> : null}
     </ScrollView>
+    </ScrollIntoViewProvider>
   );
 
   if (!header) return scroll;

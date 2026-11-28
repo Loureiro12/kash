@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Input, Pressable, Text, useTheme } from '@/design-system';
+import { Button, Input, Pressable, Text, useKeyboardInset, useTheme } from '@/design-system';
 import { useKashStore } from '@/store';
 import { OrDivider, SocialButtons } from './SocialButtons';
 import { validateLogin } from './validation';
@@ -10,6 +10,7 @@ import { validateLogin } from './validation';
 /** Tela 2 — Login: Apple/Google ou e-mail e senha, com validação, carregando e erros. */
 export function LoginScreen() {
   const { colors } = useTheme();
+  const keyboardInset = useKeyboardInset();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const signIn = useKashStore((s) => s.signIn);
@@ -33,7 +34,7 @@ export function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: keyboardInset }}>
       <ScrollView
         testID="login-screen"
         keyboardShouldPersistTaps="handled"

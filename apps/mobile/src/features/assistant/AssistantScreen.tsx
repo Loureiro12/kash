@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ASSISTANT_LIMITS, ASSISTANT_SUGGESTIONS, formatBRL, relativeDayLabel, round2, type TxProposal } from '@kash/domain';
-import { Button, Chip, Icon, IconButton, Pressable, Text, fontFamily, layout, radii, staticColors, useTheme } from '@/design-system';
+import { Button, Chip, Icon, IconButton, Pressable, Text, fontFamily, layout, radii, staticColors, useKeyboardInset, useTheme } from '@/design-system';
 import { DATA_SOURCE } from '@/data/source';
 import { now } from '@/lib/clock';
 import { useCategories, useKashStore } from '@/store';
@@ -22,7 +22,7 @@ export function AssistantScreen() {
   const insets = useSafeAreaInsets();
   const [consent, setConsent] = useState<boolean | null>(null);
   // aberto pelo "Ler comprovante" do lançamento: já vai para a câmera/galeria
-  const { foto } = useLocalSearchParams<{ foto?: string }>();
+  const { foto, texto } = useLocalSearchParams<{ foto?: string; texto?: string }>();
   const initialPhoto: PhotoSource | undefined = foto === 'camera' || foto === 'galeria' ? foto : undefined;
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function AssistantScreen() {
     <View style={{ flex: 1, backgroundColor: colors.bg }} testID="assistant-screen">
       {header}
       {consent === null ? null : consent ? (
-        <Chat initialPhoto={initialPhoto} />
+        <Chat initialPhoto={initialPhoto} initialText={typeof texto === 'string' && texto.trim() ? texto.trim().slice(0, 300) : undefined} />
       ) : (
         <Consent
           onAccept={() => {
@@ -96,10 +96,12 @@ function Consent({ onAccept, onDecline }: { onAccept: () => void; onDecline: () 
   );
 }
 
-function Chat({ initialPhoto }: { initialPhoto?: PhotoSource }) {
+function Chat({ initialPhoto, initialText }: { initialPhoto?: PhotoSource; initialText?: string }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { messages, loaded, sending, error, remaining, send, retry, reset, confirmProposal, editProposal, dismissProposal } = useAssistantChat();
+  // Android edge-to-edge: o campo de mensagem sobe acima do teclado
+  const keyboardInset = useKeyboardInset();
   const [draft, setDraft] = useState('');
   const [photo, setPhoto] = useState<ReceiptPhoto | null>(null);
   const [preparing, setPreparing] = useState(false);
@@ -142,6 +144,15 @@ function Chat({ initialPhoto }: { initialPhoto?: PhotoSource }) {
     }
   };
 
+  // vindo da Siri ("Lançar no Kash") ou do link `…://lancar?texto=`: envia o texto uma vez
+  const autoText = useRef(false);
+  useEffect(() => {
+    if (!initialText || autoText.current || !remote || !ready || !loaded) return;
+    autoText.current = true;
+    submit(initialText);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialText, remote, ready, loaded]);
+
   // vindo do lançamento: abre a câmera/galeria uma vez, quando os dados já carregaram
   useEffect(() => {
     if (!initialPhoto || autoPhoto.current || !remote || !ready || !loaded) return;
@@ -151,7 +162,7 @@ function Chat({ initialPhoto }: { initialPhoto?: PhotoSource }) {
   }, [initialPhoto, remote, ready, loaded]);
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, paddingBottom: keyboardInset }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={{ padding: layout.screenPaddingX, gap: 12, flexGrow: 1 }} keyboardShouldPersistTaps="handled" testID="assistant-messages">
         {loaded && messages.length === 0 ? (
           <View style={{ gap: 12, marginTop: 8 }} testID="assistant-empty">
@@ -344,7 +355,7 @@ const STATUS_LABEL: Record<Exclude<ProposalStatus, 'pending'>, string> = {
 };
 
 /** Lançamento proposto pelo assistente: nada é salvo sem a pessoa tocar em "Lançar" */
-function ProposalCard({ proposal: p, status, onConfirm, onEdit, onDismiss, testID }: { proposal: TxProposal; status: ProposalStatus; onConfirm: () => void; onEdit: () => void; onDismiss: () => void; testID: string }) {
+export function ProposalCard({ proposal: p, status, onConfirm, onEdit, onDismiss, testID }: { proposal: TxProposal; status: ProposalStatus; onConfirm: () => void; onEdit: () => void; onDismiss: () => void; testID: string }) {
   const { colors } = useTheme();
   const { colors: categoryColors } = useCategories();
   const source = useKashStore((s) => s.cards.find((c) => c.id === p.sourceId)?.name ?? s.accounts.find((a) => a.id === p.sourceId)?.name ?? '');

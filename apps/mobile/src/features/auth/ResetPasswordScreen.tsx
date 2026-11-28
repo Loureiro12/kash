@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, type TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Input, Text, useTheme } from '@/design-system';
+import { Button, Input, Text, useKeyboardInset, useTheme } from '@/design-system';
 import { useKashStore } from '@/store';
 import { MIN_PASSWORD, passwordStrength } from './validation';
 
 /** Nova senha — aberta pelo link do e-mail de recuperação (estado de auth `recovery`). */
 export function ResetPasswordScreen() {
   const { colors } = useTheme();
+  const keyboardInset = useKeyboardInset();
   const insets = useSafeAreaInsets();
   const request = useKashStore((s) => s.authRequest);
   const complete = useKashStore((s) => s.completePasswordRecovery);
@@ -36,7 +37,7 @@ export function ResetPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: keyboardInset }}>
       <ScrollView testID="reset-screen" keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 24, paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom, 20) + 24 }}>
         <Text variant="heroTitle" style={{ marginTop: 26 }}>
           Crie uma nova senha

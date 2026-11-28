@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Icon, IconButton, Input, Text, useTheme } from '@/design-system';
+import { Button, Icon, IconButton, Input, Text, useKeyboardInset, useTheme } from '@/design-system';
 import { useKashStore } from '@/store';
 import { RECOVERY_CODE_PATTERN } from '@kash/supabase-client';
 import { isValidEmail } from './validation';
@@ -10,6 +10,7 @@ import { isValidEmail } from './validation';
 /** Esqueci a senha — pede o e-mail, envia um código e troca o código por uma sessão de recuperação. */
 export function ForgotPasswordScreen() {
   const { colors } = useTheme();
+  const keyboardInset = useKeyboardInset();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const request = useKashStore((s) => s.authRequest);
@@ -50,7 +51,7 @@ export function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: keyboardInset }}>
       <ScrollView testID="forgot-screen" keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom, 20) + 24 }}>
         <IconButton icon="arrow-left" onPress={() => router.back()} accessibilityLabel="Voltar" testID="forgot-back" />
         {sentTo ? (

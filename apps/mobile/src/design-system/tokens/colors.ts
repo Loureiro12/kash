@@ -77,6 +77,9 @@ export const staticColors = {
   white: '#FFFFFF',
   /** trilho da barra dentro do card verde */
   trackOnAccent: 'rgba(11,12,14,0.18)',
+  /** texto secundário e linhas sobre fundo ink (card da retrospectiva, igual nos dois temas) */
+  inkMuted: 'rgba(243,244,240,0.62)',
+  inkLine: 'rgba(243,244,240,0.12)',
 } as const;
 
 /** Cores de categoria vêm do domínio (compartilhadas com o backend). */
