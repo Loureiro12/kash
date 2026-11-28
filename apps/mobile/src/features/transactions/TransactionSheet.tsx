@@ -2,11 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Keyboard, ScrollView, View, type TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AmountField, BottomSheet, Button, Chip, DateButton, DateStepper, Icon, Input, Pressable, SegmentedControl, Text, radii, useTheme } from '@/design-system';
-import { formatBRL, installmentSchedule, monthKey, monthKeyToDate, relativeDayLabel, round2, suggestFromHistory, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
+import { activeTravelTag, formatBRL, installmentSchedule, monthKey, monthKeyToDate, relativeDayLabel, round2, suggestFromHistory, toISODate, type Category, type Tx, type TxKind } from '@kash/domain';
 import { DATA_SOURCE } from '@/data/source';
 import { choosePhotoSource } from '@/features/assistant/receiptPhoto';
 import { now } from '@/lib/clock';
 import { useCategories, useKashStore, useSourceOptions } from '@/store';
+import { AttachmentField } from './AttachmentField';
+import { NewCategoryInline } from './NewCategoryInline';
+import { TagField } from './TagField';
 import { TxDatePicker, TxKindSwitch } from './TxSheetParts';
 
 const MAX_INSTALLMENTS = 24;
@@ -57,6 +60,10 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
   const [firstMonth, setFirstMonth] = useState(monthKey(today));
   const [valueMode, setValueMode] = useState<'total' | 'parcela'>('total');
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  // modo viagem: lançamento novo já vem com a tag da viagem (dá pra tirar)
+  const travelTag = useKashStore((s) => activeTravelTag(s.settings, now()));
+  const [tag, setTag] = useState<string | null>(editing ? (editing.tag ?? null) : travelTag);
   /** escolhas feitas à mão não são trocadas pela sugestão do histórico */
   const touched = useRef({ category: !!editing || !!draft?.category, source: !!editing || !!draft?.sourceId });
   const amountRef = useRef<TextInput>(null);
@@ -134,11 +141,11 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
     if (!canSave) return;
     Keyboard.dismiss();
     if (editing) {
-      updateTransaction(editing.id, { title: note, category, amountCents: Math.round(amount * 100), sourceId: effectiveSource, date });
+      updateTransaction(editing.id, { title: note, category, amountCents: Math.round(amount * 100), sourceId: effectiveSource, date, ...(isInvoicePayment ? {} : { tag }) });
       showToast('Lançamento atualizado');
       return;
     }
-    addTransaction({ kind, amountCents: Math.round(amount * 100), category, sourceId: effectiveSource, note, installments: n, date, ...(n > 1 ? { firstInstallmentMonth: firstMonth } : {}) });
+    addTransaction({ kind, amountCents: Math.round(amount * 100), category, sourceId: effectiveSource, note, installments: n, date, ...(n > 1 ? { firstInstallmentMonth: firstMonth } : { tag }) });
     showToast(
       isIncome
         ? `${formatBRL(amount)} de entrada registrados`
@@ -201,6 +208,15 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
       footer={
         <>
           <Button label={ctaLabel} onPress={onSave} disabled={!canSave} testID="expense-save" haptic="medium" />
+          {editing && !isIncome && !isInvoicePayment ? (
+            <Button
+              label="Dividir com amigos"
+              variant="secondary"
+              size="md"
+              onPress={() => useKashStore.getState().openDebtDraft({ description: editing.title, totalCents: Math.round(Math.abs(editing.amount) * 100) })}
+              testID="expense-split"
+            />
+          ) : null}
           {editing ? <Button label="Excluir lançamento" variant="dangerSoft" size="md" onPress={onDelete} testID="expense-delete" /> : null}
         </>
       }
@@ -229,7 +245,29 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
               <Chip label={c} dotColor={categoryColorsMap[c]} selected={category === c} onPress={() => pickCategory(c)} testID={`chip-cat-${c}`} />
             </View>
           ))}
+          {/* criar categoria sem sair do lançamento */}
+          <Chip
+            label="+ Nova"
+            tone="soft"
+            selected={creatingCategory}
+            onPress={() => {
+              setCalendarOpen(false);
+              setCreatingCategory((v) => !v);
+            }}
+            testID="chip-cat-new"
+          />
         </ScrollView>
+      ) : null}
+      {creatingCategory && !isIncome ? (
+        <NewCategoryInline
+          onCancel={() => setCreatingCategory(false)}
+          onCreated={(name) => {
+            pickCategory(name);
+            setCreatingCategory(false);
+            // a nova entra no fim da fileira: rola até ela
+            setTimeout(() => catScroll.current?.scrollToEnd({ animated: true }), 60);
+          }}
+        />
       ) : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }} keyboardShouldPersistTaps="handled">
@@ -266,6 +304,9 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
         <DateButton label={relativeDayLabel(date, today)} open={calendarOpen} onPress={toggleCalendar} testID="expense-date" />
       </View>
       {calendarOpen ? <TxDatePicker value={date} today={today} onPick={pickDate} testID="expense-date-picker" /> : null}
+
+      {/* tag: não vale para compra parcelada nem pagamento de fatura */}
+      {n === 1 && !isInvoicePayment && !(editing && plan) ? <TagField value={tag} onChange={setTag} travel={!editing && !!travelTag && tag === travelTag} /> : null}
 
       {!editing && !isIncome && srcIsCard ? (
         <View
@@ -333,6 +374,9 @@ function TransactionForm({ visible, editingId, onClose }: { visible: boolean; ed
           ) : null}
         </View>
       ) : null}
+
+      {/* comprovante: só em lançamento já salvo no servidor */}
+      {editing && DATA_SOURCE === 'remote' && !isInvoicePayment ? <AttachmentField txId={editing.id} path={editing.attachmentPath} /> : null}
 
       {editing && plan ? (
         <Text variant="meta" color="muted" testID="expense-plan-note">

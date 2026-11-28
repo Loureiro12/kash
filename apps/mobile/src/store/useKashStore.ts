@@ -8,7 +8,7 @@ import { queryClient } from '@/data/queryClient';
 import { queryKeys } from '@/data/keys';
 import { DATA_SOURCE } from '@/data/source';
 import type { CardGradient } from '@/design-system/tokens/colors';
-import { addToGoal, DEFAULT_CATEGORIES, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type CategoryDef, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
+import { type Debt, cleanTag, addToGoal, DEFAULT_CATEGORIES, installmentSchedule, isSameMonth, monthKey, recordDeposit, rollover, round2, seedData, toISODate, type Account, type Bill, type Card, type Category, type CategoryDef, type Goal, type Invoice, type Plan, type Settings, type ThemeMode, type Tx, type TxKind, type User } from '@kash/domain';
 import { createId } from '@/lib/ids';
 import { now } from '@/lib/clock';
 
@@ -28,8 +28,8 @@ export interface Credentials {
 export interface SignUpInput extends Credentials {
   name: string;
 }
-export type AccountsSegment = 'bank' | 'bills';
-export type SheetName = 'transfer' | 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount' | 'resetData' | 'category';
+export type AccountsSegment = 'bank' | 'bills' | 'debts';
+export type SheetName = 'transfer' | 'expense' | 'addCard' | 'addAccount' | 'addGoal' | 'deposit' | 'addBill' | 'changePassword' | 'payInvoice' | 'deleteAccount' | 'resetData' | 'category' | 'quickEntry' | 'debt';
 
 export interface NewTransaction {
   kind: TxKind;
@@ -42,6 +42,8 @@ export interface NewTransaction {
   date?: string;
   /** compra parcelada: mês ("yyyy-mm") da 1ª parcela; no passado, as parcelas anteriores contam como pagas */
   firstInstallmentMonth?: string;
+  /** tag livre ("Viagem Floripa"); não vale para compra parcelada */
+  tag?: string | null;
 }
 
 /** rascunho de lançamento novo: o que vier preenche o sheet */
@@ -77,11 +79,13 @@ export interface TxPatch {
   amountCents?: number;
   sourceId?: string;
   date?: string;
+  /** tag livre; null tira */
+  tag?: string | null;
 }
 
 export type DeleteScope = 'single' | 'plan';
 
-export type EditableKind = 'card' | 'account' | 'bill' | 'goal' | 'category';
+export type EditableKind = 'card' | 'account' | 'bill' | 'goal' | 'category' | 'debt';
 export interface EditingRef {
   kind: EditableKind;
   id: string;
@@ -140,6 +144,24 @@ export interface NewBill {
   linkTxId?: string;
 }
 
+export interface NewDebt {
+  person: string;
+  description: string;
+  amountCents: number;
+  kind: Debt['kind'];
+  /** quando aconteceu; default hoje */
+  date?: string;
+  /** quando cobrar; null = sem lembrete */
+  dueDate?: string | null;
+}
+
+/** rascunho de "Alguém me deve" vindo de um lançamento: conta dividida */
+export interface DebtDraft {
+  description: string;
+  /** total da conta, em centavos (dividido entre as pessoas no sheet) */
+  totalCents: number;
+}
+
 export interface NewDeposit {
   goalId: string;
   amountCents: number;
@@ -163,6 +185,8 @@ export interface KashState {
   txs: Tx[];
   bills: Bill[];
   goals: Goal[];
+  /** quem me deve */
+  debts: Debt[];
   /** categorias do usuário, na ordem de exibição */
   categories: CategoryDef[];
   plans: Plan[];
@@ -194,7 +218,11 @@ export interface KashState {
     /** campos já preenchidos do lançamento novo (ex.: proposta do assistente aberta para editar) */
     newTxDraft: NewTxDraft | null;
     /** lançamento rápido pedido por atalho do iPhone (Back Tap, Siri) ou link; abre quando o app está desbloqueado */
-    quickAdd: TxKind | 'assistant' | null;
+    quickAdd: TxKind | 'assistant' | { text: string } | null;
+    /** texto da "Lançar no Kash" (Siri) em confirmação no sheet `quickEntry` */
+    quickEntryText: string | null;
+    /** "Dividir com amigos" a partir de um lançamento */
+    debtDraft: DebtDraft | null;
   };
 
   // auth
@@ -250,7 +278,13 @@ export interface KashState {
   /** sheet de lançamento novo já no tipo escolhido (e, opcionalmente, com campos preenchidos) */
   openNewTransaction: (kind: TxKind, draft?: NewTxDraft) => void;
   /** pede o lançamento rápido (atalho/link); `useQuickAdd` abre o sheet quando der */
-  requestQuickAdd: (kind: TxKind | 'assistant' | null) => void;
+  requestQuickAdd: (kind: TxKind | 'assistant' | { text: string } | null) => void;
+  /** comprovante anexado (o upload é feito antes, direto no Storage); null tira */
+  setTxAttachment: (txId: string, path: string | null) => void;
+  /** liga (tag) ou desliga (null) o modo viagem; `until` = último dia (inclusive) */
+  setTravelMode: (tag: string | null, until?: string | null) => void;
+  /** abre a confirmação do lançamento por texto ("gastei 30 no Uber") */
+  openQuickEntry: (text: string) => void;
   openDeposit: (goalId: string) => void;
   openTransaction: (txId: string) => void;
   /** sheet de transferência; com id, edita a existente */
@@ -285,7 +319,8 @@ export interface KashState {
   addGoal: (input: NewGoal) => void;
   updateGoal: (id: string, input: NewGoal) => void;
   removeGoal: (id: string) => void;
-  addCategory: (input: NewCategory) => void;
+  /** cria a categoria; `keepSheet` não fecha o sheet aberto (criada de dentro do lançamento) */
+  addCategory: (input: NewCategory, options?: { keepSheet?: boolean }) => void;
   /** renomeia/recolore; lançamentos, contas fixas e parcelamentos acompanham o novo nome */
   updateCategory: (id: string, input: NewCategory) => void;
   /** exclui; se estiver em uso, `moveTo` (nome de outra categoria) recebe os registros */
@@ -294,6 +329,16 @@ export interface KashState {
   /** processa a virada de mês se o mês atual ainda não foi processado */
   rolloverIfNeeded: () => void;
   payInvoice: (invoiceId: string, accountId: string) => void;
+
+  /** abre "Alguém me deve" já preenchido (ex.: dividir um lançamento) */
+  openDebtDraft: (draft: DebtDraft) => void;
+  addDebt: (input: NewDebt) => void;
+  updateDebt: (id: string, input: NewDebt) => void;
+  removeDebt: (id: string) => void;
+  /** recebi; com `accountId`, lança a entrada na conta */
+  settleDebt: (id: string, accountId: string | null) => void;
+  /** desfaz o "recebi" (apaga a entrada lançada) */
+  unsettleDebt: (id: string) => void;
 
   /** reseta para o seed (usado em testes) */
   reset: () => void;
@@ -311,7 +356,8 @@ const buildInitial = (dataStatus: DataStatus = DATA_SOURCE === 'remote' ? 'loadi
     userId: null as string | null,
     authRequest: { status: 'idle' as RequestStatus, error: null },
     ...seed,
-    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, transferDraft: null as TransferDraft | null, newTxKind: 'expense' as TxKind, newTxDraft: null as NewTxDraft | null, quickAdd: null },
+    debts: [] as Debt[],
+    ui: { sheet: null, sheetNonce: 0, toast: null, toastAction: null, editingTxId: null, lastDeleted: null, editing: null, dataStatus, selectedCardId: seed.cards[0]?.id ?? null, accountsSegment: 'bank' as AccountsSegment, depositGoalId: null, payInvoiceId: null, transferId: null, transferDraft: null as TransferDraft | null, newTxKind: 'expense' as TxKind, newTxDraft: null as NewTxDraft | null, quickAdd: null, quickEntryText: null, debtDraft: null as DebtDraft | null },
   };
 };
 
@@ -532,6 +578,8 @@ export const useKashStore = create<KashState>((set, get) => ({
       // cache persistida por uma versão antiga do app pode não ter categorias: mantém as atuais
       categories: snap.categories?.length ? snap.categories : s.categories,
       invoices: snap.invoices,
+      // snapshot guardado por uma versão antiga do app pode não ter dívidas
+      debts: snap.debts ?? s.debts,
       ui: { ...s.ui, selectedCardId: s.ui.selectedCardId && snap.cards.some((c) => c.id === s.ui.selectedCardId) ? s.ui.selectedCardId : (snap.cards[0]?.id ?? null) },
     })),
 
@@ -576,11 +624,66 @@ export const useKashStore = create<KashState>((set, get) => ({
       },
     })),
 
-  openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editingTxId: sheet === 'expense' ? null : s.ui.editingTxId, editing: null, newTxKind: 'expense', newTxDraft: null } })),
+  openSheet: (sheet) => set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editingTxId: sheet === 'expense' ? null : s.ui.editingTxId, editing: null, newTxKind: 'expense', newTxDraft: null, debtDraft: null } })),
   openNewTransaction: (kind, draft) => set((s) => ({ ui: { ...s.ui, sheet: 'expense', sheetNonce: s.ui.sheetNonce + 1, editingTxId: null, editing: null, newTxKind: kind, newTxDraft: draft ?? null } })),
   requestQuickAdd: (kind) => set((s) => ({ ui: { ...s.ui, quickAdd: kind } })),
+  openDebtDraft: (draft) => set((s) => ({ ui: { ...s.ui, sheet: 'debt', sheetNonce: s.ui.sheetNonce + 1, editing: null, debtDraft: draft } })),
+  addDebt: ({ person, description, amountCents, kind, date, dueDate }) => {
+    if (!person.trim() || amountCents <= 0) return;
+    const debt: Debt = { id: createId('debt'), person: person.trim(), description: description.trim(), amount: amountCents / 100, kind, date: date ?? toISODate(now()), dueDate: dueDate ?? null, settledAt: null };
+    set((s) => ({ debts: [debt, ...s.debts], ui: { ...s.ui, sheet: null, editing: null } }));
+  },
+  updateDebt: (id, { person, description, amountCents, kind, date, dueDate }) =>
+    set((s) => ({
+      debts: s.debts.map((d) =>
+        d.id === id ? { ...d, person: person.trim() || d.person, description: description.trim(), amount: amountCents > 0 ? amountCents / 100 : d.amount, kind, date: date ?? d.date, dueDate: dueDate === undefined ? d.dueDate : dueDate } : d,
+      ),
+      ui: { ...s.ui, sheet: null, editing: null },
+    })),
+  removeDebt: (id) => set((s) => ({ debts: s.debts.filter((d) => d.id !== id), ui: { ...s.ui, sheet: null, editing: null } })),
+  settleDebt: (id, accountId) =>
+    set((s) => {
+      const debt = s.debts.find((d) => d.id === id);
+      if (!debt || debt.settledAt) return s;
+      const today = toISODate(now());
+      const account = accountId ? s.accounts.find((a) => a.id === accountId) : undefined;
+      const tx: Tx | null = account
+        ? { id: createId('tx'), title: (debt.description ? `${debt.person} pagou: ${debt.description}` : `${debt.person} pagou`).slice(0, 80), category: 'Entrada', amount: debt.amount, date: today, sourceId: account.id }
+        : null;
+      return {
+        debts: s.debts.map((d) => (d.id === id ? { ...d, settledAt: today, ...(tx ? { settledTxId: tx.id } : {}) } : d)),
+        txs: tx ? [tx, ...s.txs] : s.txs,
+        accounts: account ? s.accounts.map((a) => (a.id === account.id ? { ...a, balance: round2(a.balance + debt.amount) } : a)) : s.accounts,
+      };
+    }),
+  unsettleDebt: (id) =>
+    set((s) => {
+      const debt = s.debts.find((d) => d.id === id);
+      if (!debt || !debt.settledAt) return s;
+      const tx = debt.settledTxId ? s.txs.find((t) => t.id === debt.settledTxId) : undefined;
+      return {
+        debts: s.debts.map((d) => (d.id === id ? { ...d, settledAt: null, settledTxId: undefined } : d)),
+        txs: tx ? s.txs.filter((t) => t.id !== tx.id) : s.txs,
+        accounts: tx ? s.accounts.map((a) => (a.id === tx.sourceId ? { ...a, balance: round2(a.balance - tx.amount) } : a)) : s.accounts,
+      };
+    }),
+  setTxAttachment: (txId, path) =>
+    set((s) => ({
+      txs: s.txs.map((t) => {
+        if (t.id !== txId) return t;
+        if (path) return { ...t, attachmentPath: path };
+        const { attachmentPath: _drop, ...rest } = t;
+        return rest;
+      }),
+    })),
+  setTravelMode: (tag, until) =>
+    set((s) => {
+      const clean = cleanTag(tag);
+      return { settings: { ...s.settings, travelTag: clean, travelUntil: clean ? (until ?? null) : null } };
+    }),
+  openQuickEntry: (text) => set((s) => ({ ui: { ...s.ui, sheet: 'quickEntry', sheetNonce: s.ui.sheetNonce + 1, quickEntryText: text } })),
   openEdit: (ref) => {
-    const sheet: SheetName = ref.kind === 'card' ? 'addCard' : ref.kind === 'account' ? 'addAccount' : ref.kind === 'bill' ? 'addBill' : ref.kind === 'category' ? 'category' : 'addGoal';
+    const sheet: SheetName = ref.kind === 'card' ? 'addCard' : ref.kind === 'account' ? 'addAccount' : ref.kind === 'bill' ? 'addBill' : ref.kind === 'category' ? 'category' : ref.kind === 'debt' ? 'debt' : 'addGoal';
     set((s) => ({ ui: { ...s.ui, sheet, sheetNonce: s.ui.sheetNonce + 1, editing: ref } }));
   },
   setDataStatus: (status) => set((s) => ({ ui: { ...s.ui, dataStatus: status } })),
@@ -608,8 +711,9 @@ export const useKashStore = create<KashState>((set, get) => ({
   selectCard: (id) => set((s) => ({ ui: { ...s.ui, selectedCardId: id } })),
   setAccountsSegment: (segment) => set((s) => ({ ui: { ...s.ui, accountsSegment: segment } })),
 
-  addTransaction: ({ kind, amountCents, category, sourceId, note, installments, date, firstInstallmentMonth }) => {
+  addTransaction: ({ kind, amountCents, category, sourceId, note, installments, date, firstInstallmentMonth, tag: rawTag }) => {
     const amount = amountCents / 100;
+    const tag = cleanTag(rawTag);
     if (amount <= 0) return;
     const isAccount = get().accounts.some((a) => a.id === sourceId);
     const when = date ?? toISODate(now());
@@ -618,7 +722,7 @@ export const useKashStore = create<KashState>((set, get) => ({
       if (!isAccount) return;
       const title = note.trim() || 'Entrada';
       set((s) => ({
-        txs: [{ id: createId('tx'), title, category: 'Entrada', amount, date: when, sourceId }, ...s.txs],
+        txs: [{ id: createId('tx'), title, category: 'Entrada', amount, date: when, sourceId, ...(tag ? { tag } : {}) }, ...s.txs],
         accounts: s.accounts.map((a) => (a.id === sourceId ? { ...a, balance: round2(a.balance + amount) } : a)),
         ui: { ...s.ui, sheet: null },
       }));
@@ -634,7 +738,7 @@ export const useKashStore = create<KashState>((set, get) => ({
     const txDate = current > 1 && !isSameMonth(when, now()) ? toISODate(new Date(now().getFullYear(), now().getMonth(), 1)) : when;
     const planId = n > 1 ? createId('plan') : undefined;
     set((s) => ({
-      txs: [{ id: createId('tx'), title: n > 1 ? `${title} (${current}/${n})` : title, category, amount: -per, date: txDate, sourceId, planId }, ...s.txs],
+      txs: [{ id: createId('tx'), title: n > 1 ? `${title} (${current}/${n})` : title, category, amount: -per, date: txDate, sourceId, planId, ...(tag && n === 1 ? { tag } : {}) }, ...s.txs],
       plans: planId ? [...s.plans, { id: planId, title, category, cardId: sourceId, installments: n, current, perInstallment: per }] : s.plans,
       accounts: isAccount ? s.accounts.map((a) => (a.id === sourceId ? { ...a, balance: round2(a.balance - amount) } : a)) : s.accounts,
       ui: { ...s.ui, sheet: null },
@@ -657,6 +761,11 @@ export const useKashStore = create<KashState>((set, get) => ({
         date: patch.date ?? tx.date,
         sourceId: patch.sourceId ?? tx.sourceId,
       };
+      if (patch.tag !== undefined) {
+        const tag = cleanTag(patch.tag);
+        if (tag) next.tag = tag;
+        else delete next.tag;
+      }
       // parcela trocada de cartão: o parcelamento inteiro (e as outras parcelas) vai junto
       const plan = tx.planId ? s.plans.find((p) => p.id === tx.planId) : undefined;
       const movesPlan = !!plan && next.sourceId !== tx.sourceId && s.cards.some((c) => c.id === next.sourceId);
@@ -876,8 +985,8 @@ export const useKashStore = create<KashState>((set, get) => ({
   /** Remove a meta; o dinheiro guardado continua na conta. */
   removeGoal: (id) => set((s) => ({ goals: s.goals.filter((g) => g.id !== id), ui: { ...s.ui, sheet: null, editing: null } })),
 
-  addCategory: ({ name, color }) =>
-    set((s) => ({ categories: [...s.categories, { id: createId('cat'), name: name.trim(), color }], ui: { ...s.ui, sheet: null, editing: null } })),
+  addCategory: ({ name, color }, options) =>
+    set((s) => ({ categories: [...s.categories, { id: createId('cat'), name: name.trim(), color }], ui: options?.keepSheet ? s.ui : { ...s.ui, sheet: null, editing: null } })),
 
   updateCategory: (id, { name, color }) =>
     set((s) => {

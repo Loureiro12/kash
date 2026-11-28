@@ -14,3 +14,7 @@ export * from './transfers';
 export * from './onboarding';
 export * from './spendingAlerts';
 export * from './recurring';
+export * from './monthRecap';
+export * from './tags';
+export * from './debts';
+export * from './widget';

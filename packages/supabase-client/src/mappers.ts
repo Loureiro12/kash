@@ -2,7 +2,7 @@
  * Conversão entre linhas do banco e os tipos do domínio (@kash/domain).
  * O domínio é a linguagem do app; o banco é detalhe de armazenamento.
  */
-import type { Account, AccountKind, Bill, Card, Goal, Invoice, Settings, Tx, User } from '@kash/domain';
+import type { Account, AccountKind, Bill, Card, Debt, Goal, Invoice, Settings, Tx, User } from '@kash/domain';
 import type { Database } from './database.types';
 
 type Tables = Database['public']['Tables'];
@@ -12,6 +12,21 @@ export type CardRow = Tables['cards']['Row'];
 export type TxRow = Tables['transactions']['Row'];
 export type BillRow = Tables['bills']['Row'];
 export type GoalRow = Tables['goals']['Row'];
+export type DebtRow = Tables['debts']['Row'];
+
+export function toDebt(row: DebtRow): Debt {
+  return {
+    id: row.id,
+    person: row.person,
+    description: row.description,
+    amount: Number(row.amount),
+    kind: row.kind === 'split' ? 'split' : 'lent',
+    date: row.date,
+    dueDate: row.due_date,
+    settledAt: row.settled_at,
+    ...(row.settled_tx_id ? { settledTxId: row.settled_tx_id } : {}),
+  };
+}
 export type InvoiceRow = Tables['invoices']['Row'];
 export type ProfileRow = Tables['profiles']['Row'];
 
@@ -59,6 +74,8 @@ export function toTx(row: TxRow): Tx {
     planId: row.plan_id ?? undefined,
     transferId: row.transfer_id ?? undefined,
     externalId: row.external_id ?? undefined,
+    ...(row.tag ? { tag: row.tag } : {}),
+    ...(row.attachment_path ? { attachmentPath: row.attachment_path } : {}),
   };
 }
 
@@ -111,5 +128,7 @@ export function toSettings(row: ProfileRow): Settings {
     cardBudget: num(row.card_budget),
     biometrics: row.biometrics,
     currency: 'BRL',
+    travelTag: row.travel_tag ?? null,
+    travelUntil: row.travel_until ?? null,
   };
 }

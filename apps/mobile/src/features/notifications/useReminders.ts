@@ -1,4 +1,4 @@
-import { nextSpendingAlert, planReminders, spendingAlerts, weeklySummaryReminder } from '@kash/domain';
+import { debtReminders, monthRecapReminder, nextSpendingAlert, planReminders, spendingAlerts, weeklySummaryReminder } from '@kash/domain';
 import { useRouter } from 'expo-router';
 import { useLastNotificationResponse } from 'expo-notifications';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -20,6 +20,7 @@ export function useReminderSync() {
   const goals = useKashStore((s) => s.goals);
   const billReminder = useKashStore((s) => s.settings.billReminder);
   const txs = useKashStore((s) => s.txs);
+  const debts = useKashStore((s) => s.debts);
   const monthlyBudget = useKashStore((s) => s.settings.monthlyBudget);
   const cardBudget = useKashStore((s) => s.settings.cardBudget);
   const ready = useKashStore((s) => s.ui.dataStatus === 'ready');
@@ -43,8 +44,12 @@ export function useReminderSync() {
     const list = planReminders({ bills, invoices, cards, goals, settings: { billReminder } }, at);
     // resumo da semana (domingo 19h) com os números de agora; reagendado quando os lançamentos mudam
     const summary = weekly && ready ? weeklySummaryReminder({ txs, cardIds: cards.map((c) => c.id), settings: { monthlyBudget, cardBudget } }, at) : null;
-    return summary ? [...list, summary] : list;
-  }, [bills, invoices, cards, goals, billReminder, txs, monthlyBudget, cardBudget, weekly, ready, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+    // retrospectiva do mês: dia 1º às 10h (mesma preferência dos resumos)
+    const recap = weekly && ready ? monthRecapReminder(txs, at) : null;
+    // quem me deve: lembrete no dia de cobrar (mesma preferência dos lembretes de contas)
+    const charges = billReminder && ready ? debtReminders(debts, at) : [];
+    return [...list, ...charges, ...(summary ? [summary] : []), ...(recap ? [recap] : [])];
+  }, [bills, invoices, cards, goals, billReminder, txs, debts, monthlyBudget, cardBudget, weekly, ready, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const signature = JSON.stringify(plan);
 
   useEffect(() => {

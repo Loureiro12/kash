@@ -12,6 +12,8 @@ export interface TxInput {
   date: string;
   sourceType: SourceType;
   sourceId: string;
+  /** tag livre; null apaga */
+  tag?: string | null;
 }
 
 const signed = (input: Pick<TxInput, 'category' | 'amount'>) => (input.category === 'Entrada' ? Math.abs(input.amount) : -Math.abs(input.amount));
@@ -27,7 +29,7 @@ export async function createTransaction(db: KashClient, input: TxInput): Promise
   const row = unwrap(
     await db
       .from('transactions')
-      .insert({ title: input.title.trim(), category: input.category, amount: signed(input), date: input.date, source_type: input.sourceType, source_id: input.sourceId })
+      .insert({ title: input.title.trim(), category: input.category, amount: signed(input), date: input.date, source_type: input.sourceType, source_id: input.sourceId, tag: input.tag?.trim() || null })
       .select('*')
       .single(),
   );
@@ -41,6 +43,7 @@ export async function updateTransaction(db: KashClient, id: string, input: Parti
   if (input.sourceType !== undefined) patch.source_type = input.sourceType;
   if (input.sourceId !== undefined) patch.source_id = input.sourceId;
   if (input.category !== undefined) patch.category = input.category;
+  if (input.tag !== undefined) patch.tag = input.tag?.trim() || null;
   if (input.amount !== undefined) {
     const category = input.category ?? (unwrap(await db.from('transactions').select('category').eq('id', id).single()).category as TxInput['category']);
     patch.amount = signed({ category, amount: input.amount });

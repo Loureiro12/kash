@@ -23,7 +23,7 @@ export const LEGAL_DOCS = {
   },
   privacy: {
     title: 'Privacidade',
-    updatedAt: 'Atualizado em 26 de novembro de 2026',
+    updatedAt: 'Atualizado em 28 de novembro de 2026',
     sections: [
       { heading: 'Quais dados coletamos', body: 'Nome, e-mail e os lançamentos que você cadastra. Se você entra com Apple ou Google, recebemos deles só o nome e o e-mail, nunca a senha. Não coletamos dados bancários nem localização.' },
       { heading: 'Como usamos', body: 'Apenas para mostrar seus relatórios, metas e lembretes dentro do app. Não vendemos nem compartilhamos com anunciantes.' },
@@ -34,6 +34,14 @@ export const LEGAL_DOCS = {
       {
         heading: 'Assistente com IA (opcional)',
         body: 'O assistente do Kash (balão no Início) responde suas perguntas sobre finanças com o Claude, modelo de IA da Anthropic. Na primeira vez ele pede sua autorização; depois, a cada pergunta, vão para a Anthropic a pergunta, as mensagens anteriores da conversa e um resumo dos seus dados no Kash (saldos, cartões e faturas, gastos por categoria, parcelas, contas fixas, metas e os lançamentos dos últimos 60 dias). Não enviamos seu e-mail, celular, sobrenome nem números de cartão. A Anthropic processa esses dados só para gerar a resposta e não os usa para treinar modelos. A conversa não é guardada nos nossos servidores: fica só no seu aparelho, e "Nova conversa" apaga. As respostas são geradas por IA e não substituem orientação profissional. Se você mandar a foto de um comprovante ou nota fiscal para lançar, a imagem é reduzida no aparelho e vai para a Anthropic junto com a pergunta, só para ler o lançamento: não é guardada no seu aparelho nem nos nossos servidores. Comprovantes podem ter dados impressos (como o CPF na nota); o assistente é instruído a não repeti-los.',
+      },
+      {
+        heading: 'Comprovantes anexados (opcional)',
+        body: 'a foto que você anexa a um lançamento fica guardada no armazenamento do Supabase, num espaço privado que só a sua conta acessa (nem outras pessoas, nem links públicos). Você pode remover a qualquer momento; ela também é apagada quando você zera os dados ou exclui a conta. A exportação de dados traz o caminho do arquivo, não a foto.',
+      },
+      {
+        heading: 'Quem me deve (opcional)',
+        body: 'o nome que você dá a quem te deve (ex.: "João") e o valor ficam guardados na sua conta, só para você ver e receber o lembrete de cobrar. Use só o nome ou apelido; o Kash não entra em contato com essas pessoas: a mensagem de cobrança é enviada por você, pelo app que escolher.',
       },
       {
         heading: 'Dados de uso, falhas e desempenho',

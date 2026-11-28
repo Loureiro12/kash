@@ -7,6 +7,7 @@ import { SheetsHost } from '@/features/navigation/SheetsHost';
 import { useQuickAdd } from '@/features/quickAdd';
 import { useServerSync } from '@/data/useServerSync';
 import { useNotificationRouting, useReminderSync, useSpendingAlerts } from '@/features/notifications';
+import { useWidgetSync } from '@/features/widgets/useWidgetSync';
 import { DATA_SOURCE } from '@/data/source';
 import { useKashStore, useOnboardingStatus } from '@/store';
 
@@ -20,6 +21,7 @@ export default function AppLayout() {
   useServerSync(userId);
   useReminderSync();
   useSpendingAlerts();
+  useWidgetSync();
   useNotificationRouting();
   useWelcomeRedirect();
   useQuickAdd();

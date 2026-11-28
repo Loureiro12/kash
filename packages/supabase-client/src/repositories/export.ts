@@ -14,6 +14,8 @@ export interface KashExport {
   bills: Record<string, unknown>[];
   goals: Record<string, unknown>[];
   invoices: Record<string, unknown>[];
+  /** quem me deve (desde a 1.3.0; ausente em exportações antigas) */
+  debts?: Record<string, unknown>[];
   /** dias em que o lembrete por e-mail foi enviado */
   reminder_emails: Array<{ day: string; items: number; sent_at: string }>;
 }

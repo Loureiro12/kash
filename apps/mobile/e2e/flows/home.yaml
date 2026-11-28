@@ -22,7 +22,10 @@ tags: [smoke]
     id: "home-budget-card"
 - assertVisible:
     id: "report-screen"
-- assertVisible: "Por categoria"
+# a seção fica abaixo do resumo e dos destaques
+- scrollUntilVisible:
+    element: "Por categoria"
+    direction: DOWN
 - tapOn:
     id: "report-back"
 - assertVisible:
@@ -45,6 +48,8 @@ tags: [smoke]
     element:
       id: "action-bills"
     direction: UP
+    centerElement: true
+- waitForAnimationToEnd
 - tapOn:
     id: "action-bills"
 - assertVisible:

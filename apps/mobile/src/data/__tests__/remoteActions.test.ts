@@ -28,7 +28,7 @@ describe('ações remotas', () => {
     useKashStore.getState().addTransaction({ kind: 'expense', amountCents: 1450, category: 'Comida', sourceId: 'acc1', note: 'Lanche', installments: 1 });
     expect(useKashStore.getState().txs[0]).toMatchObject({ title: 'Lanche', amount: -14.5 });
     await flush();
-    expect(mocked.createTransaction).toHaveBeenCalledWith(expect.anything(), { title: 'Lanche', category: 'Comida', amount: 14.5, date: expect.any(String), sourceType: 'account', sourceId: 'acc1' });
+    expect(mocked.createTransaction).toHaveBeenCalledWith(expect.anything(), { title: 'Lanche', category: 'Comida', amount: 14.5, date: expect.any(String), sourceType: 'account', sourceId: 'acc1', tag: null });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['snapshot'] });
   });
   it('parcelado no cartão usa a RPC de parcelamento', async () => {

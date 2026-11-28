@@ -9,7 +9,7 @@ import { useKashStore } from '@/store';
 import { loadChat, saveChat, type ChatMessage, type ProposalStatus } from './chatStorage';
 
 /** resumo dos dados atuais da pessoa (montado na hora de cada pergunta, com o que está no app) */
-function currentContext(): string {
+export function currentContext(): string {
   const s = useKashStore.getState();
   return buildAssistantContext({ user: s.user, settings: s.settings, accounts: s.accounts, cards: s.cards, txs: s.txs, plans: s.plans, bills: s.bills, goals: s.goals, invoices: s.invoices }, now());
 }

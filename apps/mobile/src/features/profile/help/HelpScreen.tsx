@@ -22,6 +22,31 @@ const FAQ = [
     ios: true,
   },
   {
+    q: 'Dá pra lançar falando com a Siri?',
+    a: 'Dá. Diga “E aí Siri, lançar no Kash”; ela pergunta o que lançar e você responde, por exemplo, “gastei 30 no Uber no Nubank”. O Kash abre direto na confirmação, com valor, categoria, cartão e data: é só tocar em Lançar. Também funciona digitando para a Siri e no app Atalhos. Usa o assistente (precisa autorizar a IA na primeira vez).',
+    ios: true,
+  },
+  {
+    q: 'Como separo os gastos de uma viagem?',
+    a: 'Use uma tag: ao lançar, toque em “+ Tag” e escreva, por exemplo, “Viagem Floripa”. Em Relatório › Tags e modo viagem você vê o total, por dia e por categoria. Ligando o modo viagem, todo lançamento novo já vem com a tag até o dia que você escolher.',
+  },
+  {
+    q: 'Como anoto quem me deve?',
+    a: 'Em Contas › A receber, toque em “+ Anotar”: quem, quanto, do quê e quando cobrar. No dia, o Kash te lembra; “Cobrar” abre uma mensagem pronta para mandar pelo WhatsApp. Para dividir uma conta já lançada, abra o lançamento e toque em “Dividir com amigos”. Quando a pessoa pagar, toque em “Recebi” para lançar a entrada na conta.',
+  },
+  {
+    q: 'Posso guardar a foto do comprovante no lançamento?',
+    a: 'Pode. Abra o lançamento e toque em “Anexar comprovante” (câmera ou galeria). A foto fica guardada num espaço privado da sua conta; toque nela para ver, trocar ou remover.',
+  },
+  {
+    q: 'O que é a retrospectiva do mês?',
+    a: 'No começo de cada mês, o Kash mostra o seu mês anterior: quanto entrou e saiu, quanto sobrou, onde mais gastou e a comparação com o mês antes dele. Dá pra compartilhar como imagem, com ou sem os valores. Fica no Início nos primeiros dias do mês e no Relatório, ao ver um mês que já passou.',
+  },
+  {
+    q: 'O widget mostra meus gastos?',
+    a: 'O widget “Gastos do Kash” mostra quanto saiu hoje e quanto sobra no limite do mês, com atalhos para lançar e perguntar. Ele atualiza sempre que você abre o app ou lança algo. Com “ocultar valores” ligado, aparecem pontinhos; na tela bloqueada do iPhone, os valores só aparecem desbloqueado. No Android, segure a tela inicial › Widgets › Kash.',
+  },
+  {
     q: 'O Kash encontra minhas assinaturas?',
     a: 'Encontra. Quando a mesma cobrança aparece todo mês (streaming, academia, apps), em dias e valores parecidos, ela aparece em Contas › Fixas com o custo no ano. Toque em "Virar conta fixa" para receber lembrete e ver na previsão; se a deste mês já foi lançada, a conta já entra como paga, sem lançar de novo. Se o preço subir, o Kash avisa.',
   },

@@ -83,9 +83,9 @@ export function ProfileScreen() {
           testID="profile-alerts"
         />
         <ListRow
-          title="Resumo da semana"
-          subtitle="Domingo às 19h: quanto saiu, onde mais gastou e o que sobra no mês"
-          trailing={<Switch value={alertPrefs.weekly} onValueChange={(v) => void toggleAlert('weekly', v)} testID="profile-weekly-switch" accessibilityLabel="Resumo da semana" />}
+          title="Resumos da semana e do mês"
+          subtitle="Domingo às 19h, o resumo da semana; no dia 1º, a retrospectiva do mês"
+          trailing={<Switch value={alertPrefs.weekly} onValueChange={(v) => void toggleAlert('weekly', v)} testID="profile-weekly-switch" accessibilityLabel="Resumos da semana e do mês" />}
           onPress={() => void toggleAlert('weekly', !alertPrefs.weekly)}
           testID="profile-weekly"
         />

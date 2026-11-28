@@ -7,9 +7,34 @@ import Foundation
 /// Copiado para o projeto iOS pelo plugin `plugins/withQuickAddIntents.js` (não editar em ios/).
 enum KashQuickAdd {
   static let key = "kash.quickAdd"
+  /// texto dito ou digitado na Siri ("gastei 30 no Uber"), lido junto com o pedido `text:<segundos>`
+  static let textKey = "kash.quickAdd.text"
 
   static func request(_ kind: String) {
     UserDefaults.standard.set("\(kind):\(Int(Date().timeIntervalSince1970))", forKey: key)
+  }
+
+  static func requestText(_ text: String) {
+    UserDefaults.standard.set(String(text.prefix(300)), forKey: textKey)
+    request("text")
+  }
+}
+
+/// "Lançar no Kash": a Siri pergunta o que lançar e a pessoa diz ou digita ("gastei 30 no Uber").
+/// O app abre direto na confirmação do lançamento (o assistente interpreta o texto), sem o chat.
+@available(iOS 16.0, *)
+struct LancarPorTextoIntent: AppIntent {
+  static let title: LocalizedStringResource = "Lançar no Kash"
+  static let description: IntentDescription? = IntentDescription("Diga ou escreva o que gastou ou recebeu (ex.: “gastei 30 no Uber”) e o Kash prepara o lançamento para você confirmar.")
+  static let openAppWhenRun: Bool = true
+
+  @Parameter(title: "O que lançar", requestValueDialog: IntentDialog("O que você quer lançar?"))
+  var texto: String
+
+  @MainActor
+  func perform() async throws -> some IntentResult {
+    KashQuickAdd.requestText(texto)
+    return .result()
   }
 }
 
@@ -56,6 +81,12 @@ struct PerguntarAoKashIntent: AppIntent {
 @available(iOS 16.0, *)
 struct KashAppShortcuts: AppShortcutsProvider {
   static var appShortcuts: [AppShortcut] {
+    AppShortcut(
+      intent: LancarPorTextoIntent(),
+      phrases: ["Lançar no \(.applicationName)", "Anotar no \(.applicationName)", "Registrar no \(.applicationName)"],
+      shortTitle: "Lançar no Kash",
+      systemImageName: "text.bubble"
+    )
     AppShortcut(
       intent: LancarGastoIntent(),
       phrases: ["Lançar gasto no \(.applicationName)", "Novo gasto no \(.applicationName)", "\(.applicationName) gasto"],

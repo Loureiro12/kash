@@ -54,7 +54,10 @@
         "light": "./assets/brand/icon-1024.png",
         "dark": "./assets/brand/icon-dark-1024.png"
       },
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.com.andreloureiro.kash"]
+      }
     },
     "android": {
       "package": "com.andreloureiro.kash",
@@ -137,6 +140,24 @@
       ],
       "expo-web-browser",
       "expo-apple-authentication",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "KashSummary",
+              "label": "Kash",
+              "description": "Gasto de hoje, quanto sobra no mês e atalhos para lançar e perguntar",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
       [
         "expo-image-picker",
         {

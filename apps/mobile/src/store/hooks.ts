@@ -4,7 +4,7 @@
  */
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { activePlans, billSourceName, budgetSplit, categoryDetail, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, onboardingStatus, openInvoices, periodReport, previousMonthsSpent, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, txViews, upcomingBills, type ReportPeriod, type TxFilters } from '@kash/domain';
+import { activePlans, billSourceName, monthRecap, tagSummary, tagTotals, budgetSplit, categoryDetail, categoryColorMap, categoryUsage, billsSummary, budgetStatus, cardBills, cardDates, cardInvoices, cardUsage, categoryBreakdown, depositLabel, depositStatus, filterTxs, forecast, formatMoney, goalProgress, groupTxsByDay, invoiceView, monthDelta, monthIncome, monthlyHistory, monthSpent, monthTitle, onboardingStatus, openInvoices, periodReport, previousMonthsSpent, sourceOptions, topCategoryTip, totalBalance, totalSaved, txTotals, txView, txViews, upcomingBills, type ReportPeriod, type TxFilters } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { useKashStore } from './useKashStore';
 
@@ -180,4 +180,33 @@ export function useSourceOptions() {
 export function useOnboardingStatus() {
   const { accounts, cards, txs, bills, goals, settings } = useKashStore(useShallow((s) => ({ accounts: s.accounts, cards: s.cards, txs: s.txs, bills: s.bills, goals: s.goals, settings: s.settings })));
   return useMemo(() => onboardingStatus({ accounts, cards, txs, bills, goals, settings }), [accounts, cards, txs, bills, goals, settings]);
+}
+
+/** Retrospectiva de um mês fechado (yyyy-mm); null se o mês não teve lançamentos. */
+export function useMonthRecap(month: string) {
+  const { txs, cards, categories, monthlyBudget, cardBudget } = useKashStore(
+    useShallow((s) => ({ txs: s.txs, cards: s.cards, categories: s.categories, monthlyBudget: s.settings.monthlyBudget, cardBudget: s.settings.cardBudget })),
+  );
+  return useMemo(
+    () => monthRecap(txs, month, { cardIds: cards.map((c) => c.id), settings: { monthlyBudget, cardBudget }, colors: categoryColorMap(categories) }),
+    [txs, cards, categories, month, monthlyBudget, cardBudget],
+  );
+}
+
+/** Tags usadas, com totais (mais recente primeiro). */
+export function useTagTotals() {
+  const txs = useKashStore((s) => s.txs);
+  return useMemo(() => tagTotals(txs), [txs]);
+}
+
+/** Resumo de uma tag e os lançamentos dela prontos para a lista. */
+export function useTagSummary(tag: string) {
+  const { txs, accounts, cards } = useKashStore(useShallow((s) => ({ txs: s.txs, accounts: s.accounts, cards: s.cards })));
+  const { colors } = useCategories();
+  return useMemo(() => {
+    const summary = tagSummary(txs, tag, colors);
+    if (!summary) return null;
+    const today = now();
+    return { ...summary, views: summary.txs.map((t) => txView(t, accounts, cards, today, colors)) };
+  }, [txs, accounts, cards, colors, tag]);
 }

@@ -222,6 +222,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      debts: {
+        Row: {
+          amount: number;
+          created_at: string;
+          date: string;
+          description: string;
+          due_date: string | null;
+          id: string;
+          kind: string;
+          person: string;
+          settled_at: string | null;
+          settled_tx_id: string | null;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          amount: number;
+          created_at?: string;
+          date?: string;
+          description?: string;
+          due_date?: string | null;
+          id?: string;
+          kind?: string;
+          person: string;
+          settled_at?: string | null;
+          settled_tx_id?: string | null;
+          user_id?: string;
+        };
+        Update: {
+          amount?: number;
+          created_at?: string;
+          date?: string;
+          description?: string;
+          due_date?: string | null;
+          id?: string;
+          kind?: string;
+          person?: string;
+          settled_at?: string | null;
+          settled_tx_id?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'debts_settled_tx_id_fkey';
+            columns: ['settled_tx_id'];
+            isOneToOne: false;
+            referencedRelation: 'transactions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       goals: {
         Row: {
           account_id: string | null;
@@ -523,6 +574,8 @@ export type Database = {
           onboarding_done_at: string | null;
           phone: string;
           theme: string;
+          travel_tag: string | null;
+          travel_until: string | null;
           updated_at: string;
         };
         ComputedFields: never;
@@ -542,6 +595,8 @@ export type Database = {
           onboarding_done_at?: string | null;
           phone?: string;
           theme?: string;
+          travel_tag?: string | null;
+          travel_until?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -560,6 +615,8 @@ export type Database = {
           onboarding_done_at?: string | null;
           phone?: string;
           theme?: string;
+          travel_tag?: string | null;
+          travel_until?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -589,6 +646,7 @@ export type Database = {
       transactions: {
         Row: {
           amount: number;
+          attachment_path: string | null;
           category: string;
           created_at: string;
           date: string;
@@ -601,6 +659,7 @@ export type Database = {
           plan_id: string | null;
           source_id: string;
           source_type: Database['public']['Enums']['source_type'];
+          tag: string | null;
           title: string;
           transfer_id: string | null;
           updated_at: string;
@@ -609,6 +668,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           amount: number;
+          attachment_path?: string | null;
           category: string;
           created_at?: string;
           date?: string;
@@ -621,6 +681,7 @@ export type Database = {
           plan_id?: string | null;
           source_id: string;
           source_type: Database['public']['Enums']['source_type'];
+          tag?: string | null;
           title: string;
           transfer_id?: string | null;
           updated_at?: string;
@@ -628,6 +689,7 @@ export type Database = {
         };
         Update: {
           amount?: number;
+          attachment_path?: string | null;
           category?: string;
           created_at?: string;
           date?: string;
@@ -640,6 +702,7 @@ export type Database = {
           plan_id?: string | null;
           source_id?: string;
           source_type?: Database['public']['Enums']['source_type'];
+          tag?: string | null;
           title?: string;
           transfer_id?: string | null;
           updated_at?: string;
@@ -776,10 +839,15 @@ export type Database = {
       reset_my_data: { Args: Record<PropertyKey, never>; Returns: undefined };
       rollover_all: { Args: Record<PropertyKey, never>; Returns: number };
       seed_default_categories: { Args: { p_uid: string }; Returns: undefined };
+      settle_debt: {
+        Args: { p_account_id?: string; p_date?: string; p_debt_id: string };
+        Returns: string;
+      };
       soft_delete_transaction: { Args: { p_scope?: string; p_tx_id: string }; Returns: string };
       undo_delete_transaction: { Args: { p_group: string }; Returns: number };
       undo_import: { Args: { p_import_id: string }; Returns: number };
       unpay_bill: { Args: { p_bill_id: string }; Returns: undefined };
+      unsettle_debt: { Args: { p_debt_id: string }; Returns: undefined };
       update_category: {
         Args: { p_color: string; p_id: string; p_name: string };
         Returns: undefined;

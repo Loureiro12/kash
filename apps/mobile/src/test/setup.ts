@@ -167,3 +167,28 @@ jest.mock('expo-image-manipulator', () => {
   };
   return { ImageManipulator: { manipulate: jest.fn(() => ctx), __ctx: ctx }, SaveFormat: { JPEG: 'jpeg', PNG: 'png' } };
 });
+
+// widgets: iOS (App Group) e Android (desenho em segundo plano)
+jest.mock('@bacons/apple-targets', () => {
+  const store: Record<string, unknown> = {};
+  class ExtensionStorage {
+    set(key: string, value: unknown) {
+      store[key] = value;
+    }
+    get(key: string) {
+      return (store[key] as string) ?? null;
+    }
+    remove(key: string) {
+      delete store[key];
+    }
+    static reloadWidget = jest.fn();
+    static __store = store;
+  }
+  return { ExtensionStorage };
+});
+jest.mock('react-native-android-widget', () => ({
+  requestWidgetUpdate: jest.fn(async () => undefined),
+  registerWidgetTaskHandler: jest.fn(),
+  FlexWidget: 'FlexWidget',
+  TextWidget: 'TextWidget',
+}));

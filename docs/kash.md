@@ -78,6 +78,11 @@ Navegação: barra de abas flutuante com **Início, Cartões, botão central "+"
   - **Data:** um calendário do mês, com os atalhos Hoje, Ontem e Anteontem (não aceita datas futuras).
   - **Troca de tipo:** Gasto · Entrada · Transferência, nos dois sentidos, levando o valor, a descrição e a data.
   - **Sugestão pela descrição:** uma descrição já usada sugere a categoria e a origem daquela vez, sem passar por cima da escolha manual.
+  - **Categoria nova** *(1.3.0)*: chip "+ Nova" no fim das categorias cria ali mesmo (nome e cor) e já seleciona.
+  - **Tag** *(1.3.0)*: "+ Tag" escolhe uma tag recente ou cria outra ("Viagem Floripa"); no modo viagem a tag já vem marcada. Não vale para compra parcelada nem pagamento de fatura.
+- **Comprovante anexado** *(1.3.0)*: num lançamento salvo, "Anexar comprovante" (câmera/galeria, até 2000 px, JPEG 80%). Fica no Supabase Storage, bucket privado `receipts`, em `<user_id>/<tx_id>/<arquivo>.jpg` (RLS pela 1ª pasta); `transactions.attachment_path` guarda o caminho. Miniatura e tela cheia por link temporário (10 min), trocar e remover. "Zerar dados" (`removeAllAttachments`) e "Excluir conta" (`delete-account`) apagam os arquivos.
+- **Dividir com amigos** *(1.3.0)*: num gasto salvo, abre "Alguém me deve" com a descrição e a parte de cada um (total ÷ pessoas).
+- **"Lançar no Kash" pela Siri** *(1.3.0)*: App Intent com texto (a Siri pergunta "O que você quer lançar?"). O app abre o sheet de confirmação (`QuickEntrySheet`): o assistente interpreta e propõe; Lançar / Editar / Descartar. Também `com.andreloureiro.kash://lancar?texto=…`.
 - **Compra parcelada** no cartão, de 1 a 24x, com "Valor digitado: Total ou Parcela".
 - **Compra parcelada antiga**: informe o mês da 1ª parcela (até 23 meses atrás); o app calcula quais já foram pagas e lança só a do mês. Compra já quitada não pode ser salva.
 - **Transferência entre contas** (Contas › Transferir, ou "Transferência" no lançamento): não conta como gasto nem entrada; aparece numa linha só ("Corrente → Poupança") e tem filtro próprio.
@@ -98,6 +103,7 @@ Navegação: barra de abas flutuante com **Início, Cartões, botão central "+"
 - Conta corrente, poupança, carteira e investimento, com **saldo calculado** (saldo inicial + lançamentos) e cor personalizada.
 - **Transferir** entre contas.
 - **Importar extrato** (ver 3.10).
+- **A receber — "Quem me deve"** *(1.3.0)*: empréstimos ("Emprestei") e contas divididas ("Dividi uma conta"), com total a receber, atrasados, lembrete às 10h do dia de cobrar (preferência "Lembrete de contas"), **Cobrar** (mensagem pronta pelo compartilhar do sistema) e **Recebi** (lança a entrada numa conta, via RPC `settle_debt`, ou só marca; "Desfazer" usa `unsettle_debt`). Tabela `debts` (migração `20261024000000_debts`).
 
 ### 3.6 Contas fixas
 
@@ -155,13 +161,29 @@ Acesso: Cartões › Importar fatura, Contas › Importar extrato, ou o link no 
 - Pede **autorização na primeira vez**; a conversa fica **só no aparelho** ("Nova conversa" apaga). **40 perguntas por dia**.
 - Detalhes técnicos na seção 6.
 
-### 3.12 Widget e atalhos do iPhone *(1.2.0)*
+### 3.12 Widgets e atalhos *(1.2.0; números e Android na 1.3.0)*
+
+- **"Gastos do Kash"** *(1.3.0)*: gasto de hoje, quanto sobra no limite do mês (ou "Passou do limite"), barra do limite e atalhos Lançar gasto / Perguntar.
+  - **iPhone:** pequeno, médio e retangular da tela bloqueada. O app grava os números já formatados no App Group `group.com.andreloureiro.kash` (`ExtensionStorage`, chave `summary`) e pede `reloadWidget`; o widget lê o `UserDefaults` do grupo e marca "abra o app" quando os números são de outro dia. Valores com `privacySensitive` (ocultos na tela bloqueada travada) e "••••" com "ocultar valores".
+  - **Android:** `react-native-android-widget` (widget `KashSummary`, 3×2, redimensionável, atualiza a cada 30 min). O app grava no AsyncStorage e pede o redesenho; a tarefa em segundo plano (`index.ts` › `registerWidgetTaskHandler`) desenha com os dados guardados. Cálculo em `widgetSummary` (`@kash/domain`).
 
 - **Tela inicial, pequeno:** abre o assistente.
 - **Tela inicial, médio:** botões "Perguntar" e "Lançar gasto".
 - **Tela bloqueada:** redondo e retangular, abrem o assistente.
 - O widget **não mostra valores**; só abre o app (`com.andreloureiro.kash://assistant` e `…://lancar?tipo=gasto`). iOS 17+.
 - Ação **"Perguntar ao Kash"** em Atalhos, Siri, Spotlight, botão de Ação e Toque Atrás.
+
+### 3.12.1 Retrospectiva do mês *(1.3.0)*
+
+- "Seu outubro": entrou, saiu, sobrou (e % da entrada), 3 maiores categorias, maior gasto, dias sem gastar, limite e comparação com o mês anterior (`monthRecap`).
+- **Compartilhar** como imagem (`react-native-view-shot` + folha do sistema), com "Esconder valores" (só porcentagens). Card de fundo escuro fixo, igual nos dois temas.
+- Entradas: card no Início nos dias 1–7, notificação no dia 1º às 10h (`monthRecapReminder`) e botão no Relatório ao ver um mês fechado. Navega entre meses.
+
+### 3.12.2 Tags e modo viagem *(1.3.0)*
+
+- Tag livre por lançamento (`transactions.tag`, até 30 caracteres); a lista junta caixa/acento diferentes (`tagTotals`).
+- Tela **Tags** (Relatório › "Tags e modo viagem"): modo viagem e as tags com o total. Detalhe da tag: total, dias, por dia, entradas, por categoria e lançamentos (`tagSummary`).
+- **Modo viagem**: `profiles.travel_tag` e `travel_until` (último dia, inclusive; vale em todos os aparelhos). Lançamento novo já vem com a tag; faixa no Início com o gasto até agora. Migração `20261023000000_tags_travel`.
 
 ### 3.13 Perfil
 
@@ -367,6 +389,9 @@ Esquemas de link do app: `kash://` e `com.andreloureiro.kash://` (ex.: `://assis
 ## 13. Pendências e riscos conhecidos
 
 **Antes de lançar a 1.3.0**
+- **Backend:** migrações `20261023000000_tags_travel`, `20261024000000_debts`, `20261025000000_attachments` e a função `delete-account` em produção antes do app.
+- **App Group do widget:** o primeiro build iOS com ele pode pedir o `eas build` interativo.
+- **Android:** conferir no aparelho o widget e o teclado nos sheets (o teste foi no emulador).
 - **Foto do comprovante não testada contra a API real:** a leitura de verdade só acontece no TestFlight. Testar notas, cupons e comprovantes de Pix reais.
 - **Ver no aparelho:** alertas (com a permissão de notificações), assinaturas detectadas e o novo modal de lançamento.
 - **Backend:** já publicado em 26/11 (migração `20261022000000_bill_from_recurring` e função `assistant` com foto).

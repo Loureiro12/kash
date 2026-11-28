@@ -69,7 +69,7 @@ export function installRemoteActions() {
     const sourceType = sourceTypeOf(before, input.sourceId);
     if (input.kind === 'income') {
       if (sourceType !== 'account') return undefined;
-      return api.createTransaction(db, { title: input.note.trim() || 'Entrada', category: 'Entrada', amount, date: input.date ?? today(), sourceType, sourceId: input.sourceId });
+      return api.createTransaction(db, { title: input.note.trim() || 'Entrada', category: 'Entrada', amount, date: input.date ?? today(), sourceType, sourceId: input.sourceId, tag: input.tag ?? null });
     }
     const title = input.note.trim() || input.category;
     if (sourceType === 'card' && input.installments > 1) {
@@ -79,7 +79,7 @@ export function installRemoteActions() {
       const tx = after.txs.find((t) => t.planId === plan.id);
       return api.addInstallmentPurchase(db, { title, category: input.category, cardId: input.sourceId, total: amount, installments: input.installments, date: tx?.date ?? input.date, current: plan.current });
     }
-    return api.createTransaction(db, { title, category: input.category, amount, date: input.date ?? today(), sourceType, sourceId: input.sourceId });
+    return api.createTransaction(db, { title, category: input.category, amount, date: input.date ?? today(), sourceType, sourceId: input.sourceId, tag: input.tag ?? null });
   });
   wrap('updateTransaction', async ([id], before, after) => {
     const tx = after.txs.find((t) => t.id === id);
@@ -88,7 +88,7 @@ export function installRemoteActions() {
     const old = before.txs.find((t) => t.id === id);
     if (tx.planId && old && old.sourceId !== tx.sourceId) await api.movePlanToCard(db, tx.planId, tx.sourceId);
     const category: Category | 'Entrada' | undefined = tx.category === 'Fatura' ? undefined : tx.category;
-    return api.updateTransaction(db, id, { title: tx.title, amount: Math.abs(tx.amount), date: tx.date, sourceType: sourceTypeOf(after, tx.sourceId), sourceId: tx.sourceId, ...(category ? { category } : {}) });
+    return api.updateTransaction(db, id, { title: tx.title, amount: Math.abs(tx.amount), date: tx.date, sourceType: sourceTypeOf(after, tx.sourceId), sourceId: tx.sourceId, tag: tx.tag ?? null, ...(category ? { category } : {}) });
   });
   wrap('deleteTransaction', ([id, scope]) => api.softDeleteTransaction(db, id, scope ?? 'single'), {
     onSuccess: (group) => {
@@ -164,6 +164,24 @@ export function installRemoteActions() {
   wrap('toggleBillReminder', (_args, _before, after) => api.updateSettings(db, { billReminder: after.settings.billReminder }));
   wrap('finishOnboarding', ([budget]) => api.updateSettings(db, { onboardingDone: true, ...(budget && budget > 0 ? { monthlyBudget: Math.round(budget * 100) / 100 } : {}) }));
   wrap('setChecklistHidden', ([hidden]) => api.updateSettings(db, { checklistHidden: hidden }));
+  // quem me deve
+  const debtRow = (input: { person: string; description: string; amountCents: number; kind: 'lent' | 'split'; date?: string; dueDate?: string | null }) => ({
+    person: input.person,
+    description: input.description,
+    amount: input.amountCents / 100,
+    kind: input.kind,
+    date: input.date ?? today(),
+    dueDate: input.dueDate ?? null,
+  });
+  wrap('addDebt', ([input]) => (input.person.trim() && input.amountCents > 0 ? api.createDebt(db, debtRow(input)) : undefined));
+  wrap('updateDebt', ([id, input], before) => {
+    const old = before.debts.find((d) => d.id === id);
+    return old ? api.updateDebt(db, id, debtRow({ ...input, date: input.date ?? old.date, dueDate: input.dueDate === undefined ? old.dueDate : input.dueDate })) : undefined;
+  });
+  wrap('removeDebt', ([id]) => api.deleteDebt(db, id));
+  wrap('settleDebt', ([id, accountId]) => api.settleDebt(db, id, accountId));
+  wrap('unsettleDebt', ([id]) => api.unsettleDebt(db, id));
+  wrap('setTravelMode', (_args, _before, after) => api.updateSettings(db, { travelTag: after.settings.travelTag ?? null, travelUntil: after.settings.travelUntil ?? null }));
   wrap('toggleEmailReminder', (_args, _before, after) => api.updateSettings(db, { emailReminder: after.settings.emailReminder }));
   // biometria é preferência do aparelho (não sincroniza)
 }

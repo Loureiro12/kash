@@ -60,6 +60,10 @@ export interface Tx {
   planId?: ID;
   /** perna de uma transferência entre contas (a outra perna tem o mesmo id, com o sinal oposto) */
   transferId?: ID;
+  /** tag livre ("Viagem Floripa"): agrupa lançamentos fora das categorias */
+  tag?: string;
+  /** comprovante anexado: caminho no Storage (bucket `receipts`) */
+  attachmentPath?: string;
   /** identificador da linha no arquivo do banco (importado ou conferido numa importação) */
   externalId?: string;
 }
@@ -85,6 +89,23 @@ export interface Bill {
   paidTxId?: ID;
   /** o pagamento é um lançamento que já existia (cobrança importada/lançada): desmarcar não o apaga */
   paidTxLinked?: boolean;
+}
+
+/** Alguém me deve: dinheiro emprestado ou a parte de uma conta dividida. */
+export interface Debt {
+  id: ID;
+  person: string;
+  description: string;
+  amount: number;
+  kind: 'lent' | 'split';
+  /** quando aconteceu (yyyy-mm-dd) */
+  date: string;
+  /** quando cobrar (lembrete); null = sem data */
+  dueDate: string | null;
+  /** quando recebeu; null = pendente */
+  settledAt: string | null;
+  /** entrada lançada ao receber */
+  settledTxId?: ID;
 }
 
 export interface Goal {
@@ -151,6 +172,10 @@ export interface Settings {
   biometrics: boolean;
   /** código ISO da moeda de exibição (só BRL nesta fase) */
   currency: 'BRL';
+  /** modo viagem: tag aplicada aos lançamentos novos enquanto ligado */
+  travelTag?: string | null;
+  /** último dia do modo viagem (inclusive); null = até desligar */
+  travelUntil?: string | null;
 }
 
 export interface User {

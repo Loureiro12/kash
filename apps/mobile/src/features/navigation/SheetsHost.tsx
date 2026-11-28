@@ -13,6 +13,8 @@ import { DeleteAccountSheet } from '../profile/DeleteAccountSheet';
 import { ResetDataSheet } from '../profile/ResetDataSheet';
 import { TransactionSheet } from '../transactions/TransactionSheet';
 import { TransferSheet } from '../transactions/TransferSheet';
+import { QuickEntrySheet } from '../quickAdd/QuickEntrySheet';
+import { DebtSheet } from '../debts/DebtSheet';
 
 /** Monta todos os sheets globais e o toast uma única vez, acima da navegação. */
 export function SheetsHost() {
@@ -30,6 +32,8 @@ export function SheetsHost() {
       <ChangePasswordSheet />
       <DeleteAccountSheet />
       <ResetDataSheet />
+      <QuickEntrySheet />
+      <DebtSheet />
     </>
   );
 }

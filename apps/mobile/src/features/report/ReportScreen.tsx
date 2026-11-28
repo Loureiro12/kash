@@ -1,10 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Badge, Card, Icon, PageHeader, Pressable, ProgressBar, Screen, SegmentedControl, Text, useTheme } from '@/design-system';
+import { Badge, Button, Card, Icon, PageHeader, Pressable, ProgressBar, Screen, SegmentedControl, Text, useTheme } from '@/design-system';
 import { dayOffsetOf, formatBRL, type PeriodBar, type ReportPeriod } from '@kash/domain';
 import { now } from '@/lib/clock';
-import { useMoney, usePeriodReport } from '@/store';
+import { useMoney, usePeriodReport, useTagTotals } from '@/store';
 import { DataGate } from '@/features/navigation/DataGate';
 import { TxRow } from '../transactions/TxRow';
 
@@ -24,6 +24,8 @@ const WORD: Record<ReportPeriod, string> = { day: 'dia', week: 'semana', month: 
 export function ReportScreen() {
   const router = useRouter();
   const money = useMoney();
+  const tags = useTagTotals();
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{ periodo?: string }>();
   const [kind, setKind] = useState<ReportPeriod>(FROM_PARAM[params.periodo ?? ''] ?? 'month');
   const [offset, setOffset] = useState(0);
@@ -82,6 +84,11 @@ export function ReportScreen() {
           <Bars bars={r.bars} kind={kind} onPress={openDay} />
         </Card>
 
+        {kind === 'month' && offset < 0 && (r.spent > 0 || r.income > 0) ? (
+          <View style={{ marginTop: 12 }}>
+            <Button label={`Ver a retrospectiva de ${r.label.toLowerCase()}`} variant="secondary" size="md" onPress={() => router.push({ pathname: '/recap', params: { mes: r.start.slice(0, 7) } })} testID="report-recap" />
+          </View>
+        ) : null}
         <Text variant="section" style={{ marginTop: 24 }}>
           Como você está indo
         </Text>
@@ -162,6 +169,19 @@ export function ReportScreen() {
             </View>
           </>
         ) : null}
+
+        {/* tags (viagens, eventos): fora das categorias */}
+        <Pressable onPress={() => router.push('/tags')} accessibilityRole="button" accessibilityLabel="Abrir tags e modo viagem" testID="report-tags" style={{ marginTop: 24 }}>
+          <Card padding={16} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="titleBold">Tags e modo viagem</Text>
+              <Text variant="meta" color="muted" numberOfLines={1}>
+                {tags.length ? tags.slice(0, 3).map((t) => `#${t.tag} ${money(t.spent)}`).join(' · ') : 'Junte os gastos de uma viagem ou de um evento'}
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={colors.muted} />
+          </Card>
+        </Pressable>
       </DataGate>
     </Screen>
   );

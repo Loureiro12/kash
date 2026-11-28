@@ -39,7 +39,7 @@ describe('useReminderSync', () => {
     await act(() => useKashStore.getState().toggleBillReminder());
     await waitFor(() => expect(mocked.cancelAllScheduledNotificationsAsync).toHaveBeenCalled());
     // sem lembretes de contas/faturas/metas; o resumo da semana tem preferência própria
-    expect(scheduled().filter((r) => !r.identifier?.startsWith('weekly:'))).toEqual([]);
+    expect(scheduled().filter((r) => !r.identifier?.startsWith('weekly:') && !r.identifier?.startsWith('recap:'))).toEqual([]);
   });
 
   it('sem permissão do sistema não agenda nada', async () => {

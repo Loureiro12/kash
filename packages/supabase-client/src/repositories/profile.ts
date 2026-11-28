@@ -11,7 +11,7 @@ export interface ProfileData {
 }
 
 /** id e e-mail do usuário logado (o PostgREST exige filtro em updates). */
-async function currentUser(db: KashClient): Promise<{ id: string; email: string }> {
+export async function currentUser(db: KashClient): Promise<{ id: string; email: string }> {
   const { data, error } = await db.auth.getUser();
   if (error || !data.user) throw new KashApiError('unauthorized', 'Você precisa entrar de novo.', error);
   return { id: data.user.id, email: data.user.email ?? '' };
@@ -42,6 +42,8 @@ export async function updateSettings(db: KashClient, input: Partial<Settings>): 
   if (input.monthlyBudget !== undefined) patch.monthly_budget = input.monthlyBudget;
   if (input.cardBudget !== undefined) patch.card_budget = input.cardBudget;
   if (input.biometrics !== undefined) patch.biometrics = input.biometrics;
+  if (input.travelTag !== undefined) patch.travel_tag = input.travelTag?.trim() || null;
+  if (input.travelUntil !== undefined) patch.travel_until = input.travelUntil;
   const me = await currentUser(db);
   unwrap(await db.from('profiles').update(patch).eq('id', me.id).select('id'));
 }

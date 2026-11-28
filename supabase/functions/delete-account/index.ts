@@ -14,6 +14,19 @@ Deno.serve((req) =>
     },
     deleteUser: async (userId) => {
       const admin = createClient(url, serviceKey);
+      // comprovantes anexados (Storage): o banco apaga as linhas em cascata, mas não os arquivos
+      try {
+        const bucket = admin.storage.from('receipts');
+        const { data: folders } = await bucket.list(userId, { limit: 1000 });
+        const paths: string[] = [];
+        for (const f of folders ?? []) {
+          const { data: files } = await bucket.list(`${userId}/${f.name}`, { limit: 100 });
+          for (const file of files ?? []) paths.push(`${userId}/${f.name}/${file.name}`);
+        }
+        for (let i = 0; i < paths.length; i += 100) await bucket.remove(paths.slice(i, i + 100));
+      } catch (err) {
+        console.error('delete-account: comprovantes', err instanceof Error ? err.message : String(err));
+      }
       const { error } = await admin.auth.admin.deleteUser(userId);
       if (error) throw error;
     },

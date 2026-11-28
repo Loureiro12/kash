@@ -188,3 +188,34 @@ describe('TransactionSheet', () => {
     expect(useKashStore.getState().ui.toast).toBe('Lançamento atualizado');
   });
 });
+
+describe('categoria nova sem sair do lançamento', () => {
+  it('"+ Nova" cria a categoria, já seleciona e o sheet continua aberto; salva o gasto nela', async () => {
+    await renderWithTheme(<TransactionSheet />);
+    await press('chip-cat-new');
+    await fireEvent.changeText(screen.getByTestId('new-category-name'), 'Pets');
+    await press('new-category-color-3D8BFF');
+    await press('new-category-save');
+    const pets = useKashStore.getState().categories.find((c) => c.name === 'Pets');
+    expect(pets).toMatchObject({ color: '#3D8BFF' });
+    expect(useKashStore.getState().ui.sheet).toBe('expense');
+    expect(screen.queryByTestId('new-category')).toBeNull();
+    expect(screen.getByTestId('chip-cat-Pets')).toBeSelected();
+
+    await press('chip-src-acc1');
+    await typeAmount('expense-amount', ['8', '000']);
+    await press('expense-save');
+    expect(useKashStore.getState().txs[0]).toMatchObject({ category: 'Pets', amount: -80 });
+  });
+
+  it('nome repetido mostra o erro e não cria', async () => {
+    await renderWithTheme(<TransactionSheet />);
+    await press('chip-cat-new');
+    await fireEvent.changeText(screen.getByTestId('new-category-name'), 'comida');
+    await press('new-category-save');
+    expect(screen.getByTestId('new-category-name-error')).toBeOnTheScreen();
+    expect(useKashStore.getState().categories.filter((c) => c.name.toLowerCase() === 'comida')).toHaveLength(1);
+    await press('new-category-cancel');
+    expect(screen.queryByTestId('new-category')).toBeNull();
+  });
+});

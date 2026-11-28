@@ -7,6 +7,7 @@ import { formatBRL, totalBalance } from '@kash/domain';
 import { useBillsSummary, useBillsView, useKashStore, useMoney } from '@/store';
 import type { AccountsSegment } from '@/store';
 import { RecurringSuggestions } from './RecurringSuggestions';
+import { DebtsList } from '../debts/DebtsList';
 
 /** Tela 5 — Contas (segmentado Bancárias | Fixas). */
 export function AccountsScreen() {
@@ -16,6 +17,7 @@ export function AccountsScreen() {
   const { segmento } = useLocalSearchParams<{ segmento?: string }>();
   useEffect(() => {
     if (segmento === 'fixas') setSegment('bills');
+    else if (segmento === 'receber') setSegment('debts');
     else if (segmento === 'bancarias') setSegment('bank');
   }, [segmento, setSegment]);
   return (
@@ -27,10 +29,11 @@ export function AccountsScreen() {
           options={[
             { value: 'bank', label: 'Bancárias', testID: 'seg-bank' },
             { value: 'bills', label: 'Fixas', testID: 'seg-bills' },
+            { value: 'debts', label: 'A receber', testID: 'seg-debts' },
           ]}
         />
       </View>
-      <DataGate>{segment === 'bank' ? <BankAccounts /> : <FixedBills />}</DataGate>
+      <DataGate>{segment === 'bank' ? <BankAccounts /> : segment === 'bills' ? <FixedBills /> : <DebtsList />}</DataGate>
     </Screen>
   );
 }

@@ -14,6 +14,10 @@ module.exports = {
   // containerBackground e widgets da tela bloqueada com o visual novo: iOS 17+
   deploymentTarget: '17.0',
   frameworks: ['SwiftUI', 'WidgetKit'],
+  // números do widget "Gastos do Kash": o app grava no App Group (ExtensionStorage) e o widget lê
+  entitlements: {
+    'com.apple.security.application-groups': ['group.com.andreloureiro.kash'],
+  },
   colors: {
     $accent: '#C6F432',
     $widgetBackground: { color: '#FFFFFF', darkColor: '#16181C' },

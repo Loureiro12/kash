@@ -9,6 +9,14 @@ Checklist de lançamento em `docs/release.md` › 5.2.
 
 Base: iOS 1.2.0 build 14 (commit `3662e6e`, aprovado na App Store). A 1.2.0 fechou para novos builds na Apple, então o que entrou depois dela vai na 1.3.0. Os builds 15 e 16 (1.2.0) foram recusados no envio por isso.
 
+- **Retrospectiva do mês** ("Seu outubro"): quanto entrou e saiu, quanto sobrou, onde mais gastou (3 categorias), maior gasto, dias sem gastar, como ficou o limite e a comparação com o mês anterior. Compartilhável como imagem, com a opção "Esconder valores" (só porcentagens). Aparece no Início nos primeiros 7 dias do mês, chega por notificação no dia 1º às 10h (preferência "Resumos da semana e do mês") e fica no Relatório ao ver um mês fechado. Novo módulo nativo `react-native-view-shot`.
+- **"Lançar no Kash" pela Siri** (voz ou digitando): a Siri pergunta o que lançar ("gastei 30 no Uber no Nubank") e o app abre direto numa confirmação curta, sem o chat, com Lançar / Editar / Descartar. Também pelo link `com.andreloureiro.kash://lancar?texto=…` (automações e Android). Sem autorização da IA ainda, abre o assistente para pedir antes.
+- **Tags e modo viagem**: marque lançamentos com uma tag ("Viagem Floripa") e veja o total, por dia e por categoria (Relatório › Tags e modo viagem). O modo viagem põe a tag sozinha em todo lançamento novo até o dia escolhido; o Início mostra quanto já foi. A tag aparece na linha do lançamento. Não vale para compra parcelada. Migração `20261023000000_tags_travel`.
+- **Quem me deve** (Contas › A receber): empréstimos e contas divididas, com total a receber, atrasados, lembrete no dia de cobrar, "Cobrar" (mensagem pronta para o WhatsApp) e "Recebi" (lança a entrada na conta, ou só marca; dá para desfazer). "Dividir com amigos" num lançamento já salvo calcula a parte de cada um. Migração `20261024000000_debts` (inclui exportação e "Zerar dados").
+- **Widget com números**: "Gastos do Kash" no iPhone (pequeno, médio e tela bloqueada) e o primeiro widget do Android: gasto de hoje, quanto sobra no limite do mês, barra e atalhos Lançar / Perguntar. Respeita "ocultar valores"; na tela bloqueada do iPhone os valores só aparecem desbloqueado. iOS: App Group `group.com.andreloureiro.kash`; Android: `react-native-android-widget` (entrada do app agora é `index.ts`).
+- **Comprovante anexado ao lançamento**: em um lançamento salvo, "Anexar comprovante" (câmera ou galeria). A foto fica no Supabase Storage (bucket privado `receipts`, pasta por pessoa), com miniatura, tela cheia, trocar e remover. "Zerar dados" e "Excluir conta" apagam os arquivos. Migração `20261025000000_attachments`; a função `delete-account` foi atualizada.
+- **Categoria nova sem sair do lançamento**: o chip "+ Nova" no fim das categorias cria a categoria ali mesmo (nome e cor) e já a seleciona.
+- **Correção (Android):** o teclado cobria campos e botões nos sheets (cadastrar cartão, conta, lançar) e nas telas de login, cadastro e assistente. O app roda edge-to-edge e o Android não encolhe a tela; agora o espaço do teclado é reservado e o campo focado rola até ficar visível.
 - **Assinaturas detectadas** (Contas › Fixas): o Kash encontra as cobranças que se repetem todo mês nos seus lançamentos (streaming, academia, apps), mostra quanto custam no ano e se o preço subiu.
   - **Virar conta fixa** cria a conta com lembrete e previsão. Se a cobrança do mês já foi lançada, a conta já entra como paga, ligada a ela, sem lançar de novo; desmarcar depois não apaga o gasto.
   - **Ignorar** tira a sugestão.
@@ -36,6 +44,14 @@ Base: iOS 1.2.0 build 14 (commit `3662e6e`, aprovado na App Store). A 1.2.0 fech
 > • Alertas de gastos: o Kash avisa quando você chega a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal. E todo domingo chega o resumo da semana.
 > • Lance pela foto: fotografe a nota ou o comprovante e o Kash preenche o lançamento para você conferir.
 > • Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição.
+> • Retrospectiva do mês: veja seu mês num card e compartilhe, com ou sem os valores.
+> • "E aí Siri, lançar no Kash": diga o gasto e confirme num toque.
+> • Tags e modo viagem: junte os gastos de uma viagem ou de um evento e veja quanto saiu.
+> • Quem me deve: anote empréstimos e contas divididas, receba o lembrete e cobre com uma mensagem pronta.
+> • Widget com números: gasto de hoje e quanto sobra no mês, também no Android.
+> • Guarde a foto do comprovante no lançamento.
+> • Crie uma categoria nova sem sair do lançamento.
+> • Android: o teclado não cobre mais os campos.
 > • O app agora aparece todo em português no iPhone, inclusive câmera e fotos.
 > • Pequenas correções.
 

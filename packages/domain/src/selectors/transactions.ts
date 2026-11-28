@@ -29,7 +29,7 @@ export function txView(tx: Tx, accounts: Account[], cards: Card[], now: Date, co
     title: tx.title,
     initial: (tx.title[0] ?? '?').toUpperCase(),
     color,
-    meta: `${relativeDayLabel(tx.date, now)} · ${isExpense ? (tx.category === 'Fatura' ? 'Fatura' : tx.category) : 'Entrada'} · ${sourceName}`,
+    meta: `${relativeDayLabel(tx.date, now)} · ${isExpense ? (tx.category === 'Fatura' ? 'Fatura' : tx.category) : 'Entrada'} · ${sourceName}${tx.tag ? ` · #${tx.tag}` : ''}`,
     amount: tx.amount,
     isExpense,
     kind: isExpense ? 'expense' : 'income',

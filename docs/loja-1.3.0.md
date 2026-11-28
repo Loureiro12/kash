@@ -12,11 +12,16 @@ A 1.2.0 (aprovada na App Store, build 14) está em [`loja-1.2.0.md`](loja-1.2.0.
 ```
 Novidades desta versão:
 
-• Lance pela foto: fotografe a nota fiscal, o cupom ou o comprovante do Pix e o Kash preenche valor, lugar, data e categoria. É só conferir e tocar em Lançar.
-• Lançar ficou mais rápido: o valor usa o teclado do celular, a data abre um calendário e o app sugere a categoria pela descrição. E dá pra trocar entre gasto, entrada e transferência a qualquer momento.
-• Alertas de gastos: o Kash avisa quando você chega a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal.
-• Resumo da semana: todo domingo, quanto saiu, onde você mais gastou e o que sobra no mês.
-• Assinaturas encontradas: o Kash acha as cobranças que se repetem todo mês, mostra quanto custam no ano e avisa quando ficam mais caras. Um toque e elas viram conta fixa.
+• Retrospectiva do mês: no começo de cada mês, veja quanto entrou, quanto saiu, onde mais gastou e compare com o mês anterior. Compartilhe como imagem, com ou sem os valores.
+• "E aí Siri, lançar no Kash": diga "gastei 30 no Uber" e confirme num toque.
+• Lance pela foto: fotografe a nota fiscal, o cupom ou o comprovante do Pix e o Kash preenche valor, lugar, data e categoria.
+• Guarde o comprovante: anexe a foto a qualquer lançamento.
+• Tags e modo viagem: junte os gastos de uma viagem ou de um evento e veja quanto saiu, por dia e por categoria.
+• Quem me deve: anote empréstimos e contas divididas, receba o lembrete no dia e cobre com uma mensagem pronta.
+• Widget com números: quanto saiu hoje e quanto sobra no mês, direto na tela inicial e na tela bloqueada.
+• Alertas de gastos: o Kash avisa quando você chega a 80% do limite, quando o ritmo do mês vai estourar e quando uma categoria sai do normal. E todo domingo, o resumo da semana.
+• Assinaturas encontradas: o Kash acha as cobranças que se repetem todo mês e avisa quando ficam mais caras.
+• Lançar ficou mais rápido: teclado do celular, calendário, categoria sugerida e categoria nova sem sair do lançamento.
 • O app agora aparece todo em português, inclusive câmera e fotos.
 • Correções e melhorias.
 ```
@@ -98,6 +103,11 @@ What's new in 1.3.0:
 3. Spending alerts (local notifications computed on the device; Profile > "Alertas de gastos" and "Resumo da semana"): 80% and 100% of the monthly budget, spending pace, unusual category spending, price increases of subscriptions, and a weekly summary on Sundays at 7 pm. No data leaves the device for this.
 4. Detected subscriptions (Accounts > "Fixas" tab): recurring charges found in the user's own entries, with "Virar conta fixa" (turn into a fixed bill) and "Ignorar".
 5. The app is now localized in Brazilian Portuguese (system screens such as the camera and photo picker follow it).
+6. Monthly recap (Home, first days of the month; or Report > a past month): a shareable card; "Esconder valores" hides amounts before sharing.
+7. Siri: "Lançar no Kash" asks what to log ("gastei 30 no Uber") and opens a confirmation sheet in the app; nothing is saved until the user taps "Lançar".
+8. Tags and travel mode (Report > "Tags e modo viagem"); "Quem me deve" (Accounts > "A receber") to track money friends owe, with reminders and a share sheet to send a message.
+9. Widgets: "Gastos do Kash" shows today's spending and what is left of the monthly budget (hidden when "ocultar valores" is on; redacted on the Lock Screen while locked).
+10. Receipt attachment: open a saved entry > "Anexar comprovante". The photo is stored privately in the user's account (Supabase Storage) and deleted with the account.
 
 Account deletion: Profile > "Excluir conta". The app does not connect to bank accounts; all data is entered or imported by the user.
 ```
@@ -106,7 +116,7 @@ Account deletion: Profile > "Excluir conta". The app does not connect to bank ac
 
 Revise antes de enviar, porque o assistente envia dados financeiros a um fornecedor (Anthropic):
 - **Informações financeiras** e **Conteúdo do usuário** (as perguntas ao assistente): coletados, vinculados à pessoa, finalidade **Funcionalidade do app**, sem rastreamento.
-- **Conteúdo do usuário › Fotos ou vídeos** (foto do comprovante enviada ao assistente): coletado, vinculado à pessoa, finalidade **Funcionalidade do app**, sem rastreamento. O app não guarda a foto, mas ela passa pela Anthropic, que pode retê-la por um tempo para segurança: por isso declarar é o caminho seguro.
+- **Conteúdo do usuário › Fotos ou vídeos**: coletado, vinculado à pessoa, finalidade **Funcionalidade do app**, sem rastreamento. Dois usos: a foto enviada ao assistente para ler o lançamento (não guardada) e o comprovante anexado ao lançamento (guardado no Supabase Storage, privado).
 - Para a Apple, dados que um parceiro processa por você contam como coletados pelo app.
 
 ---
@@ -118,11 +128,13 @@ No Android não há widget nem Siri, e o "Zerar meus dados" já saiu na 1.1.0: a
 ### Novidades da versão (até 500)
 
 ```
-• Lance pela foto da nota ou do comprovante: o Kash preenche para você conferir.
-• Lançar mais rápido: teclado do celular, calendário e categoria sugerida.
-• Alertas de limite e de gastos fora do normal, e resumo da semana no domingo.
-• Assinaturas encontradas, com aviso quando ficam mais caras.
-• Correções e melhorias.
+• Retrospectiva do mês, para ver e compartilhar.
+• Widget do Kash com o gasto de hoje e o que sobra no mês.
+• Lance pela foto da nota e guarde o comprovante.
+• Tags e modo viagem; quem me deve, com lembrete de cobrar.
+• Alertas de limite e resumo da semana.
+• Assinaturas encontradas; lançar mais rápido.
+• O teclado não cobre mais os campos.
 ```
 
 ### Descrição curta (até 80)
@@ -193,7 +205,7 @@ A versão 7 foi recusada porque o **telefone** (Perfil › Dados pessoais › Ce
 | Informações financeiras › **Histórico de compras** | Obrigatório | Funcionalidade do app |
 | Informações financeiras › **Outras informações financeiras** (saldos, cartões, faturas, metas) | Obrigatório | Funcionalidade do app |
 | Mensagens › **Outras mensagens no app** (perguntas ao assistente) | Opcional | Funcionalidade do app |
-| Fotos e vídeos › **Fotos** (foto do comprovante enviada ao assistente) — *Processado de forma temporária* = **sim** | Opcional | Funcionalidade do app |
+| Fotos e vídeos › **Fotos** (comprovante anexado ao lançamento, guardado; e a foto enviada ao assistente) — *Processado de forma temporária* = **não** | Opcional | Funcionalidade do app |
 | Atividade no app › **Interações com o app** | Opcional | Análise |
 | Informações e desempenho do app › **Registros de falhas** | Opcional | Análise |
 | Informações e desempenho do app › **Diagnóstico** | Opcional | Análise |
@@ -205,7 +217,8 @@ Por que cada um:
 - **Informações financeiras:** os lançamentos, saldos, cartões e metas, guardados no Supabase; um resumo vai para o assistente.
 - **Mensagens:** as perguntas ao assistente vão para a Anthropic, que processa por nós. Fornecedor que processa em nome do app **não** conta como compartilhamento para o Google.
 - **Atividade, falhas, diagnóstico e IDs de dispositivo:** Firebase Analytics, Crashlytics e Performance (o id de instância do app). São opcionais porque a pessoa desliga em Perfil › Compartilhar dados de uso.
-- **Fotos:** só a foto de comprovante que a pessoa escolhe mandar ao assistente; é reduzida no aparelho, vai para a Anthropic ler o lançamento e não é guardada (nem no aparelho, nem no Supabase). Por isso "processado de forma temporária".
+- **Fotos:** o comprovante que a pessoa anexa a um lançamento fica guardado no Supabase Storage (privado, apagado com a conta), por isso **não** é temporário. A foto enviada ao assistente vai para a Anthropic só para ler o lançamento.
+- **Quem me deve:** nomes e valores de quem deve à pessoa entram em **Outras informações financeiras** (ficam só na conta dela; o Kash não contata ninguém).
 - **Não coletados:** localização, contatos, arquivos (OFX, CSV e PDF são lidos no aparelho; do PDF só vai o texto dos lançamentos, já coberto em Informações financeiras) e ID de publicidade (desligado no `firebase.json`).
 
 Em **Conteúdo do app › ID de publicidade**, responda **Não**.
@@ -221,6 +234,8 @@ Use a mesma conta de demonstração das notas da Apple (e-mail e senha).
 **Antes dos builds**
 - [x] `pnpm typecheck`, `pnpm lint`, `pnpm test` e `pnpm test:backend` passando.
 - [x] Backend em produção: migração `20261022000000_bill_from_recurring` e função `assistant` com foto (publicados em 26/11).
+- [ ] Backend em produção **antes do app**: migrações `20261023000000_tags_travel`, `20261024000000_debts` e `20261025000000_attachments` (bucket `receipts`), e a função `delete-account` (apaga os comprovantes).
+- [ ] App Group `group.com.andreloureiro.kash` (widget com números): o primeiro `eas build -p ios` depois dele pode precisar ser interativo para o EAS registrar o grupo no app e na extensão do widget.
 - [x] `app.json` em **1.3.0** (a Apple fecha a versão depois de aprovada: builds 15 e 16 da 1.2.0 foram recusados no envio).
 
 **Builds e envio**

@@ -29,7 +29,8 @@ function askSettings(what: string) {
  * 1568 px de lado e JPEG 70% (fica em ~200–400 KB). Sem EXIF (não leva localização).
  * Devolve null se a pessoa cancelar ou negar a permissão.
  */
-export async function pickReceiptPhoto(source: PhotoSource): Promise<ReceiptPhoto | null> {
+export async function pickReceiptPhoto(source: PhotoSource, options: { maxSide?: number; compress?: number } = {}): Promise<ReceiptPhoto | null> {
+  const maxSide = options.maxSide ?? RECEIPT_MAX_SIDE;
   if (source === 'camera') {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
@@ -37,18 +38,18 @@ export async function pickReceiptPhoto(source: PhotoSource): Promise<ReceiptPhot
       return null;
     }
   }
-  const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1, exif: false, allowsEditing: false };
-  const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+  const pickerOptions: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1, exif: false, allowsEditing: false };
+  const result = source === 'camera' ? await ImagePicker.launchCameraAsync(pickerOptions) : await ImagePicker.launchImageLibraryAsync(pickerOptions);
   const asset = result.canceled ? null : result.assets?.[0];
   if (!asset) return null;
 
-  const w = asset.width || RECEIPT_MAX_SIDE;
-  const h = asset.height || RECEIPT_MAX_SIDE;
-  const scale = Math.min(1, RECEIPT_MAX_SIDE / Math.max(w, h));
+  const w = asset.width || maxSide;
+  const h = asset.height || maxSide;
+  const scale = Math.min(1, maxSide / Math.max(w, h));
   const ctx = ImageManipulator.manipulate(asset.uri);
   if (scale < 1) ctx.resize(w >= h ? { width: Math.round(w * scale) } : { height: Math.round(h * scale) });
   const rendered = await ctx.renderAsync();
-  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
+  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: options.compress ?? 0.7, base64: true });
   if (!saved.base64) return null;
   return { uri: saved.uri, image: { mediaType: 'image/jpeg', data: saved.base64 } };
 }

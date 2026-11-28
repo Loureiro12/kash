@@ -22,12 +22,16 @@ export interface TelemetryEvents {
   import_undo: Record<string, never>;
   /** assistente (Claude): pergunta enviada; `suggested` = tocou numa sugestão pronta */
   assistant_message: { suggested: boolean; photo?: boolean };
+  /** retrospectiva do mês compartilhada como imagem; `hidden` = sem os valores */
+  recap_shared: { hidden: boolean };
+  /** comprovante anexado a um lançamento */
+  attachment_added: Record<string, never>;
   /** lançamento proposto pelo assistente: mostrado, lançado direto, aberto para editar ou descartado */
   assistant_proposal: { action: 'shown' | 'saved' | 'edited' | 'dismissed' };
   /** "Zerar meus dados" concluído */
   reset_data: Record<string, never>;
   /** lançamento rápido aberto por atalho do iPhone (Back Tap, Siri, Atalhos) ou link */
-  quick_add: { kind: 'expense' | 'income'; via: 'shortcut' | 'link' };
+  quick_add: { kind: 'expense' | 'income' | 'text'; via: 'shortcut' | 'link' };
   /** site: clique no botão de uma loja */
   store_click: { store: 'app_store' | 'google_play'; placement: string };
 }

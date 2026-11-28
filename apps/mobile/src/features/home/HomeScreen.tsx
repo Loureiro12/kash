@@ -16,10 +16,10 @@ import {
   staticColors,
   useTheme,
 } from '@/design-system';
-import { forecastHeights, formatBRL, greetingFor, type BudgetPart } from '@kash/domain';
+import { activeTravelTag, forecastHeights, formatBRL, greetingFor, lastClosedMonth, tagSummary, type BudgetPart } from '@kash/domain';
 import { now } from '@/lib/clock';
 import { DATA_SOURCE } from '@/data/source';
-import { useForecast, useHomeSummary, useKashStore, useMoney, useOpenInvoices, usePeriodReport, useRecentTxs, useUpcomingBills } from '@/store';
+import { useForecast, useHomeSummary, useKashStore, useMoney, useMonthRecap, useOpenInvoices, usePeriodReport, useRecentTxs, useUpcomingBills } from '@/store';
 import { ChecklistCard } from '@/features/onboarding/ChecklistCard';
 import { AssistantFab } from '../assistant/AssistantFab';
 import { DataGate } from '../navigation/DataGate';
@@ -43,6 +43,13 @@ export function HomeScreen() {
   const recent = useRecentTxs(6);
   const today = usePeriodReport('day', 0);
   const week = usePeriodReport('week', 0);
+  // primeiros 7 dias do mês: a retrospectiva do mês que fechou
+  const recapMonth = lastClosedMonth(now());
+  const recap = useMonthRecap(recapMonth);
+  const showRecap = !!recap && now().getDate() <= 7;
+  // modo viagem ligado: faixa com o gasto da viagem até agora
+  const travelTag = useKashStore((s) => activeTravelTag(s.settings, now()));
+  const travelSpent = useKashStore((s) => (travelTag ? (tagSummary(s.txs, travelTag)?.spent ?? 0) : 0));
   const heights = forecastHeights(forecast, 10);
   const nextMonth = forecast[0];
   // até o snapshot chegar, nada do conteúdo (nem o nome) aparece: só o esqueleto
@@ -124,6 +131,47 @@ export function HomeScreen() {
           </View>
         ) : null}
       </Card>
+
+      {travelTag ? (
+        <Pressable
+          onPress={() => router.push({ pathname: '/tags/[tag]', params: { tag: travelTag } })}
+          accessibilityRole="button"
+          accessibilityLabel={`Modo viagem ${travelTag}, ${formatBRL(travelSpent)} até agora. Abrir`}
+          testID="home-travel"
+          style={{ marginTop: 12 }}
+        >
+          <Card padding={[12, 16]} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: colors.accentText }}>
+            <Icon name="target" size={18} color={colors.accentText} />
+            <Text variant="bodySemibold" style={{ flex: 1 }} numberOfLines={1}>
+              Modo viagem · {travelTag}
+            </Text>
+            <Text variant="value" testID="home-travel-spent">
+              {money(travelSpent)}
+            </Text>
+          </Card>
+        </Pressable>
+      ) : null}
+
+      {showRecap && recap ? (
+        <Pressable
+          onPress={() => router.push({ pathname: '/recap', params: { mes: recapMonth } })}
+          accessibilityRole="button"
+          accessibilityLabel={`Sua retrospectiva de ${recap.name} chegou. Abrir`}
+          testID="home-recap"
+          style={{ marginTop: 12 }}
+        >
+          <Card padding={16} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Icon name="sparkles" size={20} color={colors.accentText} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text variant="titleBold">Sua retrospectiva de {recap.name} chegou</Text>
+              <Text variant="meta" color="muted">
+                Quanto entrou, saiu e onde você mais gastou. Dá pra compartilhar.
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={colors.muted} />
+          </Card>
+        </Pressable>
+      ) : null}
 
       {/* Relatório do dia e da semana */}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
